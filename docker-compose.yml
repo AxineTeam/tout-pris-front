@@ -1,0 +1,23 @@
+# Développement : front Vite + backend FastAPI (tout-pris-back, buildé depuis
+# son dépôt Git). Front sur http://localhost:5173, /api proxyfié vers l'api.
+services:
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '5173:5173'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      BACKEND_URL: http://api:8000
+    depends_on:
+      - api
+
+  api:
+    build: https://github.com/Haelle/tout-pris-back.git
+    ports:
+      - '8000:8000'
+    environment:
+      DATABASE_URL: sqlite:///./tout_pris.db
