@@ -43,11 +43,14 @@ jobs:
           enable-cache: true
           cache-dependency-glob: back/uv.lock
 
+      # uvicorn est lancé via .venv/bin et pas `uv run` : un process uv qui
+      # reste en vie tient le verrou du cache uv et fait échouer le
+      # `uv cache prune` du post-job de setup-uv (timeout 300s).
       - name: Start backend
         working-directory: back
         run: |
           uv sync --locked
-          nohup uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
+          nohup .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
           for i in $(seq 1 30); do
             curl -fsS http://127.0.0.1:8000/health && break
             sleep 1
