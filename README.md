@@ -60,6 +60,12 @@ Les E2E tournent contre le vrai backend : lancez `tout-pris-back` au préalable
 (`make up` dans son dépôt, ou `uv run uvicorn app.main:app`). La CI fait de
 même en démarrant le back en service.
 
+Un devcontainer est fourni (`.devcontainer/`), basé sur le service compose
+`front` (`Dockerfile.dev`) : Node 22 et Playwright avec Chromium y sont
+préinstallés (navigateurs dans `/opt/pw-browsers`, hors du bind mount), donc
+`npm run test:e2e` fonctionne directement dans le conteneur — le back du
+compose est joignable via `BACKEND_URL=http://api:8000`.
+
 ## shadcn-svelte
 
 Les composants UI sont vendorés dans `src/lib/components/ui/` (voir

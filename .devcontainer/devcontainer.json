@@ -1,0 +1,27 @@
+{
+	"name": "tout-pris-front",
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "front",
+	"workspaceFolder": "/app",
+	"overrideCommand": true,
+	"forwardPorts": [5173, 4173],
+	"postCreateCommand": "npm ci",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"svelte.svelte-vscode",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+				"bradlc.vscode-tailwindcss",
+				"ms-playwright.playwright"
+			],
+			"settings": {
+				"editor.defaultFormatter": "esbenp.prettier-vscode",
+				"editor.formatOnSave": true,
+				"[svelte]": {
+					"editor.defaultFormatter": "esbenp.prettier-vscode"
+				}
+			}
+		}
+	}
+}
