@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check-and-test:
+    name: Check, Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check
+
+      - run: npx eslint .
+
+      - run: npx prettier --check .
+
+      - run: npm run test:unit -- --run
+
+      - run: npm run build
+
+      # E2E contre le vrai backend : tout-pris-back est lancé en service
+      # (pas d'enregistrement HTTP).
+      - name: Checkout tout-pris-back
+        uses: actions/checkout@v4
+        with:
+          repository: Haelle/tout-pris-back
+          path: back
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: back/uv.lock
+
+      - name: Start backend
+        working-directory: back
+        run: |
+          uv sync --locked
+          nohup uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/health
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: npx playwright test
+
+      - name: Backend logs on failure
+        if: failure()
+        run: cat back/uvicorn.log || true
+
+      - name: Docker build (production image)
+        run: docker build -t tout-pris-front:ci .
