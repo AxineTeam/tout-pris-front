@@ -30,6 +30,8 @@ export default defineConfig({
 			}
 		}
 	},
+	// Tests unitaires réservés aux composants (*.svelte.test.ts) — tout le
+	// reste est couvert en E2E par Playwright contre le vrai backend.
 	test: {
 		projects: [
 			{
@@ -41,16 +43,6 @@ export default defineConfig({
 					clearMocks: true,
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					setupFiles: ['./vitest-setup-client.ts']
-				}
-			},
-			{
-				extends: './vite.config.ts',
-				test: {
-					name: 'server',
-					environment: 'node',
-					clearMocks: true,
-					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}
 		]
