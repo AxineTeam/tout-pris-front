@@ -1,5 +1,5 @@
-# Développement : front Vite + backend FastAPI (tout-pris-back, buildé depuis
-# son dépôt Git). Front sur http://localhost:5173, /api proxyfié vers l'api.
+# Développement : front Vite + backend FastAPI (image dev de tout-pris-back).
+# Front sur http://localhost:5173, /api proxyfié vers l'api.
 services:
   front:
     build:
@@ -16,8 +16,6 @@ services:
       - api
 
   api:
-    build: https://github.com/Haelle/tout-pris-back.git
+    image: estb/tout-pris-back:dev
     ports:
       - '8000:8000'
-    environment:
-      DATABASE_URL: sqlite:///./tout_pris.db
