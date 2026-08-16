@@ -4,12 +4,21 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags:
+      - '*'
   workflow_dispatch:
 
 jobs:
   check-and-test:
-    name: Check, Build & Test
+    name: Check & Test
     runs-on: ubuntu-latest
+    services:
+      # E2E contre la vraie image du back, comme un service Woodpecker :
+      # tag dev sur branche/PR, tag x.y.z quand la CI tourne sur le tag x.y.z.
+      api:
+        image: estb/tout-pris-back:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'dev' }}
+        ports:
+          - 8000:8000
     steps:
       - uses: actions/checkout@v4
 
@@ -28,43 +37,60 @@ jobs:
 
       - run: npm run test:unit -- --run
 
-      - run: npm run build
-
-      # E2E contre le vrai backend : tout-pris-back est lancé en service
-      # (pas d'enregistrement HTTP).
-      - name: Checkout tout-pris-back
-        uses: actions/checkout@v4
-        with:
-          repository: Haelle/tout-pris-back
-          path: back
-
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          cache-dependency-glob: back/uv.lock
-
-      # uvicorn est lancé via .venv/bin et pas `uv run` : un process uv qui
-      # reste en vie tient le verrou du cache uv et fait échouer le
-      # `uv cache prune` du post-job de setup-uv (timeout 300s).
-      - name: Start backend
-        working-directory: back
-        run: |
-          uv sync --locked
-          nohup .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8000/health && break
-            sleep 1
-          done
-          curl -fsS http://127.0.0.1:8000/health
-
       - run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests
-        run: npx playwright test
+      - run: npm run test:e2e
 
-      - name: Backend logs on failure
-        if: failure()
-        run: cat back/uvicorn.log || true
+  build-image:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Docker build (production image)
-        run: docker build -t tout-pris-front:ci .
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release-docker:
+    name: Build & Push Docker image
+    needs: [check-and-test, build-image]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/tout-pris-front
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      # Merge sur main -> tag dev ; tag x.y.z -> même tag que l'image du back.
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
