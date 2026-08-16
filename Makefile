@@ -1,34 +1,43 @@
-.PHONY: install dev build check lint fmt test e2e up down docker-build
+.PHONY: help install dev build check lint fmt test e2e up down logs docker-build
 
-install:
+.DEFAULT_GOAL := help
+
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) |  awk 'BEGIN {FS = ":.*?## "} {printf "\033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+install: ## Install npm dependencies
 	npm ci
 
-dev:
+dev: ## Start the Vite dev server (backend expected on :8000)
 	npm run dev
 
-build:
+build: ## Build the static SPA into build/
 	npm run build
 
-check:
+check: ## Run svelte-check
 	npm run check
 
-lint:
-	npm run lint && npm run format:check
+lint: ## Check lint and formatting
+	npm run lint
+	npm run format:check
 
-fmt:
+fmt: ## Fix formatting
 	npm run format
 
-test:
+test: ## Run the unit test suite (components)
 	npm run test:unit -- --run
 
-e2e:
+e2e: ## Run Playwright e2e tests (backend must be running)
 	npm run test:e2e
 
-up:
+up: ## Start front dev + back (docker compose, ports 5173/8000)
 	docker compose up -d
 
-down:
+down: ## Stop the compose stack
 	docker compose down
 
-docker-build:
+logs: ## Follow the front container logs
+	docker compose logs -f front
+
+docker-build: ## Build the production image
 	docker build -t tout-pris-front .
