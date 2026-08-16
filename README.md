@@ -51,14 +51,18 @@ make down
 npm run check        # svelte-check
 npm run lint         # eslint
 npm run format       # prettier --write
-npm run test:unit    # vitest (composants jsdom + modules node)
+npm run test:unit    # vitest — composants uniquement (*.svelte.test.ts, jsdom)
 npm run test:e2e     # playwright — nécessite le back sur :8000
 npm run build        # SPA statique dans build/
 ```
 
-Les E2E tournent contre le vrai backend : lancez `tout-pris-back` au préalable
-(`make up` dans son dépôt, ou `uv run uvicorn app.main:app`). La CI fait de
-même en démarrant le back en service.
+Politique de tests : les tests unitaires ne couvrent que les composants ; tout
+le reste (client API, flux complets) est couvert en E2E contre le vrai backend.
+Lancez `tout-pris-back` au préalable (`make up` ici ou dans son dépôt). La CI
+fait de même avec l'image `tout-pris-back` en service : tag `dev` sur les
+branches et PRs, tag `x.y.z` quand la CI tourne sur un tag de release — le
+front publie alors son image avec le même tag que le back, plus un tag `dev` à
+chaque merge sur `main`.
 
 Un devcontainer est fourni (`.devcontainer/`), basé sur le service compose
 `front` (`Dockerfile.dev`) : Node 22 et Playwright avec Chromium y sont

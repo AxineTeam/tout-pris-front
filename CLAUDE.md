@@ -31,7 +31,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - `src/lib/components/` : composants métier ; `src/lib/components/ui/` : shadcn-svelte vendoré (`npx shadcn-svelte@latest add <component>`, config dans `components.json`)
 - `src/lib/utils.ts` : `cn()` et types utilitaires shadcn
 - `src/app.css` : import Tailwind + thème (variables clair/sombre)
-- Tests unitaires à côté du code (`*.test.ts` en node, `*.svelte.test.ts` en jsdom — projets Vitest dans `vite.config.ts`), E2E dans `e2e/`
+- Tests unitaires à côté du code (`*.svelte.test.ts` en jsdom — projet Vitest dans `vite.config.ts`), E2E dans `e2e/`
 - `nginx/toutpris.conf` : conf de l'image de prod (fallback SPA)
 
 ## Commandes
@@ -71,10 +71,11 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 
 ## Tests
 
+- Tests unitaires uniquement pour les composants (`*.svelte.test.ts`) ; tout le reste (client API, flux complets) est couvert en E2E
 - Lance uniquement les tests pertinents, pas toute la suite
 - Lance toute la suite (`make test`, et `make e2e` si le back est disponible) une fois que tu penses avoir fini
 - Utilise la TDD quand c'est pertinent, demande si nécessaire
-- Pas d'enregistrement HTTP : en unitaire, mocke `fetch` ; en E2E, toujours le vrai backend en service, jamais de mock ni de tapes
+- Pas d'enregistrement HTTP : en E2E, toujours le vrai backend en service (image Docker `tout-pris-back:dev`, ou le tag x.y.z correspondant sur une release), jamais de mock ni de tapes
 - Les E2E doivent nettoyer ce qu'ils créent (noms uniques, suppression en fin de test)
 
 ## Sécurité
