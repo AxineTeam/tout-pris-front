@@ -26,8 +26,9 @@ export default ts.config(
 		}
 	},
 	{
-		// SPA statique — pas de SSR, resolve() non applicable
-		files: ['src/**/*.svelte', 'src/**/*.svelte.ts', 'src/**/*.ts'],
+		// Composants shadcn vendorés : le href est un prop générique passé par
+		// l'appelant, c'est à lui de le résoudre.
+		files: ['src/lib/components/ui/**'],
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off'
 		}

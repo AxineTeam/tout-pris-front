@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
@@ -13,7 +14,7 @@
 <div class="bg-background text-foreground min-h-screen">
 	<header class="border-b">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
-			<a href="/" class="text-lg font-semibold tracking-tight">Tout Pris</a>
+			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
 		</div>
 	</header>
 	<main class="mx-auto max-w-3xl px-4 py-8">

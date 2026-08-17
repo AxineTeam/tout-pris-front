@@ -7,7 +7,9 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 
-	let stufflists = $state<StuffList[]>([]);
+	// $state.raw : les listes viennent du backend et sont toujours réassignées,
+	// jamais mutées — inutile de payer le proxy de réactivité profonde.
+	let stufflists = $state.raw<StuffList[]>([]);
 	let newName = $state('');
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -47,9 +49,7 @@
 		}
 	}
 
-	$effect(() => {
-		refresh();
-	});
+	refresh();
 </script>
 
 <div class="space-y-6">
