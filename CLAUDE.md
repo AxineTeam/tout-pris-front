@@ -24,6 +24,13 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Backend : [tout-pris-back](https://github.com/Haelle/tout-pris-back) (FastAPI), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `BACKEND_URL` en dev/preview, pas de CORS
 - Docker + docker compose (front + back), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
 
+## Skills
+
+- Les skills du dépôt sont dans `.claude/skills/` et sont à utiliser, pas seulement à lister
+- `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts`, et à suivre en entier — les instructions et exemples du skill, pas seulement l'autofixer
+- `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que le back
+- Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain et rappelle ces skills dans les sessions Claude Code web
+
 ## Structure
 
 - `src/routes/` : pages (`+page.svelte`), layout et désactivation SSR (`+layout.svelte`, `+layout.ts`)
