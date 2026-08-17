@@ -59,6 +59,11 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Ces principes s'appliquent à tout code produit : applicatif, scripts, configuration, infrastructure
 - En markdown, pas de retour à la ligne dur — une ligne par paragraphe
 - Runes uniquement : jamais de `export let`, stores ou syntaxe legacy Svelte 4 ; ne modifie pas les composants vendorés de `src/lib/components/ui/` sauf demande explicite
+- `$effect` est une trappe de secours : pas d'effet pour dériver (`$derived`), pour réagir à une interaction (gestionnaire d'événement) ni pour charger des données au montage (appel direct dans le `<script>`, le SSR étant désactivé)
+- `$state.raw` pour les données du backend : elles sont réassignées, jamais mutées — inutile de payer le proxy de réactivité profonde
+- Liens internes via `resolve()` de `$app/paths`, jamais de `href` en dur : le front peut être servi sous un sous-chemin par le reverse proxy
+- Blocs `{#each}` toujours keyés sur un identifiant stable, jamais l'index
+- Avant de finaliser un composant, lance l'autofixer officiel : `npx @sveltejs/mcp svelte-autofixer <fichier>` (skill `svelte-code-writer`)
 
 ## Git
 
