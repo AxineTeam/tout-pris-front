@@ -29,7 +29,8 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Les skills du dépôt sont dans `.claude/skills/` et sont à utiliser, pas seulement à lister
 - `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts`, et à suivre en entier — les instructions et exemples du skill, pas seulement l'autofixer
 - `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que le back
-- Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain et rappelle ces skills dans les sessions Claude Code web
+- Le chargement est automatique : Claude Code liste les skills du dépôt et charge chacun quand sa `description` correspond à la tâche — inutile de les rappeler à chaque session
+- Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain dans les sessions Claude Code web
 
 ## Structure
 
