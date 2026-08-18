@@ -85,6 +85,11 @@ npx shadcn-svelte@latest add <component>
 SPA (`nginx/toutpris.conf`). L'image n'a aucune configuration au runtime : le
 routage `/api` est du ressort du reverse proxy commun avec le back.
 
+L'image publiée est multi-architecture (`linux/amd64` et `linux/arm64`), donc
+déployable sur un Raspberry Pi. Le build de la SPA tourne en natif sur le
+runner (`--platform=$BUILDPLATFORM`), seule l'image finale est construite par
+architecture.
+
 ```bash
 make docker-build
 docker run --rm -p 8080:80 tout-pris-front
