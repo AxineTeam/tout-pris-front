@@ -74,30 +74,38 @@ export interface AuthError {
 	param?: string;
 }
 
-export interface AuthResponse {
+export interface SessionData {
+	user?: AuthUser;
+	flows?: AuthFlow[];
+}
+
+export interface AuthResponse<T = SessionData> {
 	status: number;
-	data?: { user?: AuthUser; flows?: AuthFlow[] };
+	data?: T;
 	meta?: { is_authenticated?: boolean };
 	errors?: AuthError[];
 }
 
-function isAuthResponse(body: unknown): body is AuthResponse {
+function isAuthResponse(body: unknown): body is AuthResponse<unknown> {
 	return (
 		typeof body === 'object' && body !== null && typeof (body as AuthResponse).status === 'number'
 	);
 }
 
-export async function authRequest(path: string, init: RequestInit = {}): Promise<AuthResponse> {
+export async function authRequest<T = SessionData>(
+	path: string,
+	init: RequestInit = {}
+): Promise<AuthResponse<T>> {
 	const method = methodOf(init);
 	const response = await send(`${AUTH_BASE}${path}`, init);
 	const body = await response.json().catch(() => null);
 	if (!isAuthResponse(body)) {
 		throw new ApiError(response.status, `${method} ${path} → ${response.status}`);
 	}
-	return body;
+	return body as AuthResponse<T>;
 }
 
-export function authErrors(response: AuthResponse): AuthError[] {
+export function authErrors(response: AuthResponse<unknown>): AuthError[] {
 	if (response.errors) return response.errors;
 	if (response.status === 200 || response.meta) return [];
 	if (response.status === 429) {
@@ -154,6 +162,44 @@ export interface Health {
 
 export function getHealth(): Promise<Health> {
 	return request('/health/');
+}
+
+export interface EmailAddress {
+	email: string;
+	verified: boolean;
+	primary: boolean;
+}
+
+type Emails = Promise<AuthResponse<EmailAddress[]>>;
+
+export function listEmails(): Emails {
+	return authRequest('/account/email');
+}
+
+export function addEmail(email: string): Emails {
+	return authRequest('/account/email', { method: 'POST', body: JSON.stringify({ email }) });
+}
+
+export function makeEmailPrimary(email: string): Emails {
+	return authRequest('/account/email', {
+		method: 'PATCH',
+		body: JSON.stringify({ email, primary: true })
+	});
+}
+
+export function removeEmail(email: string): Emails {
+	return authRequest('/account/email', { method: 'DELETE', body: JSON.stringify({ email }) });
+}
+
+export function resendEmailVerification(email: string): Emails {
+	return authRequest('/account/email', { method: 'PUT', body: JSON.stringify({ email }) });
+}
+
+export function changePassword(current: string, renewed: string): Promise<AuthResponse> {
+	return authRequest('/account/password/change', {
+		method: 'POST',
+		body: JSON.stringify({ current_password: current, new_password: renewed })
+	});
 }
 
 export interface Household {

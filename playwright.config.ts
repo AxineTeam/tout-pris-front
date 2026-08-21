@@ -9,12 +9,14 @@ import { defineConfig } from '@playwright/test';
 // où le téléchargement est indisponible).
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 
+export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:4173';
+
 export default defineConfig({
 	testDir: 'e2e',
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
 	use: {
-		baseURL: 'http://localhost:4173',
+		baseURL: BASE_URL,
 		...(executablePath ? { launchOptions: { executablePath } } : {})
 	},
 	webServer: {
