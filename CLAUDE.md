@@ -27,9 +27,10 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 ## Skills
 
 - Les skills du dépôt sont dans `.claude/skills/` et sont à utiliser, pas seulement à lister
-- `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts`, et à suivre en entier — les instructions et exemples du skill, pas seulement l'autofixer
+- `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts` — relire une PR est une analyse — et à suivre en entier, les instructions et exemples du skill, pas seulement l'autofixer
 - `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que le back
-- Le chargement est automatique : Claude Code liste les skills du dépôt et charge chacun quand sa `description` correspond à la tâche — inutile de les rappeler à chaque session
+- Ne compte pas sur le chargement automatique : Claude Code ne charge un skill que si sa `description` accroche la tâche, et « relis cette PR » n'accroche rien — charge-les explicitement en début de tâche, avant de lire le diff
+- Relire une PR, c'est charger `code-reviewer`, plus les skills Svelte dès que le diff touche un `.svelte` / `.svelte.ts`, plus `security-reviewer` s'il touche l'authentification, les cookies ou les entrées utilisateur
 - Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain dans les sessions Claude Code web
 
 ## Structure
