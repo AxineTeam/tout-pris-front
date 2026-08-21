@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, address, logIn, signUp } from './account';
+import { PASSWORD, address, logIn, sharedAccount, signUp } from './account';
 import { forget, waitForPath } from './mailpit';
 
 test('inscription, vérification de l’adresse, puis déconnexion', async ({ page }) => {
@@ -90,14 +90,7 @@ test('une demande de réinitialisation refusée ne prétend pas avoir envoyé', 
 });
 
 test('une destination externe passée dans next est ignorée', async ({ page }) => {
-	const email = address('next');
-
-	await signUp(page, email);
-	await page.goto(await waitForPath(email, '/account/verify-email/'));
-	await page.getByRole('button', { name: 'Confirmer mon adresse' }).click();
-	await expect(page.getByTestId('verified-signed-in')).toBeVisible();
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	const email = await sharedAccount();
 
 	for (const destination of EXTERNAL_DESTINATIONS) {
 		await page.goto(`/account/login?next=${encodeURIComponent(destination)}`);
@@ -109,6 +102,4 @@ test('une destination externe passée dans next est ignorée', async ({ page }) 
 		await page.getByRole('button', { name: 'Se déconnecter' }).click();
 		await expect(page).toHaveURL('/account/login');
 	}
-
-	await forget(email);
 });
