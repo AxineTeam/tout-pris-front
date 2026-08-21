@@ -1,7 +1,7 @@
 # tout-pris-front
 
 Frontend SvelteKit for Tout Pris — SPA statique servie par nginx, consommant l'API
-[tout-pris-back](https://github.com/Haelle/tout-pris-back) (FastAPI).
+[tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF).
 
 ## Stack
 
@@ -26,10 +26,16 @@ Le front et le back sont servis depuis la **même origine** (même reverse proxy
 nginx que tout-pris-back), donc pas de CORS : le client API utilise le chemin
 relatif `/api` (`src/lib/api.ts`).
 
-- **Production** : le reverse proxy en amont route `/api` vers FastAPI et le
+- **Production** : le reverse proxy en amont route `/api` vers Django et le
   reste vers cette SPA.
 - **Dev / preview** : le proxy Vite (`vite.config.ts`) redirige `/api` vers
-  `BACKEND_URL` (`http://localhost:8000` par défaut) en retirant le préfixe.
+  `BACKEND_URL` (`http://localhost:8000` par défaut) sans toucher au chemin :
+  Django sert ses routes sous `/api/`, préfixe compris.
+
+La session est portée par le cookie `sessionid` d'allauth, `httpOnly` : le
+client envoie `credentials: 'same-origin'`, et recopie le cookie `csrftoken`
+dans l'en-tête `X-CSRFToken` sur toute méthode non sûre, faute de quoi Django
+répond `403` avant d'atteindre la vue.
 
 ## Quickstart
 
