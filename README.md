@@ -37,6 +37,14 @@ client envoie `credentials: 'same-origin'`, et recopie le cookie `csrftoken`
 dans l'en-tête `X-CSRFToken` sur toute méthode non sûre, faute de quoi Django
 répond `403` avant d'atteindre la vue.
 
+## Emails
+
+Les liens de vérification d'adresse et de réinitialisation de mot de passe sont
+composés par le back à partir de `FRONTEND_URL` et pointent vers ce front. En
+développement comme en CI, les emails partent vers
+[Mailpit](https://mailpit.axllent.org) : interface sur <http://localhost:8025>,
+et c'est son API HTTP que lisent les tests E2E pour suivre les liens.
+
 ## Quickstart
 
 ```bash

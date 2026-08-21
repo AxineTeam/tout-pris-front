@@ -97,6 +97,15 @@ export async function authRequest(path: string, init: RequestInit = {}): Promise
 	return body;
 }
 
+export function authErrors(response: AuthResponse): AuthError[] {
+	if (response.errors) return response.errors;
+	if (response.status === 200 || response.meta) return [];
+	if (response.status === 429) {
+		return [{ message: 'Trop de tentatives, réessaie dans une minute.', code: 'rate_limited' }];
+	}
+	return [{ message: 'Le backend a refusé la demande.', code: 'refused' }];
+}
+
 export function readSession(): Promise<AuthResponse> {
 	return authRequest('/auth/session');
 }
@@ -111,6 +120,32 @@ export function signUp(email: string, password: string): Promise<AuthResponse> {
 
 export function logOut(): Promise<AuthResponse> {
 	return authRequest('/auth/session', { method: 'DELETE' });
+}
+
+export function readEmailVerification(key: string): Promise<AuthResponse> {
+	return authRequest('/auth/email/verify', { headers: { 'X-Email-Verification-Key': key } });
+}
+
+export function verifyEmail(key: string): Promise<AuthResponse> {
+	return authRequest('/auth/email/verify', { method: 'POST', body: JSON.stringify({ key }) });
+}
+
+export function requestPasswordReset(email: string): Promise<AuthResponse> {
+	return authRequest('/auth/password/request', {
+		method: 'POST',
+		body: JSON.stringify({ email })
+	});
+}
+
+export function readPasswordReset(key: string): Promise<AuthResponse> {
+	return authRequest('/auth/password/reset', { headers: { 'X-Password-Reset-Key': key } });
+}
+
+export function resetPassword(key: string, password: string): Promise<AuthResponse> {
+	return authRequest('/auth/password/reset', {
+		method: 'POST',
+		body: JSON.stringify({ key, password })
+	});
 }
 
 export interface Health {
