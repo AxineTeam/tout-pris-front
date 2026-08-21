@@ -21,7 +21,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Tailwind CSS v4 CSS-first (thème dans `src/app.css`, plugin `@tailwindcss/vite`), shadcn-svelte vendoré dans `src/lib/components/ui/`
 - Node 22 LTS partout (`.nvmrc`, `engines` strict), dépendances npm (`package-lock.json`)
 - Vitest + @testing-library/svelte en unitaire, Playwright en E2E contre le vrai backend, svelte-check + ESLint + Prettier en qualité
-- Backend : [tout-pris-back](https://github.com/Haelle/tout-pris-back) (FastAPI), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `BACKEND_URL` en dev/preview, pas de CORS
+- Backend : [tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `BACKEND_URL` en dev/preview sans réécriture de chemin, pas de CORS
 - Docker + docker compose (front + back), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
 
 ## Skills
@@ -35,7 +35,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 ## Structure
 
 - `src/routes/` : pages (`+page.svelte`), layout et désactivation SSR (`+layout.svelte`, `+layout.ts`)
-- `src/lib/api.ts` : client HTTP typé du backend (types alignés sur son `openapi.json`)
+- `src/lib/api.ts` : client HTTP typé du backend — types alignés sur son `openapi.yaml` pour le domaine et sur la spec servie par allauth sur `/api/auth/openapi.yaml` pour l'authentification ; porte le cookie de session et le jeton CSRF
 - `src/lib/components/` : composants métier ; `src/lib/components/ui/` : shadcn-svelte vendoré (`npx shadcn-svelte@latest add <component>`, config dans `components.json`)
 - `src/lib/utils.ts` : `cn()` et types utilitaires shadcn
 - `src/app.css` : import Tailwind + thème (variables clair/sombre)

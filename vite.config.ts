@@ -4,9 +4,12 @@ import tailwindcss from '@tailwindcss/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineConfig } from 'vitest/config';
 
-// En dev et en preview, /api est proxyfié vers le backend FastAPI
+// En dev et en preview, /api est proxyfié vers le backend Django
 // (tout-pris-back). En production le reverse proxy nginx joue ce rôle,
 // le front et le back étant servis depuis la même origine (pas de CORS).
+// Le préfixe /api n'est pas retiré : Django sert ses routes sous /api/, et
+// l'en-tête Host n'est pas réécrit : Django compare l'Origin du navigateur à
+// l'hôte de la requête pour le CSRF, comme nginx qui préserve le Host.
 const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:8000';
 
 export default defineConfig({
@@ -24,9 +27,7 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: backendUrl,
-				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/api/, '')
+				target: backendUrl
 			}
 		}
 	},

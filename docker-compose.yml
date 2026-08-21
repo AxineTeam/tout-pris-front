@@ -1,4 +1,4 @@
-# Développement : front Vite + backend FastAPI (image dev de tout-pris-back).
+# Développement : front Vite + backend Django (image dev de tout-pris-back).
 # Front sur http://localhost:5173, /api proxyfié vers l'api.
 services:
   front:
