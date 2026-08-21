@@ -1,25 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { PASSWORD, address, logIn, signUp } from './account';
 import { forget, waitForPath } from './mailpit';
-
-const PASSWORD = 'correct-horse-battery-staple';
-
-function address(prefix: string): string {
-	return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
-}
-
-async function signUp(page: Page, email: string) {
-	await page.goto('/account/signup');
-	await page.getByLabel('Adresse email').fill(email);
-	await page.getByLabel('Mot de passe').fill(PASSWORD);
-	await page.getByRole('button', { name: 'Créer mon compte' }).click();
-	await expect(page.getByTestId('verification-pending')).toBeVisible();
-}
-
-async function logIn(page: Page, email: string, password: string) {
-	await page.getByLabel('Adresse email').fill(email);
-	await page.getByLabel('Mot de passe').fill(password);
-	await page.getByRole('button', { name: 'Se connecter' }).click();
-}
 
 test('inscription, vérification de l’adresse, puis déconnexion', async ({ page }) => {
 	const email = address('journey');
@@ -77,7 +58,7 @@ test('réinitialisation du mot de passe de bout en bout', async ({ page }) => {
 
 	await page.goto('/account/login');
 	await logIn(page, email, renewed);
-	await expect(page).toHaveURL('/');
+	await expect(page).toHaveURL(/\/households\/\d+$/);
 	await expect(page.getByTestId('account-email')).toHaveText(email);
 
 	await forget(email);
@@ -122,7 +103,7 @@ test('une destination externe passée dans next est ignorée', async ({ page }) 
 		await page.goto(`/account/login?next=${encodeURIComponent(destination)}`);
 		await logIn(page, email, PASSWORD);
 
-		await expect(page).toHaveURL('/');
+		await expect(page).toHaveURL(/\/households\/\d+$/);
 		await expect(page.getByTestId('account-email')).toHaveText(email);
 
 		await page.getByRole('button', { name: 'Se déconnecter' }).click();
