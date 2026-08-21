@@ -155,3 +155,13 @@ export interface Health {
 export function getHealth(): Promise<Health> {
 	return request('/health/');
 }
+
+export interface Household {
+	id: number;
+	name: string;
+	personal: boolean;
+}
+
+export function listHouseholds(): Promise<Household[]> {
+	return request('/households/');
+}
