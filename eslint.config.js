@@ -34,6 +34,14 @@ export default ts.config(
 		}
 	},
 	{
+		// La destination d'après connexion est un chemin calculé à l'exécution,
+		// déjà validé comme local ici : resolve() ne prend que des ids de route.
+		files: ['src/lib/navigation.ts'],
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off'
+		}
+	},
+	{
 		// Global declarations
 		files: ['src/app.d.ts'],
 		rules: {
