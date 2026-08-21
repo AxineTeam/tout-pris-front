@@ -1,5 +1,13 @@
 import { invalidateAll } from '$app/navigation';
-import { logIn, logOut, readSession, signUp, type AuthResponse, type AuthUser } from '$lib/api.js';
+import {
+	logIn,
+	logOut,
+	readSession,
+	signUp,
+	verifyEmail,
+	type AuthResponse,
+	type AuthUser
+} from '$lib/api.js';
 
 class Session {
 	user = $state.raw<AuthUser | null>(null);
@@ -27,6 +35,10 @@ class Session {
 
 	async signUp(email: string, password: string): Promise<AuthResponse> {
 		return this.#apply(await signUp(email, password));
+	}
+
+	async verifyEmail(key: string): Promise<AuthResponse> {
+		return this.#apply(await verifyEmail(key));
 	}
 
 	async logOut(): Promise<void> {

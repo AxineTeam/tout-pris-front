@@ -8,22 +8,19 @@
 
 	let {
 		submitLabel,
-		passwordAutocomplete,
 		onsubmit
 	}: {
 		submitLabel: string;
-		passwordAutocomplete: 'current-password' | 'new-password';
-		onsubmit: (email: string, password: string) => Promise<AuthError[]>;
+		onsubmit: (email: string) => Promise<AuthError[]>;
 	} = $props();
 
 	const submission = new Submission();
 	let email = $state('');
-	let password = $state('');
-	let canSubmit = $derived(email.trim().length > 0 && password.length > 0 && !submission.busy);
+	let canSubmit = $derived(email.trim().length > 0 && !submission.busy);
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (canSubmit) submission.run(() => onsubmit(email.trim(), password));
+		if (canSubmit) submission.run(() => onsubmit(email.trim()));
 	}
 </script>
 
@@ -33,17 +30,6 @@
 	<div class="grid gap-2">
 		<Label for="email">Adresse email</Label>
 		<Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
-	</div>
-
-	<div class="grid gap-2">
-		<Label for="password">Mot de passe</Label>
-		<Input
-			id="password"
-			name="password"
-			type="password"
-			autocomplete={passwordAutocomplete}
-			bind:value={password}
-		/>
 	</div>
 
 	<Button type="submit" disabled={!canSubmit}>{submitLabel}</Button>
