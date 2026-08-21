@@ -1,10 +1,21 @@
 <script lang="ts">
 	import '../app.css';
 	import type { Snippet } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
+	import { onSessionExpired } from '$lib/api.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { session } from '$lib/session.svelte.js';
 
 	let { children }: { children: Snippet } = $props();
+
+	onSessionExpired(() => session.expire());
+
+	async function disconnect() {
+		await session.logOut();
+		await goto(resolve('/account/login'));
+	}
 </script>
 
 <svelte:head>
@@ -16,6 +27,12 @@
 	<header class="border-b">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
 			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
+			{#if session.authenticated}
+				<span class="text-muted-foreground ml-auto text-sm" data-testid="account-email">
+					{session.user?.email}
+				</span>
+				<Button variant="outline" size="sm" onclick={disconnect}>Se déconnecter</Button>
+			{/if}
 		</div>
 	</header>
 	<main class="mx-auto max-w-3xl px-4 py-8">
