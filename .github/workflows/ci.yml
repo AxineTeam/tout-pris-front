@@ -13,10 +13,21 @@ jobs:
     name: Check & Test
     runs-on: ubuntu-latest
     services:
+      # Les emails du back (vérification d'adresse, réinitialisation) partent
+      # vers Mailpit, dont l'API HTTP est lue par les E2E pour suivre les liens.
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
       # E2E contre la vraie image du back, comme un service Woodpecker :
       # tag dev sur branche/PR, tag x.y.z quand la CI tourne sur le tag x.y.z.
       api:
         image: estb/tout-pris-back:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'dev' }}
+        env:
+          EMAIL_HOST: mailpit
+          EMAIL_PORT: 1025
         ports:
           - 8000:8000
     steps:

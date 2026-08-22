@@ -2,14 +2,16 @@
 	import { resolve } from '$app/paths';
 	import CredentialsForm from '$lib/components/CredentialsForm.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import { authErrors } from '$lib/api.js';
 	import { session, verificationPending } from '$lib/session.svelte.js';
 
 	let pending = $state(false);
 
 	async function submit(email: string, password: string) {
 		const response = await session.signUp(email, password);
-		pending = verificationPending(response);
-		return response.errors ?? [];
+		const errors = authErrors(response);
+		pending = errors.length === 0 && verificationPending(response);
+		return errors;
 	}
 </script>
 
