@@ -6,6 +6,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { households } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
 
 	let { children }: { children: Snippet } = $props();
@@ -14,6 +15,7 @@
 
 	async function disconnect() {
 		await session.logOut();
+		households.reset();
 		await goto(resolve('/account/login'));
 	}
 </script>
