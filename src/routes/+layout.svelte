@@ -30,9 +30,13 @@
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
 			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
 			{#if session.authenticated}
-				<span class="text-muted-foreground ml-auto text-sm" data-testid="account-email">
+				<a
+					class="text-muted-foreground ml-auto text-sm underline"
+					href={resolve('/(app)/me')}
+					data-testid="account-email"
+				>
 					{session.user?.email}
-				</span>
+				</a>
 				<Button variant="outline" size="sm" onclick={disconnect}>Se déconnecter</Button>
 			{/if}
 		</div>
