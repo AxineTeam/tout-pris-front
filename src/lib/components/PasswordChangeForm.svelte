@@ -2,8 +2,8 @@
 	import type { AuthError } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -39,17 +39,22 @@
 
 	<div class="grid gap-2">
 		<Label for="current-password">Mot de passe actuel</Label>
-		<Input
+		<PasswordInput
 			id="current-password"
-			type="password"
 			autocomplete="current-password"
+			describes="le mot de passe actuel"
 			bind:value={current}
 		/>
 	</div>
 
 	<div class="grid gap-2">
 		<Label for="new-password">Nouveau mot de passe</Label>
-		<Input id="new-password" type="password" autocomplete="new-password" bind:value={renewed} />
+		<PasswordInput
+			id="new-password"
+			autocomplete="new-password"
+			describes="le nouveau mot de passe"
+			bind:value={renewed}
+		/>
 	</div>
 
 	<Button type="submit" disabled={!canSubmit}>Changer mon mot de passe</Button>

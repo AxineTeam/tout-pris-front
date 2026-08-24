@@ -10,13 +10,13 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 	await page.goto('/me');
 	await expect(page.getByTestId('account-display')).toHaveText(email.split('@')[0]);
 
-	await page.getByLabel('Mot de passe actuel').fill('pas-le-bon');
-	await page.getByLabel('Nouveau mot de passe').fill(renewed);
+	await page.getByLabel('Mot de passe actuel', { exact: true }).fill('pas-le-bon');
+	await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(renewed);
 	await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
 	await expect(page.getByRole('alert')).toContainText('current password');
 
-	await page.getByLabel('Mot de passe actuel').fill(PASSWORD);
-	await page.getByLabel('Nouveau mot de passe').fill(renewed);
+	await page.getByLabel('Mot de passe actuel', { exact: true }).fill(PASSWORD);
+	await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(renewed);
 	await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
 	await expect(page.getByTestId('password-changed')).toBeVisible();
 
@@ -25,6 +25,20 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 	await expect(page).toHaveURL(/\/households\/\d+$/);
 
 	await forget(email);
+});
+
+test('chaque œil de l’écran nomme le champ qu’il dévoile', async ({ page }) => {
+	await signInShared(page);
+	await page.goto('/me');
+
+	const current = page.getByLabel('Mot de passe actuel', { exact: true });
+	await page.getByRole('button', { name: 'Afficher le mot de passe actuel' }).click();
+
+	await expect(current).toHaveAttribute('type', 'text');
+	await expect(page.getByLabel('Nouveau mot de passe', { exact: true })).toHaveAttribute(
+		'type',
+		'password'
+	);
 });
 
 test('ajouter puis supprimer une adresse secondaire', async ({ page }) => {

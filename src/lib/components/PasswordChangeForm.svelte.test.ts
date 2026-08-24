@@ -22,6 +22,14 @@ describe('PasswordChangeForm', () => {
 		expect(submit).toBeDisabled();
 	});
 
+	it('distingue les deux boutons qui dévoilent un mot de passe', () => {
+		render(PasswordChangeForm, { props: { onsubmit: vi.fn() } });
+
+		expect(
+			screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))
+		).toEqual(['Afficher le mot de passe actuel', 'Afficher le nouveau mot de passe', null]);
+	});
+
 	it('vide les champs et confirme après un changement réussi', async () => {
 		const user = userEvent.setup();
 		const onsubmit = vi.fn().mockResolvedValue([]);

@@ -48,7 +48,7 @@ export function sharedAccount(): Promise<string> {
 
 export async function logIn(page: Page, email: string, password: string) {
 	await page.getByLabel('Adresse email').fill(email);
-	await page.getByLabel('Mot de passe').fill(password);
+	await page.getByLabel('Mot de passe', { exact: true }).fill(password);
 	await page.getByRole('button', { name: 'Se connecter' }).click();
 }
 
@@ -63,7 +63,7 @@ export async function signInShared(page: Page): Promise<string> {
 export async function signUp(page: Page, email: string) {
 	await page.goto('/account/signup');
 	await page.getByLabel('Adresse email').fill(email);
-	await page.getByLabel('Mot de passe').fill(PASSWORD);
+	await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD);
 	await page.getByRole('button', { name: 'Créer mon compte' }).click();
 	await expect(page.getByTestId('verification-pending')).toBeVisible();
 }

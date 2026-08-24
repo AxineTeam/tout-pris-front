@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -37,11 +38,11 @@
 
 	<div class="grid gap-2">
 		<Label for="password">Mot de passe</Label>
-		<Input
+		<PasswordInput
 			id="password"
 			name="password"
-			type="password"
 			autocomplete={passwordAutocomplete}
+			describes="le mot de passe"
 			bind:value={password}
 		/>
 	</div>
