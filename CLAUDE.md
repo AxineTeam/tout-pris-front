@@ -80,6 +80,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Ne committe jamais des fichiers que tu n'as ni écrits ni modifiés : c'est peut-être le travail d'un autre agent
 - Titre de commit en anglais, au présent impératif ; le corps doit être assez explicite et détaillé pour comprendre le changement sans contexte
 - Préfère les commits atomiques (un changement logique = un commit)
+- Une PR ne ferme son issue que sur un mot-clé anglais en début de ligne (`Closes #12`, `Fixes #12`, `Resolves #12`) : « Ferme #12 » ne crée aucun lien et laisse l'issue ouverte après le merge, même si le reste du corps est en français
 - Résous les conflits de PR par rebase sur `main`, jamais en mergeant `main` dans la branche : le repo merge en rebase-merge, qui jette les commits de merge et leurs résolutions (« Unable to merge » sinon)
 - Quand le dev est fini, `git fetch origin main` et vérifie que la branche est rebasable sans conflit sur `main` ; si `main` a avancé, rebase et re-pousse avant de considérer la PR prête
 
