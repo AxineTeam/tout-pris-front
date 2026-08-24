@@ -1,4 +1,4 @@
-import { listHouseholds, type Household } from '$lib/api.js';
+import { listHouseholds, type Household, type Member } from '$lib/api.js';
 
 const LAST_VISITED = 'tout-pris:household';
 
@@ -51,6 +51,10 @@ class Households {
 }
 
 export const households = new Households();
+
+export function isOwner(members: Member[], user: number | undefined): boolean {
+	return members.some((member) => member.user === user && member.role === 'owner');
+}
 
 export function householdLabel(household: Household): string {
 	return household.personal ? 'Personnel' : household.name;

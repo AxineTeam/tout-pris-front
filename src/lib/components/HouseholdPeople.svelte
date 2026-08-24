@@ -14,6 +14,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { isOwner } from '$lib/households.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 	import { session } from '$lib/session.svelte.js';
 
@@ -34,8 +35,8 @@
 	let renaming = $state<number | null>(null);
 	let renamed = $state('');
 
-	let me = $derived(session.user?.id ?? null);
-	let iAmOwner = $derived(members.some((member) => member.user === me && member.role === 'owner'));
+	let me = $derived(session.user?.id);
+	let iAmOwner = $derived(isOwner(members, me));
 	let iAmNobody = $derived(!household.personal && !persons.some((person) => person.user === me));
 	let accounts = $derived(new Map(members.map((member) => [member.user, member])));
 	let strangers = $derived(
