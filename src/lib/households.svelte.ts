@@ -31,6 +31,18 @@ class Households {
 		localStorage.setItem(LAST_VISITED, String(id));
 	}
 
+	add(household: Household): void {
+		this.all = [...this.all, household];
+	}
+
+	replace(household: Household): void {
+		this.all = this.all.map((known) => (known.id === household.id ? household : known));
+	}
+
+	drop(id: number): void {
+		this.all = this.all.filter((known) => known.id !== id);
+	}
+
 	reset(): void {
 		this.all = [];
 		this.#loading = null;

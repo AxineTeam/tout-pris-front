@@ -1,4 +1,4 @@
-import type { AuthError } from '$lib/api.js';
+import { ApiError, apiErrors, type AuthError } from '$lib/api.js';
 
 export class Submission {
 	errors = $state.raw<AuthError[]>([]);
@@ -8,8 +8,11 @@ export class Submission {
 		this.busy = true;
 		try {
 			this.errors = await action();
-		} catch {
-			this.errors = [{ message: 'Le backend est injoignable.', code: 'unreachable' }];
+		} catch (cause) {
+			this.errors =
+				cause instanceof ApiError
+					? apiErrors(cause)
+					: [{ message: 'Le backend est injoignable.', code: 'unreachable' }];
 		} finally {
 			this.busy = false;
 		}
