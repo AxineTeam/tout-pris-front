@@ -10,6 +10,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 export class ApiError extends Error {
 	constructor(
 		public readonly status: number,
+		public readonly body: unknown,
 		message: string
 	) {
 		super(message);
@@ -45,12 +46,24 @@ export function onSessionExpired(handler: () => void) {
 	sessionExpired = handler;
 }
 
+async function refusalBody(response: Response): Promise<unknown> {
+	try {
+		return await response.json();
+	} catch {
+		return null;
+	}
+}
+
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const method = methodOf(init);
 	const response = await send(`${API_BASE}${path}`, init);
 	if (response.status === 401) sessionExpired?.();
 	if (!response.ok) {
-		throw new ApiError(response.status, `${method} ${path} → ${response.status}`);
+		throw new ApiError(
+			response.status,
+			await refusalBody(response),
+			`${method} ${path} → ${response.status}`
+		);
 	}
 	if (response.status === 204) return undefined as T;
 	return response.json();
@@ -100,7 +113,7 @@ export async function authRequest<T = SessionData>(
 	const response = await send(`${AUTH_BASE}${path}`, init);
 	const body = await response.json().catch(() => null);
 	if (!isAuthResponse(body)) {
-		throw new ApiError(response.status, `${method} ${path} → ${response.status}`);
+		throw new ApiError(response.status, body, `${method} ${path} → ${response.status}`);
 	}
 	return body as AuthResponse<T>;
 }
@@ -108,10 +121,30 @@ export async function authRequest<T = SessionData>(
 export function authErrors(response: AuthResponse<unknown>): AuthError[] {
 	if (response.errors) return response.errors;
 	if (response.status === 200 || response.meta) return [];
-	if (response.status === 429) {
-		return [{ message: 'Trop de tentatives, réessaie dans une minute.', code: 'rate_limited' }];
-	}
-	return [{ message: 'Le backend a refusé la demande.', code: 'refused' }];
+	return [refusedWithoutSaying(response.status)];
+}
+
+function refusedWithoutSaying(status: number): AuthError {
+	return status === 429
+		? { message: 'Trop de tentatives, réessaie dans une minute.', code: 'rate_limited' }
+		: { message: 'Le backend a refusé la demande.', code: 'refused' };
+}
+
+function relayed(body: unknown): AuthError[] {
+	if (typeof body === 'string') return [{ message: body, code: 'refused' }];
+	if (Array.isArray(body)) return body.flatMap(relayed);
+	if (body === null || typeof body !== 'object') return [];
+	const envelope = body as { detail?: unknown; errors?: AuthError[] };
+	if (Array.isArray(envelope.errors)) return envelope.errors;
+	if (envelope.detail !== undefined) return relayed(envelope.detail);
+	return Object.entries(body).flatMap(([param, invalid]) =>
+		relayed(invalid).map((error) => ({ ...error, param }))
+	);
+}
+
+export function apiErrors(refusal: ApiError): AuthError[] {
+	const said = relayed(refusal.body);
+	return said.length > 0 ? said : [refusedWithoutSaying(refusal.status)];
 }
 
 export function readSession(): Promise<AuthResponse> {
@@ -210,4 +243,72 @@ export interface Household {
 
 export function listHouseholds(): Promise<Household[]> {
 	return request('/households/');
+}
+
+export function createHousehold(name: string): Promise<Household> {
+	return request('/households/', { method: 'POST', body: JSON.stringify({ name }) });
+}
+
+export function renameHousehold(id: number, name: string): Promise<Household> {
+	return request(`/households/${id}/`, { method: 'PATCH', body: JSON.stringify({ name }) });
+}
+
+export function deleteHousehold(id: number): Promise<void> {
+	return request(`/households/${id}/`, { method: 'DELETE' });
+}
+
+export interface Person {
+	id: number;
+	name: string;
+	user: number | null;
+}
+
+export function listPersons(household: number): Promise<Person[]> {
+	return request(`/households/${household}/persons/`);
+}
+
+export function createPerson(household: number, name: string): Promise<Person> {
+	return request(`/households/${household}/persons/`, {
+		method: 'POST',
+		body: JSON.stringify({ name })
+	});
+}
+
+export function renamePerson(household: number, id: number, name: string): Promise<Person> {
+	return request(`/households/${household}/persons/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify({ name })
+	});
+}
+
+export function deletePerson(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/persons/${id}/`, { method: 'DELETE' });
+}
+
+export function claimPerson(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/persons/${id}/claim/`, { method: 'POST' });
+}
+
+export type HouseholdRole = 'owner' | 'member';
+
+export interface Member {
+	id: number;
+	user: number;
+	email: string;
+	role: HouseholdRole;
+}
+
+export function listMembers(household: number): Promise<Member[]> {
+	return request(`/households/${household}/members/`);
+}
+
+export function setMemberRole(household: number, id: number, role: HouseholdRole): Promise<Member> {
+	return request(`/households/${household}/members/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify({ role })
+	});
+}
+
+export function removeMember(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/members/${id}/`, { method: 'DELETE' });
 }
