@@ -12,7 +12,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { households } from '$lib/households.svelte.js';
+	import { households, isOwner } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -25,9 +25,9 @@
 	const submission = new Submission();
 	let renamed = $derived(household.name);
 
-	let me = $derived(session.user?.id ?? null);
+	let me = $derived(session.user?.id);
 	let mine = $derived(members.find((member) => member.user === me));
-	let iAmOwner = $derived(mine?.role === 'owner');
+	let iAmOwner = $derived(isOwner(members, me));
 	let owners = $derived(members.filter((member) => member.role === 'owner').length);
 	let alone = $derived(members.length === 1);
 	let lastOwner = $derived(iAmOwner && owners === 1 && !alone);

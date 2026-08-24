@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import HouseholdInvitations from '$lib/components/HouseholdInvitations.svelte';
 	import HouseholdPeople from '$lib/components/HouseholdPeople.svelte';
 	import HouseholdSettings from '$lib/components/HouseholdSettings.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { householdLabel } from '$lib/households.svelte.js';
+	import { householdLabel, isOwner } from '$lib/households.svelte.js';
+	import { session } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let label = $derived(householdLabel(data.household));
+	let amOwner = $derived(isOwner(data.members, session.user?.id));
 </script>
 
 <svelte:head><title>{label} — Tout Pris</title></svelte:head>
@@ -43,6 +46,25 @@
 	</Card.Root>
 
 	{#if !data.household.personal}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Les invitations</Card.Title>
+				<Card.Description>
+					Un lien valable une semaine, envoyé à une adresse. Désigner la personne que l’invité est
+					déjà ici lui évite d’en créer une deuxième en arrivant.
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<HouseholdInvitations
+					household={data.household.id}
+					invitations={data.invitations}
+					persons={data.persons}
+					canInvite={amOwner}
+					onchanged={invalidateAll}
+				/>
+			</Card.Content>
+		</Card.Root>
+
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Le foyer</Card.Title>
