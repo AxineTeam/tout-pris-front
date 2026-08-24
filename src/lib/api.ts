@@ -336,3 +336,7 @@ export function sendInvitation(household: number, email: string): Promise<void> 
 export function cancelInvitation(household: number, id: number): Promise<void> {
 	return request(`/households/${household}/invitations/${id}/`, { method: 'DELETE' });
 }
+
+export function acceptInvitation(token: string): Promise<Household> {
+	return request('/invitations/accept/', { method: 'POST', body: JSON.stringify({ token }) });
+}
