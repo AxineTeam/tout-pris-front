@@ -48,7 +48,7 @@ test('réinitialisation du mot de passe de bout en bout', async ({ page }) => {
 	await expect(page.getByTestId('reset-requested')).toBeVisible();
 
 	await page.goto(await waitForPath(email, '/account/password/reset/key/'));
-	await page.getByLabel('Nouveau mot de passe').fill(renewed);
+	await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(renewed);
 	await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
 	await expect(page.getByTestId('reset-done')).toBeVisible();
 
