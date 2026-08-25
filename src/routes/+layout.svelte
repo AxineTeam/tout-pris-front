@@ -6,6 +6,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
@@ -33,16 +34,19 @@
 	<header class="border-b">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
 			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
-			{#if session.authenticated}
-				<a
-					class="text-muted-foreground ml-auto text-sm underline"
-					href={resolve('/(app)/me')}
-					data-testid="account-email"
-				>
-					{session.user?.email}
-				</a>
-				<Button variant="outline" size="sm" onclick={disconnect}>Se déconnecter</Button>
-			{/if}
+			<div class="ml-auto flex items-center gap-3">
+				{#if session.authenticated}
+					<a
+						class="text-muted-foreground text-sm underline"
+						href={resolve('/(app)/me')}
+						data-testid="account-email"
+					>
+						{session.user?.email}
+					</a>
+					<Button variant="outline" size="sm" onclick={disconnect}>Se déconnecter</Button>
+				{/if}
+				<ThemeToggle />
+			</div>
 		</div>
 	</header>
 	<main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
