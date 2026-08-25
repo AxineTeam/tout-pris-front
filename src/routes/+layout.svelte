@@ -10,12 +10,17 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
+	import { theme } from '$lib/theme.svelte.js';
 
 	let { children }: { children: Snippet } = $props();
 
 	onSessionExpired(() => {
 		session.expire();
 		households.reset();
+	});
+
+	$effect(() => {
+		document.documentElement.classList.toggle('dark', theme.dark);
 	});
 
 	async function disconnect() {
