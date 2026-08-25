@@ -13,6 +13,15 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# Ce que le pied de page affiche : le ref git et le commit court de l'image.
+# Ils doivent entrer par ici — .dockerignore exclut .git et cette image n'a pas
+# git, donc rien dans le build ne peut les retrouver. Après `npm ci`, pour ne
+# pas invalider la couche des dépendances.
+ARG APP_VERSION="dev"
+ARG APP_COMMIT="dev"
+ENV APP_VERSION=$APP_VERSION APP_COMMIT=$APP_COMMIT
+
 RUN npm run build
 
 FROM nginx:alpine

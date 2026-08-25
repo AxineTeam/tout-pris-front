@@ -191,6 +191,8 @@ export function resetPassword(key: string, password: string): Promise<AuthRespon
 
 export interface Health {
 	status: string;
+	version?: string;
+	commit?: string | null;
 }
 
 export function getHealth(): Promise<Health> {

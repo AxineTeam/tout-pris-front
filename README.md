@@ -93,6 +93,33 @@ Les composants UI sont vendorés dans `src/lib/components/ui/` (voir
 npx shadcn-svelte@latest add <component>
 ```
 
+## Version déployée
+
+Le pied de page nomme le déploiement, front et back côte à côte : c'est la
+**paire** qui décrit ce qui tourne, une image de front récente devant un back
+ancien étant précisément le décalage qu'on ne voit pas autrement.
+
+Chaque côté annonce deux valeurs, la même convention des deux : le **ref git**
+de l'image — le tag sur une release, la branche sinon — et le **commit court**.
+Un ref suffit à identifier une release ; sur l'image `dev`, que suit la
+pré-production, seul le commit distingue deux builds.
+
+Le commit n'est affiché qu'aux administrateurs. Le front ne le décide pas : il
+montre les deux commits quand `/api/health/` lui donne le sien, ce que le back
+ne fait que pour un compte `is_staff`. Un utilisateur ordinaire lit donc les
+deux refs, ce qui suffit à joindre une version à un rapport de bug.
+
+Les deux valeurs entrent par `APP_VERSION` et `APP_COMMIT`, arguments de build
+passés par la CI depuis ses variables d'environnement. Elles ne peuvent pas
+être devinées : `.dockerignore` exclut `.git` et l'image de build n'a pas git,
+donc un `git describe` retomberait silencieusement sur `dev` dans **toutes**
+les images publiées. Hors image publiée — `npm run dev`, tests — les deux
+valent `dev`.
+
+`APP_COMMIT` alimente aussi `kit.version.name`, que SvelteKit compare pour
+détecter une nouvelle version (`updated`) : il change à chaque build publié, là
+où le ref reste `main` pendant des semaines.
+
 ## Image de production
 
 `Dockerfile` : build Node 22 → `nginx:alpine` qui sert `build/` avec fallback
