@@ -3,7 +3,7 @@ import { address, register, signInShared } from './account';
 import { createShared, deleteShared, name } from './households';
 import { forget, waitForPath } from './mailpit';
 
-test('un invité suit son lien, rejoint le foyer et y devient la personne désignée', async ({
+test('un invité rejoint le foyer sans y être personne, puis devient celle qu’il a choisie', async ({
 	page
 }) => {
 	await signInShared(page);
@@ -15,7 +15,6 @@ test('un invité suit son lien, rejoint le foyer et y devient la personne désig
 	await expect(page.getByTestId('persons')).toContainText('Léo');
 
 	await page.getByLabel('Inviter une adresse').fill(guest);
-	await page.getByLabel('Personne qu’elle est déjà ici').selectOption({ label: 'Léo' });
 	await page.getByRole('button', { name: 'Inviter' }).click();
 	await expect(page.getByTestId('invitations')).toContainText(guest);
 
@@ -31,7 +30,16 @@ test('un invité suit son lien, rejoint le foyer et y devient la personne désig
 	await expect(page).toHaveURL(new RegExp(`/households/${shared.id}$`));
 	await expect(page.getByTestId('household-name')).toHaveText(shared.name);
 	await expect(page.getByRole('link', { name: 'Personnel' })).toBeVisible();
-	await expect(page.getByTestId('persons')).toContainText(guest);
+	await expect(page.getByTestId('claim-invite')).toBeVisible();
+	await expect(page.getByTestId('strangers')).toContainText(guest);
+	await expect(page.getByTestId('persons')).not.toContainText(guest);
+
+	await page.getByRole('button', { name: 'Je suis Léo' }).click();
+
+	const persons = page.getByTestId('persons').getByRole('listitem');
+	await expect(persons.filter({ hasText: guest })).toHaveCount(1);
+	await expect(persons.filter({ hasText: guest })).toContainText('Léo');
+	await expect(persons.filter({ hasText: 'Léo' })).toHaveCount(1);
 	await expect(page.getByTestId('claim-invite')).toHaveCount(0);
 
 	await page.getByRole('button', { name: 'Quitter ce foyer' }).click();
