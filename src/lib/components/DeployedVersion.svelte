@@ -12,7 +12,7 @@
 	{:then backend}
 		{@render front(backend.commit ?? null)}
 		{#if backend.version}
-			· back {backend.version}{#if backend.commit}&nbsp;({backend.commit}){/if}
+			· API {backend.version}{#if backend.commit}&nbsp;({backend.commit}){/if}
 		{/if}
 	{:catch}
 		{@render front(null)}
