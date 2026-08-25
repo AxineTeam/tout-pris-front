@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cancelInvitation, sendInvitation, type Invitation, type Person } from '$lib/api.js';
+	import { cancelInvitation, sendInvitation, type Invitation } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -9,24 +9,19 @@
 	let {
 		household,
 		invitations,
-		persons,
 		canInvite,
 		onchanged
 	}: {
 		household: number;
 		invitations: Invitation[];
-		persons: Person[];
 		canInvite: boolean;
 		onchanged: () => void;
 	} = $props();
 
 	const submission = new Submission();
 	let email = $state('');
-	let designated = $state('');
 	let sent = $state(false);
 
-	let unclaimed = $derived(persons.filter((person) => person.user === null));
-	let named = $derived(new Map(persons.map((person) => [person.id, person.name])));
 	let canSend = $derived(email.trim().length > 0 && !submission.busy);
 
 	const day = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
@@ -39,11 +34,9 @@
 		event.preventDefault();
 		if (!canSend) return;
 		const invited = email.trim();
-		const person = designated === '' ? null : Number(designated);
 		submission.run(async () => {
-			await sendInvitation(household, invited, person);
+			await sendInvitation(household, invited);
 			email = '';
-			designated = '';
 			sent = true;
 			onchanged();
 			return [];
@@ -75,9 +68,6 @@
 				<span class="text-sm">{invitation.email}</span>
 				<span class="text-muted-foreground text-xs">
 					envoyée le {on(invitation.created_at)}, expire le {on(invitation.expires_at)}
-					{#if invitation.person !== null && named.has(invitation.person)}
-						— pour {named.get(invitation.person)}
-					{/if}
 				</span>
 				{#if canInvite}
 					<Button
@@ -101,23 +91,10 @@
 	{/if}
 
 	{#if canInvite}
-		<form class="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end" onsubmit={invite}>
+		<form class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end" onsubmit={invite}>
 			<div class="grid gap-2">
 				<Label for="invited-email">Inviter une adresse</Label>
 				<Input id="invited-email" type="email" autocomplete="off" bind:value={email} />
-			</div>
-			<div class="grid gap-2">
-				<Label for="invited-person">Personne qu’elle est déjà ici</Label>
-				<select
-					id="invited-person"
-					bind:value={designated}
-					class="border-input bg-background h-9 rounded-md border px-3 py-1 text-sm"
-				>
-					<option value="">Personne à créer</option>
-					{#each unclaimed as person (person.id)}
-						<option value={String(person.id)}>{person.name}</option>
-					{/each}
-				</select>
 			</div>
 			<Button type="submit" disabled={!canSend}>Inviter</Button>
 		</form>

@@ -50,15 +50,14 @@
 			<Card.Header>
 				<Card.Title>Les invitations</Card.Title>
 				<Card.Description>
-					Un lien valable une semaine, envoyé à une adresse. Désigner la personne que l’invité est
-					déjà ici lui évite d’en créer une deuxième en arrivant.
+					Un lien valable une semaine, envoyé à une adresse. Qui l’accepte choisit ensuite la
+					personne qu’il est déjà ici, ou en crée une.
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
 				<HouseholdInvitations
 					household={data.household.id}
 					invitations={data.invitations}
-					persons={data.persons}
 					canInvite={amOwner}
 					onchanged={invalidateAll}
 				/>

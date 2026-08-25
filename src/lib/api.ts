@@ -318,7 +318,6 @@ export function removeMember(household: number, id: number): Promise<void> {
 export interface Invitation {
 	id: number;
 	email: string;
-	person: number | null;
 	created_at: string;
 	expires_at: string;
 }
@@ -327,14 +326,10 @@ export function listInvitations(household: number): Promise<Invitation[]> {
 	return request(`/households/${household}/invitations/`);
 }
 
-export function sendInvitation(
-	household: number,
-	email: string,
-	person: number | null
-): Promise<void> {
+export function sendInvitation(household: number, email: string): Promise<void> {
 	return request(`/households/${household}/invitations/`, {
 		method: 'POST',
-		body: JSON.stringify(person === null ? { email } : { email, person })
+		body: JSON.stringify({ email })
 	});
 }
 
