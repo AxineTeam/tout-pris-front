@@ -25,34 +25,34 @@ describe('DeployedVersion', () => {
 	it('nomme les deux déploiements', async () => {
 		answering({ status: 'ok', version: 'v1.2.0', commit: null });
 
-		expect(await deployedVersion()).toBe(`front ${build.version} · back v1.2.0`);
+		expect(await deployedVersion()).toBe(`front ${build.version} · API v1.2.0`);
 	});
 
-	it('tait les commits quand le back tait le sien', async () => {
+	it('tait les commits quand l API tait le sien', async () => {
 		answering({ status: 'ok', version: 'v1.2.0', commit: null });
 
 		expect(await deployedVersion()).not.toContain(build.commit);
 	});
 
-	it('montre les deux commits quand le back donne le sien', async () => {
+	it('montre les deux commits quand l API donne le sien', async () => {
 		answering({ status: 'ok', version: 'v1.2.0', commit: 'abc1234' });
 
-		expect(await deployedVersion()).toBe(`front main (${build.commit}) · back v1.2.0 (abc1234)`);
+		expect(await deployedVersion()).toBe(`front main (${build.commit}) · API v1.2.0 (abc1234)`);
 	});
 
-	it('ne nomme pas le back tant qu il n a pas répondu', async () => {
+	it('ne nomme pas l API tant qu elle n a pas répondu', async () => {
 		vi.mocked(backendBuild).mockReturnValue(new Promise(() => {}));
 
 		expect(await deployedVersion()).toBe(`front ${build.version}`);
 	});
 
-	it('reste lisible face à un back qui ignore ces champs', async () => {
+	it('reste lisible face à une API qui ignore ces champs', async () => {
 		answering({ status: 'ok' });
 
 		expect(await deployedVersion()).toBe(`front ${build.version}`);
 	});
 
-	it('reste lisible quand le back ne répond pas', async () => {
+	it('reste lisible quand l API ne répond pas', async () => {
 		vi.mocked(backendBuild).mockRejectedValue(new Error('injoignable'));
 
 		expect(await deployedVersion()).toBe(`front ${build.version}`);
