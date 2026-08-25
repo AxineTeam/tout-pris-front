@@ -29,7 +29,7 @@
 	<title>Tout Pris</title>
 </svelte:head>
 
-<div class="bg-background text-foreground min-h-screen">
+<div class="bg-background text-foreground flex min-h-screen flex-col">
 	<header class="border-b">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
 			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
@@ -45,10 +45,10 @@
 			{/if}
 		</div>
 	</header>
-	<main class="mx-auto max-w-3xl px-4 py-8">
+	<main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
 		{@render children()}
 	</main>
-	<footer class="mx-auto max-w-3xl px-4 pb-6">
+	<footer class="mx-auto w-full max-w-3xl px-4 pb-6">
 		<DeployedVersion />
 	</footer>
 </div>
