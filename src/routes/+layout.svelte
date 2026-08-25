@@ -5,6 +5,7 @@
 	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
+	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
@@ -47,4 +48,7 @@
 	<main class="mx-auto max-w-3xl px-4 py-8">
 		{@render children()}
 	</main>
+	<footer class="mx-auto max-w-3xl px-4 pb-6">
+		<DeployedVersion />
+	</footer>
 </div>

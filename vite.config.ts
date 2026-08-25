@@ -12,6 +12,13 @@ import { defineConfig } from 'vitest/config';
 // l'hôte de la requête pour le CSRF, comme nginx qui préserve le Host.
 const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:8000';
 
+// Ref git et commit court de l'image, passés en argument de build par la CI.
+// Rien ici ne peut les deviner : .dockerignore exclut .git et l'image de build
+// n'a pas git, donc un `git rev-parse` retomberait silencieusement sur 'dev'
+// dans toutes les images publiées. Même convention que le back, et mêmes noms.
+const appVersion = process.env.APP_VERSION ?? 'dev';
+const appCommit = process.env.APP_COMMIT ?? 'dev';
+
 export default defineConfig({
 	plugins: [
 		tailwindcss(),
@@ -21,9 +28,17 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter({ fallback: 'index.html' })
+			adapter: adapter({ fallback: 'index.html' }),
+			// Le commit plutôt que l'horodatage de build par défaut : c'est ce que
+			// compare `updated` de SvelteKit pour détecter une nouvelle version, et
+			// il change à chaque build publié.
+			version: { name: appCommit }
 		})
 	],
+	define: {
+		__APP_VERSION__: JSON.stringify(appVersion),
+		__APP_COMMIT__: JSON.stringify(appCommit)
+	},
 	server: {
 		proxy: {
 			'/api': {

@@ -42,3 +42,9 @@ test('l’inscription attend la vérification de l’adresse', async ({ page }) 
 
 	await expect(page.getByTestId('verification-pending')).toBeVisible();
 });
+
+test('le pied de page nomme la version du front à un visiteur anonyme', async ({ page }) => {
+	await page.goto('/account/login');
+
+	await expect(page.getByTestId('deployed-version')).toContainText('front dev');
+});
