@@ -72,4 +72,18 @@ describe('InvitationAcceptance', () => {
 		expect(screen.queryByText('Not found.')).not.toBeInTheDocument();
 		expect(goto).not.toHaveBeenCalled();
 	});
+
+	it('repart vers la connexion quand on veut un autre compte', async () => {
+		const user = userEvent.setup();
+		const logOut = vi.spyOn(session, 'logOut').mockResolvedValue(undefined);
+		session.user = me;
+		households.all = [joined];
+		render(InvitationAcceptance, { props: { token: 'abc' } });
+
+		await user.click(screen.getByRole('button', { name: 'Utiliser un autre compte' }));
+
+		expect(logOut).toHaveBeenCalled();
+		expect(households.all).toEqual([]);
+		expect(goto).toHaveBeenCalledWith('/account/login?next=%2Finvitations%2Fabc');
+	});
 });
