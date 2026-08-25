@@ -14,7 +14,7 @@
 	const submission = new Submission();
 	let dead = $state(false);
 
-	let here = $derived(`${resolve('/invitations/[key]', { key: token })}`);
+	let here = $derived(resolve('/invitations/[key]', { key: token }));
 	let login = $derived(loginPath(here));
 
 	function accept() {

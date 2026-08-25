@@ -52,7 +52,7 @@ test('un invité rejoint le foyer sans y être personne, puis devient celle qu�
 	await forget(guest);
 });
 
-test('un lien déjà servi ne dit pas pourquoi il ne marche plus', async ({ page }) => {
+test('un lien inutilisable ne dit pas pourquoi', async ({ page }) => {
 	await signInShared(page);
 
 	await page.goto('/invitations/un-jeton-qui-n-existe-pas');
