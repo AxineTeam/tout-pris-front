@@ -14,22 +14,13 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 const pending: Invitation = {
 	id: 5,
 	email: 'dominique@example.com',
-	person: 11,
 	created_at: '2026-08-20T10:00:00Z',
 	expires_at: '2026-08-27T10:00:00Z'
 };
 
-const camille = { id: 10, name: 'Camille', user: 1 };
-const child = { id: 11, name: 'Léo', user: null };
-
-function mount(
-	invitations = [pending],
-	canInvite = true,
-	persons = [camille, child],
-	onchanged = vi.fn()
-) {
+function mount(invitations = [pending], canInvite = true, onchanged = vi.fn()) {
 	render(HouseholdInvitations, {
-		props: { household: 7, invitations, persons, canInvite, onchanged }
+		props: { household: 7, invitations, canInvite, onchanged }
 	});
 	return onchanged;
 }
@@ -37,11 +28,10 @@ function mount(
 describe('HouseholdInvitations', () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it('date l’invitation en attente et nomme la personne visée', () => {
+	it('date l’invitation en attente', () => {
 		mount();
 
 		expect(screen.getByText(/envoyée le 20 août 2026, expire le 27 août 2026/)).toBeInTheDocument();
-		expect(screen.getByText(/pour Léo/)).toBeInTheDocument();
 	});
 
 	it('ne promet pas d’avoir envoyé quoi que ce soit', async () => {
@@ -52,30 +42,11 @@ describe('HouseholdInvitations', () => {
 		await user.type(screen.getByLabelText('Inviter une adresse'), 'sacha@example.com');
 		await user.click(screen.getByRole('button', { name: 'Inviter' }));
 
-		expect(sendInvitation).toHaveBeenCalledWith(7, 'sacha@example.com', null);
+		expect(sendInvitation).toHaveBeenCalledWith(7, 'sacha@example.com');
 		expect(await screen.findByTestId('invitation-sent')).toHaveTextContent(
 			'Si cette adresse peut être invitée, elle recevra un lien.'
 		);
 		expect(onchanged).toHaveBeenCalled();
-	});
-
-	it('désigne la personne que l’invité est déjà', async () => {
-		const user = userEvent.setup();
-		vi.mocked(sendInvitation).mockResolvedValue(undefined);
-		mount();
-
-		await user.type(screen.getByLabelText('Inviter une adresse'), 'sacha@example.com');
-		await user.selectOptions(screen.getByLabelText('Personne qu’elle est déjà ici'), 'Léo');
-		await user.click(screen.getByRole('button', { name: 'Inviter' }));
-
-		expect(sendInvitation).toHaveBeenCalledWith(7, 'sacha@example.com', 11);
-	});
-
-	it('n’offre que les personnes sans compte', () => {
-		mount();
-
-		expect(screen.getByRole('option', { name: 'Léo' })).toBeInTheDocument();
-		expect(screen.queryByRole('option', { name: 'Camille' })).not.toBeInTheDocument();
 	});
 
 	it('relaie la limite quotidienne du back plutôt que d’annoncer une panne', async () => {
