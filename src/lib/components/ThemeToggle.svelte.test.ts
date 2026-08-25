@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/svelte';
+import { screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,11 +10,6 @@ class SystemPreference extends EventTarget {
 const systemPreference = new SystemPreference();
 let cleanupToggle: () => void = () => {};
 
-function switchSystemTo(dark: boolean) {
-	systemPreference.matches = dark;
-	systemPreference.dispatchEvent(new Event('change'));
-}
-
 async function renderToggle() {
 	vi.resetModules();
 	const { render, cleanup } = await import('@testing-library/svelte');
@@ -24,14 +19,12 @@ async function renderToggle() {
 	return userEvent.setup();
 }
 
-const isDark = () => document.documentElement.classList.contains('dark');
-const settled = () => new Promise((resolve) => setTimeout(resolve));
+const button = (name: string) => screen.getByRole('button', { name });
 
 describe('ThemeToggle', () => {
 	beforeEach(() => {
 		vi.stubGlobal('matchMedia', () => systemPreference);
 		localStorage.clear();
-		document.documentElement.classList.remove('dark');
 		systemPreference.matches = false;
 	});
 
@@ -39,55 +32,24 @@ describe('ThemeToggle', () => {
 		cleanupToggle();
 	});
 
-	it('suit le système tant que rien n’a été choisi', async () => {
-		systemPreference.matches = true;
+	it('annonce l’état courant et ce que le clic va faire', async () => {
 		await renderToggle();
 
-		expect(
-			screen.getByRole('button', { name: 'Thème système. Passer au thème clair' })
-		).toBeInTheDocument();
-		await waitFor(() => expect(isDark()).toBe(true));
-	});
-
-	it('suit le système quand celui-ci bascule', async () => {
-		await renderToggle();
-		await waitFor(() => expect(isDark()).toBe(false));
-
-		switchSystemTo(true);
-
-		await waitFor(() => expect(isDark()).toBe(true));
+		expect(button('Thème système. Passer au thème clair')).toBeInTheDocument();
 	});
 
 	it('force le thème clair puis le thème sombre avant de revenir au système', async () => {
-		systemPreference.matches = true;
 		const user = await renderToggle();
 
-		await user.click(screen.getByRole('button', { name: 'Thème système. Passer au thème clair' }));
-
+		await user.click(button('Thème système. Passer au thème clair'));
 		expect(localStorage.getItem('theme')).toBe('light');
-		await waitFor(() => expect(isDark()).toBe(false));
 
-		await user.click(screen.getByRole('button', { name: 'Thème clair. Passer au thème sombre' }));
-
+		await user.click(button('Thème clair. Passer au thème sombre'));
 		expect(localStorage.getItem('theme')).toBe('dark');
-		await waitFor(() => expect(isDark()).toBe(true));
 
-		await user.click(screen.getByRole('button', { name: 'Thème sombre. Passer au thème système' }));
-
+		await user.click(button('Thème sombre. Passer au thème système'));
 		expect(localStorage.getItem('theme')).toBeNull();
-		expect(
-			screen.getByRole('button', { name: 'Thème système. Passer au thème clair' })
-		).toBeInTheDocument();
-	});
-
-	it('ignore le système quand un thème est forcé', async () => {
-		const user = await renderToggle();
-		await user.click(screen.getByRole('button', { name: 'Thème système. Passer au thème clair' }));
-
-		switchSystemTo(true);
-		await settled();
-
-		expect(isDark()).toBe(false);
+		expect(button('Thème système. Passer au thème clair')).toBeInTheDocument();
 	});
 
 	it('repart du choix persisté par le navigateur', async () => {
@@ -95,9 +57,6 @@ describe('ThemeToggle', () => {
 
 		await renderToggle();
 
-		expect(
-			screen.getByRole('button', { name: 'Thème sombre. Passer au thème système' })
-		).toBeInTheDocument();
-		await waitFor(() => expect(isDark()).toBe(true));
+		expect(button('Thème sombre. Passer au thème système')).toBeInTheDocument();
 	});
 });

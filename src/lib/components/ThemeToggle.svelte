@@ -1,7 +1,7 @@
 <script lang="ts">
-	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
+	import SunMoonIcon from '@lucide/svelte/icons/sun-moon';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { theme, type ThemeChoice } from '$lib/theme.svelte.js';
 
@@ -10,7 +10,7 @@
 		light: 'clair',
 		dark: 'sombre'
 	};
-	const icons = { system: MonitorIcon, light: SunIcon, dark: MoonIcon };
+	const icons = { system: SunMoonIcon, light: SunIcon, dark: MoonIcon };
 	const nextChoice: Record<ThemeChoice, ThemeChoice> = {
 		system: 'light',
 		light: 'dark',
@@ -19,10 +19,6 @@
 
 	let next = $derived(nextChoice[theme.choice]);
 	let Icon = $derived(icons[theme.choice]);
-
-	$effect(() => {
-		document.documentElement.classList.toggle('dark', theme.dark);
-	});
 </script>
 
 <Button
