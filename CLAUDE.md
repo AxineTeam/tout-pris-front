@@ -20,15 +20,15 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - SPA statique : `@sveltejs/adapter-static` avec `fallback: 'index.html'`, SSR désactivé globalement dans `src/routes/+layout.ts`
 - Tailwind CSS v4 CSS-first (thème dans `src/app.css`, plugin `@tailwindcss/vite`), shadcn-svelte vendoré dans `src/lib/components/ui/`
 - Node 22 LTS partout (`.nvmrc`, `engines` strict), dépendances npm (`package-lock.json`)
-- Vitest + @testing-library/svelte en unitaire, Playwright en E2E contre le vrai backend, svelte-check + ESLint + Prettier en qualité
-- Backend : [tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `BACKEND_URL` en dev/preview sans réécriture de chemin, pas de CORS
-- Docker + docker compose (front + back), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
+- Vitest + @testing-library/svelte en unitaire, Playwright en E2E contre la vraie API, svelte-check + ESLint + Prettier en qualité
+- API : [tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `API_URL` en dev/preview sans réécriture de chemin, pas de CORS
+- Docker + docker compose (front + API), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
 
 ## Skills
 
 - Les skills du dépôt sont dans `.claude/skills/` et sont à utiliser, pas seulement à lister
 - `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts` — relire une PR est une analyse — et à suivre en entier, les instructions et exemples du skill, pas seulement l'autofixer
-- `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que le back
+- `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que l'API
 - Ne compte pas sur le chargement automatique : Claude Code ne charge un skill que si sa `description` accroche la tâche, et « relis cette PR » n'accroche rien — charge-les explicitement en début de tâche, avant de lire le diff
 - Relire une PR, c'est charger `code-reviewer`, plus les skills Svelte dès que le diff touche un `.svelte` / `.svelte.ts`, plus `security-reviewer` s'il touche l'authentification, les cookies ou les entrées utilisateur
 - Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain dans les sessions Claude Code web
@@ -36,7 +36,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 ## Structure
 
 - `src/routes/` : pages (`+page.svelte`), layout et désactivation SSR (`+layout.svelte`, `+layout.ts`)
-- `src/lib/api.ts` : client HTTP typé du backend — types alignés sur son `openapi.yaml` pour le domaine et sur la spec servie par allauth sur `/api/auth/openapi.yaml` pour l'authentification ; porte le cookie de session et le jeton CSRF
+- `src/lib/api.ts` : client HTTP typé de l'API — types alignés sur son `openapi.yaml` pour le domaine et sur la spec servie par allauth sur `/api/auth/openapi.yaml` pour l'authentification ; porte le cookie de session et le jeton CSRF
 - `src/lib/components/` : composants métier ; `src/lib/components/ui/` : shadcn-svelte vendoré (`npx shadcn-svelte@latest add <component>`, config dans `components.json`)
 - `src/lib/build.ts` : ref git et commit de l'image, injectés au build par `vite.config.ts` (`APP_VERSION`/`APP_COMMIT`), et lecture du build de l'API via `/api/health/` — `.git` n'étant pas dans le contexte de build, **rien dans le code ne peut ni ne doit interroger git**
 - `src/lib/utils.ts` : `cn()` et types utilitaires shadcn
@@ -46,18 +46,18 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 
 ## Commandes
 
-- `make up` / `make down` : front dev + back via docker compose (ports 5173 / 8000)
-- `make dev` : serveur Vite seul (back attendu sur :8000)
+- `make up` / `make down` : front dev + API via docker compose (ports 5173 / 8000)
+- `make dev` : serveur Vite seul (API attendue sur :8000)
 - `make check` : svelte-check
 - `make lint` / `make fmt` : ESLint + Prettier (vérification / correction)
 - `make test` : tests unitaires Vitest
-- `make e2e` : Playwright — nécessite le back démarré
+- `make e2e` : Playwright — nécessite l'API démarrée
 - `make build` / `make docker-build` : build SPA / image de prod
 
 ## Sans Docker (fallback)
 
 - Si et seulement si tu ne peux pas démarrer de conteneur (déjà dans un conteneur, Docker indisponible), ignore les cibles Docker du Makefile et travaille en npm direct : `npm ci`, `npm run dev`, `npm run test:unit -- --run`, etc.
-- Pour les E2E, démarre le back localement (`uv run uvicorn app.main:app` dans son dépôt) ; si le Chromium de Playwright n'est pas téléchargeable, pointe `PLAYWRIGHT_CHROMIUM_PATH` vers un Chromium système
+- Pour les E2E, démarre l'API localement (`uv run uvicorn app.main:app` dans son dépôt) ; si le Chromium de Playwright n'est pas téléchargeable, pointe `PLAYWRIGHT_CHROMIUM_PATH` vers un Chromium système
 - Dans tous les autres cas, passe par le Makefile
 
 ## Style de code
@@ -70,7 +70,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - En markdown, pas de retour à la ligne dur — une ligne par paragraphe
 - Runes uniquement : jamais de `export let`, stores ou syntaxe legacy Svelte 4 ; ne modifie pas les composants vendorés de `src/lib/components/ui/` sauf demande explicite
 - `$effect` est une trappe de secours : pas d'effet pour dériver (`$derived`), pour réagir à une interaction (gestionnaire d'événement) ni pour charger des données au montage (appel direct dans le `<script>`, le SSR étant désactivé)
-- `$state.raw` pour les données du backend : elles sont réassignées, jamais mutées — inutile de payer le proxy de réactivité profonde
+- `$state.raw` pour les données de l'API : elles sont réassignées, jamais mutées — inutile de payer le proxy de réactivité profonde
 - Liens internes via `resolve()` de `$app/paths`, jamais de `href` en dur : le front peut être servi sous un sous-chemin par le reverse proxy
 - Blocs `{#each}` toujours keyés sur un identifiant stable, jamais l'index
 - Avant de finaliser un composant, lance l'autofixer officiel : `npx @sveltejs/mcp svelte-autofixer <fichier>` (skill `svelte-code-writer`)
@@ -88,9 +88,9 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 
 - Tests unitaires uniquement pour les composants (`*.svelte.test.ts`) ; tout le reste (client API, flux complets) est couvert en E2E
 - Lance uniquement les tests pertinents, pas toute la suite
-- Lance toute la suite (`make test`, et `make e2e` si le back est disponible) une fois que tu penses avoir fini
+- Lance toute la suite (`make test`, et `make e2e` si l'API est disponible) une fois que tu penses avoir fini
 - Utilise la TDD quand c'est pertinent, demande si nécessaire
-- Pas d'enregistrement HTTP : en E2E, toujours le vrai backend en service (image Docker `tout-pris-back:dev`, ou le tag x.y.z correspondant sur une release), jamais de mock ni de tapes
+- Pas d'enregistrement HTTP : en E2E, toujours la vraie API en service (image Docker `tout-pris-back:dev`, ou le tag x.y.z correspondant sur une release), jamais de mock ni de tapes
 - Les E2E doivent nettoyer ce qu'ils créent (noms uniques, suppression en fin de test)
 
 ## Sécurité

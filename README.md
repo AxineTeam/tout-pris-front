@@ -16,20 +16,20 @@ Frontend SvelteKit for Tout Pris — SPA statique servie par nginx, consommant l
 | Langage         | TypeScript strict                                                       |
 | Prod            | nginx alpine                                                            |
 | Tests unitaires | Vitest + @testing-library/svelte                                        |
-| Tests E2E       | Playwright, contre le vrai backend (pas d'enregistrement HTTP)          |
+| Tests E2E       | Playwright, contre la vraie API (pas d'enregistrement HTTP)             |
 | Qualité         | svelte-check, ESLint, Prettier                                          |
 | Node            | 22 LTS, identique en dev, en CI et au build de l'image                  |
 
-## URL du backend
+## URL de l'API
 
-Le front et le back sont servis depuis la **même origine** (même reverse proxy
-nginx que tout-pris-back), donc pas de CORS : le client API utilise le chemin
-relatif `/api` (`src/lib/api.ts`).
+Le front et l'API sont servis depuis la **même origine** (le même reverse proxy
+nginx), donc pas de CORS : le client API utilise le chemin relatif `/api`
+(`src/lib/api.ts`).
 
 - **Production** : le reverse proxy en amont route `/api` vers Django et le
   reste vers cette SPA.
 - **Dev / preview** : le proxy Vite (`vite.config.ts`) redirige `/api` vers
-  `BACKEND_URL` (`http://localhost:8000` par défaut) sans toucher au chemin :
+  `API_URL` (`http://localhost:8000` par défaut) sans toucher au chemin :
   Django sert ses routes sous `/api/`, préfixe compris.
 
 La session est portée par le cookie `sessionid` d'allauth, `httpOnly` : le
@@ -40,7 +40,7 @@ répond `403` avant d'atteindre la vue.
 ## Emails
 
 Les liens de vérification d'adresse et de réinitialisation de mot de passe sont
-composés par le back à partir de `FRONTEND_URL` et pointent vers ce front. En
+composés par l'API à partir de `FRONTEND_URL` et pointent vers ce front. En
 développement comme en CI, les emails partent vers
 [Mailpit](https://mailpit.axllent.org) : interface sur <http://localhost:8025>,
 et c'est son API HTTP que lisent les tests E2E pour suivre les liens.
@@ -49,10 +49,10 @@ et c'est son API HTTP que lisent les tests E2E pour suivre les liens.
 
 ```bash
 npm ci
-npm run dev          # http://localhost:5173 (backend attendu sur :8000)
+npm run dev          # http://localhost:5173 (API attendue sur :8000)
 ```
 
-Ou tout en Docker (front + back) :
+Ou tout en Docker (front + API) :
 
 ```bash
 make up              # front sur :5173, api sur :8000
@@ -66,23 +66,22 @@ npm run check        # svelte-check
 npm run lint         # eslint
 npm run format       # prettier --write
 npm run test:unit    # vitest — composants uniquement (*.svelte.test.ts, jsdom)
-npm run test:e2e     # playwright — nécessite le back sur :8000
+npm run test:e2e     # playwright — nécessite l'API sur :8000
 npm run build        # SPA statique dans build/
 ```
 
 Politique de tests : les tests unitaires ne couvrent que les composants ; tout
-le reste (client API, flux complets) est couvert en E2E contre le vrai backend.
-Lancez `tout-pris-back` au préalable (`make up` ici ou dans son dépôt). La CI
-fait de même avec l'image `tout-pris-back` en service : tag `dev` sur les
-branches et PRs, tag `x.y.z` quand la CI tourne sur un tag de release — le
-front publie alors son image avec le même tag que le back, plus un tag `dev` à
-chaque merge sur `main`.
+le reste (client API, flux complets) est couvert en E2E contre la vraie API.
+Lancez l'API au préalable (`make up` ici ou dans son dépôt). La CI fait de même
+avec l'image de l'API en service : tag `dev` sur les branches et PRs, tag
+`x.y.z` quand la CI tourne sur un tag de release — le front publie alors son
+image avec le même tag que l'API, plus un tag `dev` à chaque merge sur `main`.
 
 Un devcontainer est fourni (`.devcontainer/`), basé sur le service compose
 `front` (`Dockerfile.dev`) : Node 22 et Playwright avec Chromium y sont
 préinstallés (navigateurs dans `/opt/pw-browsers`, hors du bind mount), donc
-`npm run test:e2e` fonctionne directement dans le conteneur — le back du
-compose est joignable via `BACKEND_URL=http://api:8000`.
+`npm run test:e2e` fonctionne directement dans le conteneur — l'API du compose
+est joignable via `API_URL=http://api:8000`.
 
 ## shadcn-svelte
 
@@ -124,7 +123,7 @@ où le ref reste `main` pendant des semaines.
 
 `Dockerfile` : build Node 22 → `nginx:alpine` qui sert `build/` avec fallback
 SPA (`nginx/toutpris.conf`). L'image n'a aucune configuration au runtime : le
-routage `/api` est du ressort du reverse proxy commun avec le back.
+routage `/api` est du ressort du reverse proxy commun avec l'API.
 
 L'image publiée est multi-architecture (`linux/amd64` et `linux/arm64`), donc
 déployable sur un Raspberry Pi. Le build de la SPA tourne en natif sur le

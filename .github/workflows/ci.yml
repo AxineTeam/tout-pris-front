@@ -13,7 +13,7 @@ jobs:
     name: Check & Test
     runs-on: ubuntu-latest
     services:
-      # Les emails du back (vérification d'adresse, réinitialisation) partent
+      # Les emails de l'API (vérification d'adresse, réinitialisation) partent
       # vers Mailpit, dont l'API HTTP est lue par les E2E pour suivre les liens.
       mailpit:
         image: axllent/mailpit:latest
@@ -21,7 +21,7 @@ jobs:
           - 1025:1025
           - 8025:8025
 
-      # E2E contre la vraie image du back, comme un service Woodpecker :
+      # E2E contre la vraie image de l'API, comme un service Woodpecker :
       # tag dev sur branche/PR, tag x.y.z quand la CI tourne sur le tag x.y.z.
       api:
         image: estb/tout-pris-back:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'dev' }}
@@ -63,7 +63,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       # Depuis l'environnement du workflow, jamais depuis le dépôt : .git ne va
-      # pas dans le contexte de build. Même convention que le back — le ref, qui
+      # pas dans le contexte de build. Même convention que l'API — le ref, qui
       # est le tag sur une release et la branche sinon, et le commit court.
       - name: Version the image answers with
         id: build
@@ -100,7 +100,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
-      # Merge sur main -> tag dev ; tag x.y.z -> même tag que l'image du back.
+      # Merge sur main -> tag dev ; tag x.y.z -> même tag que l'image de l'API.
       - name: Compute image tags
         id: meta
         uses: docker/metadata-action@v5
@@ -113,7 +113,7 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
       # Depuis l'environnement du workflow, jamais depuis le dépôt : .git ne va
-      # pas dans le contexte de build. Même convention que le back — le ref, qui
+      # pas dans le contexte de build. Même convention que l'API — le ref, qui
       # est le tag sur une release et la branche sinon, et le commit court.
       - name: Version the image answers with
         id: build

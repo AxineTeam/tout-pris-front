@@ -1,5 +1,5 @@
 # Image de production : build Node 22 (même version qu'en dev et en CI),
-# servie par nginx:alpine. Le routage /api vers le backend est fait par le
+# servie par nginx:alpine. Le routage /api vers l'API est fait par le
 # reverse proxy en amont, pas par cette image.
 #
 # BUILDPLATFORM : la SPA compilée est identique quelle que soit l'architecture

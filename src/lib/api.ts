@@ -1,5 +1,5 @@
-// Client HTTP du backend tout-pris-back (Django + DRF + django-allauth).
-// Le front et le back sont servis depuis la même origine : en production le
+// Client HTTP de l'API Tout Pris (Django + DRF + django-allauth).
+// Le front et l'API sont servis depuis la même origine : en production le
 // reverse proxy nginx route /api vers Django, en dev/preview c'est le proxy
 // Vite (voir vite.config.ts). Pas de CORS, pas d'URL absolue.
 export const API_BASE = '/api';
