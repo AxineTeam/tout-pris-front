@@ -21,7 +21,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Tailwind CSS v4 CSS-first (thème dans `src/app.css`, plugin `@tailwindcss/vite`), shadcn-svelte vendoré dans `src/lib/components/ui/`
 - Node 22 LTS partout (`.nvmrc`, `engines` strict), dépendances npm (`package-lock.json`)
 - Vitest + @testing-library/svelte en unitaire, Playwright en E2E contre la vraie API, svelte-check + ESLint + Prettier en qualité
-- API : [tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `API_URL` en dev/preview sans réécriture de chemin, pas de CORS
+- API : [tout-pris-api](https://github.com/AxineTeam/tout-pris-api) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `API_URL` en dev/preview sans réécriture de chemin, pas de CORS
 - Docker + docker compose (front + API), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
 
 ## Skills
@@ -90,7 +90,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Lance uniquement les tests pertinents, pas toute la suite
 - Lance toute la suite (`make test`, et `make e2e` si l'API est disponible) une fois que tu penses avoir fini
 - Utilise la TDD quand c'est pertinent, demande si nécessaire
-- Pas d'enregistrement HTTP : en E2E, toujours la vraie API en service (image Docker `tout-pris-back:dev`, ou le tag x.y.z correspondant sur une release), jamais de mock ni de tapes
+- Pas d'enregistrement HTTP : en E2E, toujours la vraie API en service (image Docker `tout-pris-api:dev`, ou le tag x.y.z correspondant sur une release), jamais de mock ni de tapes
 - Les E2E doivent nettoyer ce qu'ils créent (noms uniques, suppression en fin de test)
 
 ## Sécurité
