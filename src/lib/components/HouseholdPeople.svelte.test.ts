@@ -61,7 +61,7 @@ describe('HouseholdPeople', () => {
 		expect(onchanged).not.toHaveBeenCalled();
 	});
 
-	it('relaie ce que le back reproche à une valeur, au lieu de parler de panne', async () => {
+	it('relaie ce que l’API reproche à une valeur, au lieu de parler de panne', async () => {
 		const user = userEvent.setup();
 		vi.mocked(createPerson).mockRejectedValue(
 			new ApiError(
@@ -78,7 +78,7 @@ describe('HouseholdPeople', () => {
 		expect(
 			await screen.findByText('Ensure this field has no more than 100 characters.')
 		).toBeInTheDocument();
-		expect(screen.queryByText('Le backend est injoignable.')).not.toBeInTheDocument();
+		expect(screen.queryByText('L’API est injoignable.')).not.toBeInTheDocument();
 	});
 
 	it('ajoute une personne et prévient son parent', async () => {

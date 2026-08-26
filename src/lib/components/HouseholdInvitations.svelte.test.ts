@@ -49,7 +49,7 @@ describe('HouseholdInvitations', () => {
 		expect(onchanged).toHaveBeenCalled();
 	});
 
-	it('relaie la limite quotidienne du back plutôt que d’annoncer une panne', async () => {
+	it('relaie la limite quotidienne de l’API plutôt que d’annoncer une panne', async () => {
 		const user = userEvent.setup();
 		vi.mocked(sendInvitation).mockRejectedValue(
 			new ApiError(
@@ -67,7 +67,7 @@ describe('HouseholdInvitations', () => {
 			await screen.findByText('Request was throttled. Expected available in 86400 seconds.')
 		).toBeInTheDocument();
 		expect(screen.queryByTestId('invitation-sent')).not.toBeInTheDocument();
-		expect(screen.queryByText('Le backend est injoignable.')).not.toBeInTheDocument();
+		expect(screen.queryByText('L’API est injoignable.')).not.toBeInTheDocument();
 	});
 
 	it('annule une invitation', async () => {
@@ -83,7 +83,7 @@ describe('HouseholdInvitations', () => {
 		expect(onchanged).toHaveBeenCalled();
 	});
 
-	it('montre la liste à un membre sans lui offrir ce que le back refusera', () => {
+	it('montre la liste à un membre sans lui offrir ce que l’API refusera', () => {
 		mount([pending], false);
 
 		expect(screen.getByText('dominique@example.com')).toBeInTheDocument();

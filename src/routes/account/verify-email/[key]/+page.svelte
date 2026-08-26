@@ -21,7 +21,7 @@
 			address = response.data?.user?.email ?? null;
 			keyErrors = authErrors(response);
 		} catch {
-			keyErrors = [{ message: 'Le backend est injoignable.', code: 'unreachable' }];
+			keyErrors = [{ message: 'L’API est injoignable.', code: 'unreachable' }];
 		}
 	}
 

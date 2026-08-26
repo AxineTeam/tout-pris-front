@@ -81,6 +81,6 @@ describe('EmailAddresses', () => {
 
 		await user.click(screen.getByRole('button', { name: 'Renvoyer la vérification' }));
 
-		expect(await screen.findByText('Le backend a refusé la demande.')).toBeInTheDocument();
+		expect(await screen.findByText('L’API a refusé la demande.')).toBeInTheDocument();
 	});
 });
