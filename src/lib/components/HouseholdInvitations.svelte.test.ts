@@ -115,6 +115,16 @@ describe('HouseholdInvitations', () => {
 		expect(onchanged).toHaveBeenCalled();
 	});
 
+	it('nomme le bouton d’annulation par son invitation sans afficher l’adresse', () => {
+		mount();
+
+		const button = screen.getByRole('button', {
+			name: `Annuler l’invitation de ${pending.email}`
+		});
+		expect(button).toHaveTextContent('Annuler');
+		expect(button).not.toHaveTextContent(pending.email);
+	});
+
 	it('montre la liste à un membre sans lui offrir ce que l’API refusera', () => {
 		mount([pending], false);
 

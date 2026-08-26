@@ -66,7 +66,7 @@
 		{#each invitations as invitation (invitation.id)}
 			{@const expired = new Date(invitation.expires_at).getTime() <= Date.now()}
 			<li class="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
-				<span class="text-sm">{invitation.email}</span>
+				<span class="wrap-anywhere text-sm">{invitation.email}</span>
 				{#if expired}
 					<span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
 						Expirée
@@ -85,10 +85,11 @@
 						variant="outline"
 						size="sm"
 						class="ml-auto"
+						aria-label="Annuler l’invitation de {invitation.email}"
 						onclick={() => cancel(invitation)}
 						disabled={submission.busy}
 					>
-						Annuler l’invitation de {invitation.email}
+						Annuler
 					</Button>
 				{/if}
 			</li>
