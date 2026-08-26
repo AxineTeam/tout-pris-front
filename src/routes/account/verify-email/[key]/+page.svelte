@@ -5,6 +5,7 @@
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import { cardShell, cardHeader, cardContent } from '$lib/cards.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -38,11 +39,11 @@
 
 <svelte:head><title>Vérification de l’adresse — Tout Pris</title></svelte:head>
 
-<Card.Root class="mx-auto max-w-md">
-	<Card.Header>
+<Card.Root class="{cardShell} mx-auto max-w-md">
+	<Card.Header class={cardHeader}>
 		<Card.Title>Vérifier ton adresse</Card.Title>
 	</Card.Header>
-	<Card.Content class="grid gap-4">
+	<Card.Content class="{cardContent} grid gap-4">
 		{#if confirmed}
 			{#if session.authenticated}
 				<p data-testid="verified-signed-in">

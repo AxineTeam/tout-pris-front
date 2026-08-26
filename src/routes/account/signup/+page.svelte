@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import CredentialsForm from '$lib/components/CredentialsForm.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import { cardShell, cardHeader, cardContent, cardFooter } from '$lib/cards.js';
 	import { authErrors } from '$lib/api.js';
 	import { session, verificationPending } from '$lib/session.svelte.js';
 
@@ -17,12 +18,12 @@
 
 <svelte:head><title>Inscription — Tout Pris</title></svelte:head>
 
-<Card.Root class="mx-auto max-w-md">
-	<Card.Header>
+<Card.Root class="{cardShell} mx-auto max-w-md">
+	<Card.Header class={cardHeader}>
 		<Card.Title>Créer un compte</Card.Title>
 		<Card.Description>Une adresse email et un mot de passe suffisent.</Card.Description>
 	</Card.Header>
-	<Card.Content>
+	<Card.Content class={cardContent}>
 		{#if pending}
 			<p data-testid="verification-pending">
 				Compte créé. Un email de vérification vient de partir : suis son lien pour activer ton
@@ -36,7 +37,7 @@
 			/>
 		{/if}
 	</Card.Content>
-	<Card.Footer>
+	<Card.Footer class={cardFooter}>
 		<p class="text-muted-foreground text-sm">
 			Déjà un compte ?
 			<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
