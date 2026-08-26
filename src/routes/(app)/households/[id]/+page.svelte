@@ -4,7 +4,6 @@
 	import HouseholdPeople from '$lib/components/HouseholdPeople.svelte';
 	import HouseholdSettings from '$lib/components/HouseholdSettings.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { cardShell, cardHeader, cardContent } from '$lib/cards.js';
 	import { householdLabel, isOwner } from '$lib/households.svelte.js';
 	import { session } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';
@@ -17,8 +16,8 @@
 <svelte:head><title>{label} — Tout Pris</title></svelte:head>
 
 <div class="space-y-6">
-	<Card.Root class={cardShell}>
-		<Card.Header class={cardHeader}>
+	<Card.Root>
+		<Card.Header>
 			<Card.Title data-testid="household-name">{label}</Card.Title>
 			<Card.Description>
 				{data.household.personal
@@ -28,15 +27,15 @@
 		</Card.Header>
 	</Card.Root>
 
-	<Card.Root class={cardShell}>
-		<Card.Header class={cardHeader}>
+	<Card.Root>
+		<Card.Header>
 			<Card.Title>Les personnes</Card.Title>
 			<Card.Description>
 				Tout ce que prépare l’application est pour quelqu’un. Un enfant est une personne sans
 				compte, un partenaire une personne dont le compte a rejoint le foyer.
 			</Card.Description>
 		</Card.Header>
-		<Card.Content class={cardContent}>
+		<Card.Content>
 			<HouseholdPeople
 				household={data.household}
 				persons={data.persons}
@@ -47,15 +46,15 @@
 	</Card.Root>
 
 	{#if !data.household.personal}
-		<Card.Root class={cardShell}>
-			<Card.Header class={cardHeader}>
+		<Card.Root>
+			<Card.Header>
 				<Card.Title>Les invitations</Card.Title>
 				<Card.Description>
 					Un lien valable une semaine, envoyé à une adresse. Qui l’accepte choisit ensuite la
 					personne qu’il est déjà ici, ou en crée une.
 				</Card.Description>
 			</Card.Header>
-			<Card.Content class={cardContent}>
+			<Card.Content>
 				<HouseholdInvitations
 					household={data.household.id}
 					invitations={data.invitations}
@@ -65,15 +64,15 @@
 			</Card.Content>
 		</Card.Root>
 
-		<Card.Root class={cardShell}>
-			<Card.Header class={cardHeader}>
+		<Card.Root>
+			<Card.Header>
 				<Card.Title>Le foyer</Card.Title>
 				<Card.Description>
 					Le renommer et le supprimer appartiennent à ses propriétaires. Le quitter laisse la
 					personne que tu y étais, sans son compte.
 				</Card.Description>
 			</Card.Header>
-			<Card.Content class={cardContent}>
+			<Card.Content>
 				<HouseholdSettings
 					household={data.household}
 					members={data.members}

@@ -5,7 +5,6 @@
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import PasswordForm from '$lib/components/PasswordForm.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { cardShell, cardHeader, cardContent } from '$lib/cards.js';
 
 	let { params }: PageProps = $props();
 	const key = $derived(params.key);
@@ -34,11 +33,11 @@
 
 <svelte:head><title>Nouveau mot de passe — Tout Pris</title></svelte:head>
 
-<Card.Root class="{cardShell} mx-auto max-w-md">
-	<Card.Header class={cardHeader}>
+<Card.Root class="mx-auto max-w-md">
+	<Card.Header>
 		<Card.Title>Choisir un nouveau mot de passe</Card.Title>
 	</Card.Header>
-	<Card.Content class="{cardContent} grid gap-4">
+	<Card.Content class="grid gap-4">
 		{#if done}
 			<p data-testid="reset-done">
 				Mot de passe changé.
