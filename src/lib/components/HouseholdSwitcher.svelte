@@ -37,7 +37,7 @@
 			<a
 				href={resolve('/(app)/households/[id]', { id: String(household.id) })}
 				aria-current={household.id === current.id ? 'page' : undefined}
-				class="aria-[current=page]:bg-muted rounded-md border px-3 py-1 text-sm aria-[current=page]:font-medium"
+				class="text-muted-foreground hover:text-foreground aria-[current=page]:border-primary aria-[current=page]:text-foreground border-b-2 border-transparent px-1 py-1 text-sm aria-[current=page]:font-medium"
 			>
 				{householdLabel(household)}
 			</a>

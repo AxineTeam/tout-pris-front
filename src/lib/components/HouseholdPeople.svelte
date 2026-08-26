@@ -105,9 +105,12 @@
 				{:else}
 					<span class="text-sm">{person.name}</span>
 					{#if account}
-						<span class="text-muted-foreground text-xs">
-							{account.email}{account.role === 'owner' ? ' — propriétaire' : ''}
-						</span>
+						<span class="text-muted-foreground text-xs">{account.email}</span>
+						{#if account.role === 'owner'}
+							<span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+								propriétaire
+							</span>
+						{/if}
 					{:else}
 						<span class="text-muted-foreground text-xs">sans compte</span>
 					{/if}

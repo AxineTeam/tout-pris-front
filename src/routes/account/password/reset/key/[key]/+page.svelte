@@ -41,13 +41,15 @@
 		{#if done}
 			<p data-testid="reset-done">
 				Mot de passe changé.
-				<a class="underline" href={resolve('/account/login')}>Se connecter</a>
+				<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
 			</p>
 		{:else if keyErrors.length > 0}
 			<FormErrors errors={keyErrors} title="Lien inutilisable" />
 			<p class="text-muted-foreground text-sm">
 				Ce lien a expiré ou a déjà servi.
-				<a class="underline" href={resolve('/account/password/reset')}>Demandes-en un nouveau</a>.
+				<a class="text-primary underline" href={resolve('/account/password/reset')}
+					>Demandes-en un nouveau</a
+				>.
 			</p>
 		{:else if checked}
 			<PasswordForm submitLabel="Changer mon mot de passe" onsubmit={submit} />

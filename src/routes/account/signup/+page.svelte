@@ -39,7 +39,7 @@
 	<Card.Footer>
 		<p class="text-muted-foreground text-sm">
 			Déjà un compte ?
-			<a class="underline" href={resolve('/account/login')}>Se connecter</a>
+			<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
 		</p>
 	</Card.Footer>
 </Card.Root>

@@ -31,9 +31,11 @@
 	<Card.Footer>
 		<p class="text-muted-foreground text-sm">
 			Pas encore de compte ?
-			<a class="underline" href={resolve('/account/signup')}>Créer un compte</a>
+			<a class="text-primary underline" href={resolve('/account/signup')}>Créer un compte</a>
 			—
-			<a class="underline" href={resolve('/account/password/reset')}>mot de passe oublié</a>
+			<a class="text-primary underline" href={resolve('/account/password/reset')}
+				>mot de passe oublié</a
+			>
 		</p>
 	</Card.Footer>
 </Card.Root>

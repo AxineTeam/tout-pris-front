@@ -38,8 +38,10 @@ describe('HouseholdPeople', () => {
 		mount();
 
 		const [first, second] = screen.getAllByRole('listitem');
-		expect(within(first).getByText('camille@example.com — propriétaire')).toBeInTheDocument();
+		expect(within(first).getByText('camille@example.com')).toBeInTheDocument();
+		expect(within(first).getByText('propriétaire')).toBeInTheDocument();
 		expect(within(second).getByText('sans compte')).toBeInTheDocument();
+		expect(within(second).queryByText('propriétaire')).not.toBeInTheDocument();
 	});
 
 	it('relaie le refus de supprimer une personne dont le compte est encore membre', async () => {

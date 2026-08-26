@@ -64,10 +64,21 @@
 
 	<ul class="grid gap-2" data-testid="invitations">
 		{#each invitations as invitation (invitation.id)}
+			{@const expired = new Date(invitation.expires_at).getTime() <= Date.now()}
 			<li class="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
 				<span class="text-sm">{invitation.email}</span>
+				{#if expired}
+					<span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+						Expirée
+					</span>
+				{:else}
+					<span class="bg-pending text-pending-foreground rounded-full px-2 py-0.5 text-xs">
+						En attente
+					</span>
+				{/if}
 				<span class="text-muted-foreground text-xs">
-					envoyée le {on(invitation.created_at)}, expire le {on(invitation.expires_at)}
+					envoyée le {on(invitation.created_at)}, {expired ? 'expirée' : 'expire'} le
+					{on(invitation.expires_at)}
 				</span>
 				{#if canInvite}
 					<Button

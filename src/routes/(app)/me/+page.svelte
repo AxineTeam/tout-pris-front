@@ -27,7 +27,10 @@
 				Le nom que voient les autres membres est celui de la personne qui te représente dans chaque
 				foyer, pas un champ du compte : il se change
 				{#if landing}
-					<a class="underline" href={resolve('/(app)/households/[id]', { id: String(landing.id) })}>
+					<a
+						class="text-primary underline"
+						href={resolve('/(app)/households/[id]', { id: String(landing.id) })}
+					>
 						sur l’écran du foyer
 					</a>
 				{:else}
