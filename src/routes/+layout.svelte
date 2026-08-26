@@ -38,7 +38,7 @@
 <div class="bg-background text-foreground flex min-h-screen flex-col">
 	<header class="border-b">
 		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
-			<a href={resolve('/')} class="text-lg font-semibold tracking-tight">Tout Pris</a>
+			<a href={resolve('/')} class="text-primary text-lg font-semibold tracking-tight">Tout Pris</a>
 			<div class="ml-auto flex items-center gap-3">
 				{#if session.authenticated}
 					<a
