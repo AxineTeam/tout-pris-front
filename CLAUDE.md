@@ -69,15 +69,14 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Ces principes s'appliquent à tout code produit : applicatif, scripts, configuration, infrastructure
 - En markdown, pas de retour à la ligne dur — une ligne par paragraphe
 - Runes uniquement : jamais de `export let`, stores ou syntaxe legacy Svelte 4 ; ne modifie pas les composants vendorés de `src/lib/components/ui/` sauf demande explicite
+- Personnalise-les par leur prop `class` plutôt qu'en éditant le fichier : `cn()` fait tourner `tailwind-merge`, donc une classe passée à l'appel remplace celle du composant au lieu de s'y ajouter. Le fichier vendoré reste régénérable
 - `$effect` est une trappe de secours : pas d'effet pour dériver (`$derived`), pour réagir à une interaction (gestionnaire d'événement) ni pour charger des données au montage (appel direct dans le `<script>`, le SSR étant désactivé)
 - `$state.raw` pour les données de l'API : elles sont réassignées, jamais mutées — inutile de payer le proxy de réactivité profonde
 - Liens internes via `resolve()` de `$app/paths`, jamais de `href` en dur : le front peut être servi sous un sous-chemin par le reverse proxy
 - Blocs `{#each}` toujours keyés sur un identifiant stable, jamais l'index
 - Avant de finaliser un composant, lance l'autofixer officiel : `npx @sveltejs/mcp svelte-autofixer <fichier>` (skill `svelte-code-writer`)
-
-> La couleur porte de l'information : un état, une échéance, un élément actif. Pas de couleur décorative — ni filet d'accent en haut des cartes, ni dégradé. Un écran qui n'a rien à distinguer reste en encre sur papier.
->
-> L'indigo (`primary`) marque l'action et l'état courant. Le vermillon (`destructive`) est réservé au danger et ne sert jamais d'accent.
+- La couleur porte de l'information : un état, une échéance, un élément actif. Pas de couleur décorative — ni filet d'accent en haut des cartes, ni dégradé. Un écran qui n'a rien à distinguer reste en encre sur papier
+- L'indigo (`primary`) marque l'action et l'état courant. Le vermillon (`destructive`) est réservé au danger et ne sert jamais d'accent
 
 ## Git
 
