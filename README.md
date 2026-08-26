@@ -1,7 +1,7 @@
 # tout-pris-front
 
 Frontend SvelteKit for Tout Pris — SPA statique servie par nginx, consommant l'API
-[tout-pris-back](https://github.com/AxineTeam/tout-pris-back) (Django + DRF).
+[tout-pris-api](https://github.com/AxineTeam/tout-pris-api) (Django + DRF).
 
 ## Stack
 

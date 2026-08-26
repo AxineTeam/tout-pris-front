@@ -18,7 +18,7 @@ services:
       - api
 
   api:
-    image: estb/tout-pris-back:dev
+    image: estb/tout-pris-api:dev
     environment:
       EMAIL_HOST: mailpit
       EMAIL_PORT: 1025
