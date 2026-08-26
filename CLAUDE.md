@@ -75,6 +75,10 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - Blocs `{#each}` toujours keyés sur un identifiant stable, jamais l'index
 - Avant de finaliser un composant, lance l'autofixer officiel : `npx @sveltejs/mcp svelte-autofixer <fichier>` (skill `svelte-code-writer`)
 
+> La couleur porte de l'information : un état, une échéance, un élément actif. Pas de couleur décorative — ni filet d'accent en haut des cartes, ni dégradé. Un écran qui n'a rien à distinguer reste en encre sur papier.
+>
+> L'indigo (`primary`) marque l'action et l'état courant. Le vermillon (`destructive`) est réservé au danger et ne sert jamais d'accent.
+
 ## Git
 
 - Ne committe jamais sans demande explicite
