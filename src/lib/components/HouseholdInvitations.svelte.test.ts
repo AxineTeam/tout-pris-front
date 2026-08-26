@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdInvitations from './HouseholdInvitations.svelte';
@@ -11,11 +11,28 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	cancelInvitation: vi.fn()
 }));
 
+const day = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
+
+function isoInDays(days: number): string {
+	return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function on(moment: string): string {
+	return day.format(new Date(moment));
+}
+
 const pending: Invitation = {
 	id: 5,
 	email: 'dominique@example.com',
-	created_at: '2026-08-20T10:00:00Z',
-	expires_at: '2026-08-27T10:00:00Z'
+	created_at: isoInDays(-6),
+	expires_at: isoInDays(1)
+};
+
+const expired: Invitation = {
+	id: 6,
+	email: 'alix@example.com',
+	created_at: isoInDays(-14),
+	expires_at: isoInDays(-7)
 };
 
 function mount(invitations = [pending], canInvite = true, onchanged = vi.fn()) {
@@ -31,7 +48,22 @@ describe('HouseholdInvitations', () => {
 	it('date l’invitation en attente', () => {
 		mount();
 
-		expect(screen.getByText(/envoyée le 20 août 2026, expire le 27 août 2026/)).toBeInTheDocument();
+		expect(
+			screen.getByText(`envoyée le ${on(pending.created_at)}, expire le ${on(pending.expires_at)}`)
+		).toBeInTheDocument();
+	});
+
+	it('sépare ce qui attend encore de ce qui a expiré', () => {
+		mount([pending, expired]);
+
+		const [first, second] = screen.getAllByRole('listitem');
+		expect(within(first).getByText('En attente')).toBeInTheDocument();
+		expect(within(second).getByText('Expirée')).toBeInTheDocument();
+		expect(
+			within(second).getByText(
+				`envoyée le ${on(expired.created_at)}, expirée le ${on(expired.expires_at)}`
+			)
+		).toBeInTheDocument();
 	});
 
 	it('ne promet pas d’avoir envoyé quoi que ce soit', async () => {

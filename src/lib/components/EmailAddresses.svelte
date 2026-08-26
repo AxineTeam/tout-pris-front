@@ -51,9 +51,15 @@
 		{#each addresses as address (address.email)}
 			<li class="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
 				<span class="text-sm">{address.email}</span>
-				<span class="text-muted-foreground text-xs">
-					{address.primary ? 'principale' : address.verified ? 'vérifiée' : 'non vérifiée'}
-				</span>
+				{#if address.primary}
+					<span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+						principale
+					</span>
+				{:else}
+					<span class="text-muted-foreground text-xs">
+						{address.verified ? 'vérifiée' : 'non vérifiée'}
+					</span>
+				{/if}
 				<span class="ml-auto flex gap-2">
 					{#if !address.verified}
 						<Button

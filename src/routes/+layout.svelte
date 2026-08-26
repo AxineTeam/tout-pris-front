@@ -42,7 +42,7 @@
 			<div class="ml-auto flex items-center gap-3">
 				{#if session.authenticated}
 					<a
-						class="text-muted-foreground text-sm underline"
+						class="text-primary text-sm underline"
 						href={resolve('/(app)/me')}
 						data-testid="account-email"
 					>

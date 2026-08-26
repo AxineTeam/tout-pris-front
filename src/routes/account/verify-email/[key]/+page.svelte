@@ -47,21 +47,21 @@
 			{#if session.authenticated}
 				<p data-testid="verified-signed-in">
 					Adresse confirmée, te voilà connecté.
-					<a class="underline" href={resolve('/')}>Aller à l’accueil</a>
+					<a class="text-primary underline" href={resolve('/')}>Aller à l’accueil</a>
 				</p>
 			{:else}
 				<p data-testid="verified-signed-out">
 					Adresse confirmée.
-					<a class="underline" href={resolve('/account/login')}>Se connecter</a>
+					<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
 				</p>
 			{/if}
 		{:else if keyErrors.length > 0}
 			<FormErrors errors={keyErrors} title="Lien inutilisable" />
 			<p class="text-muted-foreground text-sm">
 				Ce lien a expiré ou a déjà servi. Recommence une
-				<a class="underline" href={resolve('/account/signup')}>inscription</a>, ou
-				<a class="underline" href={resolve('/account/login')}>connecte-toi</a> si ton compte est déjà
-				actif.
+				<a class="text-primary underline" href={resolve('/account/signup')}>inscription</a>, ou
+				<a class="text-primary underline" href={resolve('/account/login')}>connecte-toi</a> si ton compte
+				est déjà actif.
 			</p>
 		{:else}
 			<FormErrors errors={submission.errors} />

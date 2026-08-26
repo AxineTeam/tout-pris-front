@@ -30,6 +30,8 @@
 		{/if}
 	</Card.Content>
 	<Card.Footer>
-		<a class="text-sm underline" href={resolve('/account/login')}>Revenir à la connexion</a>
+		<a class="text-primary text-sm underline" href={resolve('/account/login')}
+			>Revenir à la connexion</a
+		>
 	</Card.Footer>
 </Card.Root>
