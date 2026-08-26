@@ -1,6 +1,6 @@
-# Développement : front Vite + backend Django (image dev de tout-pris-back)
-# + Mailpit, où atterrissent les emails du back.
-# Front sur http://localhost:5173, /api proxyfié vers l'api,
+# Développement : front Vite + API Django + Mailpit, où atterrissent les
+# emails de l'API.
+# Front sur http://localhost:5173, /api proxyfié vers le service api,
 # emails lisibles sur http://localhost:8025.
 services:
   front:
@@ -13,7 +13,7 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      BACKEND_URL: http://api:8000
+      API_URL: http://api:8000
     depends_on:
       - api
 

@@ -14,7 +14,7 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
 
 vi.mock('$lib/build.js', () => ({
 	build: { version: 'test', commit: 'abcdef0' },
-	backendBuild: () => new Promise(() => {})
+	apiBuild: () => new Promise(() => {})
 }));
 
 function switchSystemTo(dark: boolean) {

@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
-// Les tests E2E tournent contre le vrai backend (pas d'enregistrement HTTP) :
-// tout-pris-back doit écouter sur BACKEND_URL (http://localhost:8000 par
-// défaut) — `vite preview` proxyfie /api vers lui, comme nginx en production.
+// Les tests E2E tournent contre la vraie API (pas d'enregistrement HTTP) :
+// elle doit écouter sur API_URL (http://localhost:8000 par défaut) —
+// `vite preview` proxyfie /api vers elle, comme nginx en production.
 
 // PLAYWRIGHT_CHROMIUM_PATH : chemin d'un Chromium système à utiliser à la
 // place du navigateur téléchargé par `playwright install` (environnements

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { backendBuild, build } from '$lib/build.js';
+	import { apiBuild, build } from '$lib/build.js';
 </script>
 
 <!-- L'API ne donne son commit qu'aux administrateurs (`tout_pris/views.py`,
@@ -10,12 +10,12 @@
 {/snippet}
 
 <p class="text-muted-foreground text-xs" data-testid="deployed-version">
-	{#await backendBuild()}
+	{#await apiBuild()}
 		{@render front(false)}
-	{:then backend}
-		{@render front(!!backend.commit)}
-		{#if backend.version}
-			· API {backend.version}{#if backend.commit}&nbsp;({backend.commit}){/if}
+	{:then api}
+		{@render front(!!api.commit)}
+		{#if api.version}
+			· API {api.version}{#if api.commit}&nbsp;({api.commit}){/if}
 		{/if}
 	{:catch}
 		{@render front(false)}

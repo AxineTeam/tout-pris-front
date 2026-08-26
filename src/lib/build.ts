@@ -5,9 +5,9 @@ export const build = {
 	commit: __APP_COMMIT__
 };
 
-let backend: Promise<Health> | null = null;
+let api: Promise<Health> | null = null;
 
-export function backendBuild(): Promise<Health> {
-	backend ??= getHealth();
-	return backend;
+export function apiBuild(): Promise<Health> {
+	api ??= getHealth();
+	return api;
 }

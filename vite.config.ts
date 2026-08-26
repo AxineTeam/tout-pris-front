@@ -4,18 +4,18 @@ import tailwindcss from '@tailwindcss/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineConfig } from 'vitest/config';
 
-// En dev et en preview, /api est proxyfié vers le backend Django
-// (tout-pris-back). En production le reverse proxy nginx joue ce rôle,
-// le front et le back étant servis depuis la même origine (pas de CORS).
+// En dev et en preview, /api est proxyfié vers l'API Django. En production
+// le reverse proxy nginx joue ce rôle, le front et l'API étant servis depuis
+// la même origine (pas de CORS).
 // Le préfixe /api n'est pas retiré : Django sert ses routes sous /api/, et
 // l'en-tête Host n'est pas réécrit : Django compare l'Origin du navigateur à
 // l'hôte de la requête pour le CSRF, comme nginx qui préserve le Host.
-const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:8000';
+const apiUrl = process.env.API_URL ?? 'http://localhost:8000';
 
 // Ref git et commit court de l'image, passés en argument de build par la CI.
 // Rien ici ne peut les deviner : .dockerignore exclut .git et l'image de build
 // n'a pas git, donc un `git rev-parse` retomberait silencieusement sur 'dev'
-// dans toutes les images publiées. Même convention que le back, et mêmes noms.
+// dans toutes les images publiées. Même convention que l'API, et mêmes noms.
 const appVersion = process.env.APP_VERSION ?? 'dev';
 const appCommit = process.env.APP_COMMIT ?? 'dev';
 
@@ -42,12 +42,12 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: backendUrl
+				target: apiUrl
 			}
 		}
 	},
 	// Tests unitaires réservés aux composants (*.svelte.test.ts) — tout le
-	// reste est couvert en E2E par Playwright contre le vrai backend.
+	// reste est couvert en E2E par Playwright contre la vraie API.
 	test: {
 		projects: [
 			{

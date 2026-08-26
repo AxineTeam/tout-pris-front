@@ -8,7 +8,7 @@ help:
 install: ## Install npm dependencies
 	npm ci
 
-dev: ## Start the Vite dev server (backend expected on :8000)
+dev: ## Start the Vite dev server (API expected on :8000)
 	npm run dev
 
 build: ## Build the static SPA into build/
@@ -27,10 +27,10 @@ fmt: ## Fix formatting
 test: ## Run the unit test suite (components)
 	npm run test:unit -- --run
 
-e2e: ## Run Playwright e2e tests (backend must be running)
+e2e: ## Run Playwright e2e tests (API must be running)
 	npm run test:e2e
 
-up: ## Start front dev + back (docker compose, ports 5173/8000)
+up: ## Start front dev + API (docker compose, ports 5173/8000)
 	docker compose up -d
 
 down: ## Stop the compose stack

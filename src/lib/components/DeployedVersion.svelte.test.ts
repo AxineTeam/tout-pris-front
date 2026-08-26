@@ -2,15 +2,15 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DeployedVersion from './DeployedVersion.svelte';
-import { backendBuild, build } from '$lib/build.js';
+import { apiBuild, build } from '$lib/build.js';
 
 vi.mock('$lib/build.js', () => ({
 	build: { version: 'main', commit: '1a2b3c4' },
-	backendBuild: vi.fn()
+	apiBuild: vi.fn()
 }));
 
 const answering = (health: Record<string, unknown>) =>
-	vi.mocked(backendBuild).mockResolvedValue(health as never);
+	vi.mocked(apiBuild).mockResolvedValue(health as never);
 
 async function deployedVersion() {
 	render(DeployedVersion);
@@ -41,7 +41,7 @@ describe('DeployedVersion', () => {
 	});
 
 	it('ne nomme pas l API tant qu elle n a pas répondu', async () => {
-		vi.mocked(backendBuild).mockReturnValue(new Promise(() => {}));
+		vi.mocked(apiBuild).mockReturnValue(new Promise(() => {}));
 
 		expect(await deployedVersion()).toBe(`front ${build.version}`);
 	});
@@ -53,7 +53,7 @@ describe('DeployedVersion', () => {
 	});
 
 	it('reste lisible quand l API ne répond pas', async () => {
-		vi.mocked(backendBuild).mockRejectedValue(new Error('injoignable'));
+		vi.mocked(apiBuild).mockRejectedValue(new Error('injoignable'));
 
 		expect(await deployedVersion()).toBe(`front ${build.version}`);
 	});
