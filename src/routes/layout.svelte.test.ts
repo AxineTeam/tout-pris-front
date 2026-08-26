@@ -22,10 +22,14 @@ function switchSystemTo(dark: boolean) {
 	systemPreference.dispatchEvent(new Event('change'));
 }
 
-async function renderLayout() {
+const LONG_EMAIL = 'prenom.deuxieme-prenom.nom@exemple-tres-long.example';
+
+async function renderLayout(email?: string) {
 	vi.resetModules();
 	const { render, cleanup } = await import('@testing-library/svelte');
 	const { createRawSnippet } = await import('svelte');
+	const { session } = await import('$lib/session.svelte.js');
+	if (email) session.user = { id: 1, display: 'Prénom Nom', email, has_usable_password: true };
 	const { default: Layout } = await import('./+layout.svelte');
 	cleanupLayout = cleanup;
 	render(Layout, {
@@ -75,6 +79,15 @@ describe('+layout', () => {
 		await settled();
 
 		expect(isDark()).toBe(false);
+	});
+
+	it('garde l’adresse entière et la déconnexion dans l’en-tête, même très longue', async () => {
+		await renderLayout(LONG_EMAIL);
+
+		const address = screen.getByTestId('account-email');
+		expect(address).toHaveTextContent(LONG_EMAIL);
+		expect(address).toHaveAttribute('href', '/me');
+		expect(screen.getByRole('button', { name: 'Se déconnecter' })).toBeInTheDocument();
 	});
 
 	it('peint le choix persisté avant toute interaction', async () => {
