@@ -37,12 +37,12 @@
 
 <div class="bg-background text-foreground flex min-h-screen flex-col">
 	<header class="border-b">
-		<div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
+		<div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4">
 			<a href={resolve('/')} class="text-primary text-lg font-semibold tracking-tight">Tout Pris</a>
-			<div class="ml-auto flex items-center gap-3">
+			<div class="ml-auto flex min-w-0 items-center gap-3">
 				{#if session.authenticated}
 					<a
-						class="text-primary text-sm underline"
+						class="text-primary min-w-0 text-sm wrap-anywhere underline"
 						href={resolve('/(app)/me')}
 						data-testid="account-email"
 					>
