@@ -127,7 +127,7 @@ export function authErrors(response: AuthResponse<unknown>): AuthError[] {
 function refusedWithoutSaying(status: number): AuthError {
 	return status === 429
 		? { message: 'Trop de tentatives, réessaie dans une minute.', code: 'rate_limited' }
-		: { message: 'Le backend a refusé la demande.', code: 'refused' };
+		: { message: 'L’API a refusé la demande.', code: 'refused' };
 }
 
 function relayed(body: unknown): AuthError[] {

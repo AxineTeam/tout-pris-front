@@ -16,7 +16,7 @@
 		try {
 			keyErrors = authErrors(await readPasswordReset(key));
 		} catch {
-			keyErrors = [{ message: 'Le backend est injoignable.', code: 'unreachable' }];
+			keyErrors = [{ message: 'L’API est injoignable.', code: 'unreachable' }];
 		} finally {
 			checked = true;
 		}

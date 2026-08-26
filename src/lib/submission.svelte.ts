@@ -12,7 +12,7 @@ export class Submission {
 			this.errors =
 				cause instanceof ApiError
 					? apiErrors(cause)
-					: [{ message: 'Le backend est injoignable.', code: 'unreachable' }];
+					: [{ message: 'L’API est injoignable.', code: 'unreachable' }];
 		} finally {
 			this.busy = false;
 		}

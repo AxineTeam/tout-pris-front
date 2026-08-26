@@ -44,7 +44,7 @@
 
 {#if dead}
 	<p class="text-sm" data-testid="invitation-dead">
-		Cette invitation est inconnue, expirée, ou a déjà été acceptée — le back ne dit pas laquelle des
+		Cette invitation est inconnue, expirée, ou a déjà été acceptée — l’API ne dit pas laquelle des
 		trois. Un lien vaut une semaine et ne sert qu’une fois. Demande à un propriétaire du foyer de
 		t’en envoyer un nouveau.
 	</p>

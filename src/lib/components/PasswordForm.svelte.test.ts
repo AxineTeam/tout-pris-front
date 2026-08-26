@@ -22,7 +22,7 @@ describe('PasswordForm', () => {
 		expect(onsubmit).toHaveBeenCalledWith('  espaces  ');
 	});
 
-	it('affiche une erreur quand le backend est injoignable', async () => {
+	it('affiche une erreur quand l’API est injoignable', async () => {
 		const user = userEvent.setup();
 		const onsubmit = vi.fn().mockRejectedValue(new Error('offline'));
 		render(PasswordForm, { props: { submitLabel: 'Changer', onsubmit } });
@@ -30,6 +30,6 @@ describe('PasswordForm', () => {
 		await user.type(screen.getByLabelText('Nouveau mot de passe'), 'peu importe');
 		await user.click(screen.getByRole('button', { name: 'Changer' }));
 
-		expect(await screen.findByText('Le backend est injoignable.')).toBeInTheDocument();
+		expect(await screen.findByText('L’API est injoignable.')).toBeInTheDocument();
 	});
 });

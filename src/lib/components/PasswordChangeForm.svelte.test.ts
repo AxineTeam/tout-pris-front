@@ -42,7 +42,7 @@ describe('PasswordChangeForm', () => {
 		expect(screen.getByLabelText('Mot de passe actuel')).toHaveValue('');
 	});
 
-	it('affiche l’erreur du backend et garde les champs', async () => {
+	it('affiche l’erreur de l’API et garde les champs', async () => {
 		const user = userEvent.setup();
 		const onsubmit = vi.fn().mockResolvedValue([
 			{

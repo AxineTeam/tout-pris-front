@@ -7,7 +7,7 @@ test('une route protégée renvoie vers la connexion', async ({ page }) => {
 	await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
 });
 
-test('des identifiants faux affichent l’erreur du backend', async ({ page }) => {
+test('des identifiants faux affichent l’erreur de l’API', async ({ page }) => {
 	await page.goto('/account/login');
 	await page.getByLabel('Adresse email').fill('inconnu@example.com');
 	await page.getByLabel('Mot de passe', { exact: true }).fill('mauvais-mot-de-passe');

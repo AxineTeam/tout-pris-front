@@ -51,7 +51,7 @@ describe('CredentialsForm', () => {
 		expect(screen.getByLabelText('Mot de passe')).toHaveAttribute('autocomplete', 'new-password');
 	});
 
-	it('affiche les erreurs renvoyées par le backend', async () => {
+	it('affiche les erreurs renvoyées par l’API', async () => {
 		const user = userEvent.setup();
 		const onsubmit = vi.fn().mockResolvedValue([
 			{
