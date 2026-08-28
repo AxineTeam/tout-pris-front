@@ -78,6 +78,16 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - La couleur porte de l'information : un état, une échéance, un élément actif. Pas de couleur décorative — ni filet d'accent en haut des cartes, ni dégradé. Un écran qui n'a rien à distinguer reste en encre sur papier
 - L'indigo (`primary`) marque l'action et l'état courant. Le vermillon (`destructive`) est réservé au danger et ne sert jamais d'accent
 
+## Écriture
+
+Ces règles valent pour les issues, les descriptions de PR, les revues et les commentaires.
+
+- Une phrase qui ne change rien pour le lecteur ne s'écrit pas : pas de résumé de ce qui précède, pas de constat que tout va bien, pas de transition
+- Pas de section « Vérifié » : la CI dit ce qui passe et le relecteur la lit. Recopier ses sorties ne prouve rien de plus et enterre ce que la PR a à dire
+- Ne décris pas ce que couvrent les tests, le fichier de tests est là pour ça
+- Une revue liste des constats actionnables. Ce qui est correct ne se commente pas, le silence suffit à le dire
+- Un constat tient en une affirmation et sa conséquence. Le raisonnement qui y mène ne s'écrit que s'il est contestable
+
 ## Issues
 
 - Une issue se lit à deux : le product owner d'abord, le lead technique ensuite. Elle est donc écrite en deux temps, dans cet ordre, et chacun doit pouvoir répondre à sa question sans lire l'autre moitié
