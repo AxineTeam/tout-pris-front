@@ -52,6 +52,12 @@ export async function logIn(page: Page, email: string, password: string) {
 	await page.getByRole('button', { name: 'Se connecter' }).click();
 }
 
+// Le libellé du refus appartient à allauth et change avec ses versions : ce qui
+// se vérifie ici est que l'API a refusé et que le front relaie ce qu'elle a dit.
+export async function expectRefusalShown(page: Page) {
+	await expect(page.getByRole('alert').getByRole('listitem')).toHaveText(/\S/);
+}
+
 export async function signInShared(page: Page): Promise<string> {
 	const email = await sharedAccount();
 	await page.goto('/account/login');

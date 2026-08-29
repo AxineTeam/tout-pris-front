@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, address, logIn, sharedAccount, signUp } from './account';
+import { PASSWORD, address, expectRefusalShown, logIn, sharedAccount, signUp } from './account';
 import { forget, waitForPath } from './mailpit';
 
 test('inscription, vérification de l’adresse, puis déconnexion', async ({ page }) => {
@@ -54,7 +54,7 @@ test('réinitialisation du mot de passe de bout en bout', async ({ page }) => {
 
 	await page.goto('/account/login');
 	await logIn(page, email, PASSWORD);
-	await expect(page.getByRole('alert')).toContainText('not correct');
+	await expectRefusalShown(page);
 
 	await page.goto('/account/login');
 	await logIn(page, email, renewed);

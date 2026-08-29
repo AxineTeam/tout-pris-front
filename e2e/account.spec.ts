@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectRefusalShown } from './account';
 
 test('une route protégée renvoie vers la connexion', async ({ page }) => {
 	await page.goto('/');
@@ -13,7 +14,7 @@ test('des identifiants faux affichent l’erreur de l’API', async ({ page }) =
 	await page.getByLabel('Mot de passe', { exact: true }).fill('mauvais-mot-de-passe');
 	await page.getByRole('button', { name: 'Se connecter' }).click();
 
-	await expect(page.getByRole('alert')).toContainText('not correct');
+	await expectRefusalShown(page);
 	await expect(page).toHaveURL('/account/login');
 });
 
