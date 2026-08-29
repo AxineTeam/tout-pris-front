@@ -1,4 +1,5 @@
 import { ApiError, apiErrors, type AuthError } from '$lib/api.js';
+import * as m from '$lib/paraglide/messages.js';
 
 export class Submission {
 	errors = $state.raw<AuthError[]>([]);
@@ -12,7 +13,7 @@ export class Submission {
 			this.errors =
 				cause instanceof ApiError
 					? apiErrors(cause)
-					: [{ message: 'L’API est injoignable.', code: 'unreachable' }];
+					: [{ message: m.api_unreachable(), code: 'unreachable' }];
 		} finally {
 			this.busy = false;
 		}

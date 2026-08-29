@@ -5,6 +5,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { authErrors } from '$lib/api.js';
 	import { returnTo } from '$lib/navigation.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 
 	async function submit(email: string, password: string) {
@@ -14,27 +15,27 @@
 	}
 </script>
 
-<svelte:head><title>Connexion — Tout Pris</title></svelte:head>
+<svelte:head><title>{m.title_login()}</title></svelte:head>
 
 <Card.Root class="mx-auto max-w-md">
 	<Card.Header>
-		<Card.Title>Connexion</Card.Title>
-		<Card.Description>Connecte-toi avec ton adresse email.</Card.Description>
+		<Card.Title>{m.login_title()}</Card.Title>
+		<Card.Description>{m.login_intro()}</Card.Description>
 	</Card.Header>
 	<Card.Content>
 		<CredentialsForm
-			submitLabel="Se connecter"
+			submitLabel={m.log_in()}
 			passwordAutocomplete="current-password"
 			onsubmit={submit}
 		/>
 	</Card.Content>
 	<Card.Footer>
 		<p class="text-muted-foreground text-sm">
-			Pas encore de compte ?
-			<a class="text-primary underline" href={resolve('/account/signup')}>Créer un compte</a>
+			{m.login_no_account()}
+			<a class="text-primary underline" href={resolve('/account/signup')}>{m.signup_link()}</a>
 			—
 			<a class="text-primary underline" href={resolve('/account/password/reset')}
-				>mot de passe oublié</a
+				>{m.password_forgotten_link()}</a
 			>
 		</p>
 	</Card.Footer>

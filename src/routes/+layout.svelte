@@ -9,6 +9,7 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { theme } from '$lib/theme.svelte.js';
 
@@ -48,7 +49,7 @@
 					>
 						{session.user?.email}
 					</a>
-					<Button variant="outline" size="sm" onclick={disconnect}>Se déconnecter</Button>
+					<Button variant="outline" size="sm" onclick={disconnect}>{m.log_out()}</Button>
 				{/if}
 				<ThemeToggle />
 			</div>

@@ -7,6 +7,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { households, householdLabel } from '$lib/households.svelte.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let { all, current }: { all: Household[]; current: Household } = $props();
@@ -32,7 +33,7 @@
 </script>
 
 <div class="grid gap-2">
-	<nav aria-label="Foyers" class="flex flex-wrap items-center gap-2">
+	<nav aria-label={m.households_nav()} class="flex flex-wrap items-center gap-2">
 		{#each all as household (household.id)}
 			<a
 				href={resolve('/(app)/households/[id]', { id: String(household.id) })}
@@ -43,7 +44,9 @@
 			</a>
 		{/each}
 		{#if !creating}
-			<Button variant="ghost" size="sm" onclick={() => (creating = true)}>Nouveau foyer</Button>
+			<Button variant="ghost" size="sm" onclick={() => (creating = true)}
+				>{m.household_new()}</Button
+			>
 		{/if}
 	</nav>
 
@@ -52,11 +55,11 @@
 	{#if creating}
 		<form class="flex items-end gap-3" onsubmit={create}>
 			<div class="grid flex-1 gap-2">
-				<Label for="new-household">Nom du nouveau foyer</Label>
+				<Label for="new-household">{m.household_new_label()}</Label>
 				<Input id="new-household" bind:value={name} />
 			</div>
-			<Button type="submit" disabled={!canCreate}>Créer</Button>
-			<Button variant="ghost" onclick={() => (creating = false)}>Annuler</Button>
+			<Button type="submit" disabled={!canCreate}>{m.create()}</Button>
+			<Button variant="ghost" onclick={() => (creating = false)}>{m.cancel()}</Button>
 		</form>
 	{/if}
 </div>

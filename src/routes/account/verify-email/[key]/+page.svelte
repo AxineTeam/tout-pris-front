@@ -5,6 +5,7 @@
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -21,7 +22,7 @@
 			address = response.data?.user?.email ?? null;
 			keyErrors = authErrors(response);
 		} catch {
-			keyErrors = [{ message: 'L’API est injoignable.', code: 'unreachable' }];
+			keyErrors = [{ message: m.api_unreachable(), code: 'unreachable' }];
 		}
 	}
 
@@ -36,38 +37,41 @@
 	readKey();
 </script>
 
-<svelte:head><title>Vérification de l’adresse — Tout Pris</title></svelte:head>
+<svelte:head><title>{m.title_verify()}</title></svelte:head>
 
 <Card.Root class="mx-auto max-w-md">
 	<Card.Header>
-		<Card.Title>Vérifier ton adresse</Card.Title>
+		<Card.Title>{m.verify_title()}</Card.Title>
 	</Card.Header>
 	<Card.Content class="grid gap-4">
 		{#if confirmed}
 			{#if session.authenticated}
 				<p data-testid="verified-signed-in">
-					Adresse confirmée, te voilà connecté.
-					<a class="text-primary underline" href={resolve('/')}>Aller à l’accueil</a>
+					{m.verify_done_signed_in()}
+					<a class="text-primary underline" href={resolve('/')}>{m.go_home()}</a>
 				</p>
 			{:else}
 				<p data-testid="verified-signed-out">
-					Adresse confirmée.
-					<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
+					{m.verify_done()}
+					<a class="text-primary underline" href={resolve('/account/login')}>{m.log_in()}</a>
 				</p>
 			{/if}
 		{:else if keyErrors.length > 0}
-			<FormErrors errors={keyErrors} title="Lien inutilisable" />
+			<FormErrors errors={keyErrors} title={m.link_unusable()} />
 			<p class="text-muted-foreground text-sm">
-				Ce lien a expiré ou a déjà servi. Recommence une
-				<a class="text-primary underline" href={resolve('/account/signup')}>inscription</a>, ou
-				<a class="text-primary underline" href={resolve('/account/login')}>connecte-toi</a> si ton compte
-				est déjà actif.
+				{m.verify_dead_before()}
+				<a class="text-primary underline" href={resolve('/account/signup')}
+					>{m.verify_dead_signup()}</a
+				>{m.verify_dead_between()}
+				<a class="text-primary underline" href={resolve('/account/login')}
+					>{m.verify_dead_login()}</a
+				>
+				{m.verify_dead_after()}
 			</p>
 		{:else}
 			<FormErrors errors={submission.errors} />
-			<p>{address ? `Confirme que ${address} est bien ton adresse.` : 'Vérification du lien…'}</p>
-			<Button onclick={confirm} disabled={!address || submission.busy}>Confirmer mon adresse</Button
-			>
+			<p>{address ? m.verify_confirm({ email: address }) : m.link_checking()}</p>
+			<Button onclick={confirm} disabled={!address || submission.busy}>{m.verify_submit()}</Button>
 		{/if}
 	</Card.Content>
 </Card.Root>

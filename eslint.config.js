@@ -49,6 +49,14 @@ export default ts.config(
 		}
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', 'node_modules/', 'test-results/', 'playwright-report/']
+		ignores: [
+			'build/',
+			'.svelte-kit/',
+			'node_modules/',
+			'project.inlang/',
+			'src/lib/paraglide/',
+			'test-results/',
+			'playwright-report/'
+		]
 	}
 );

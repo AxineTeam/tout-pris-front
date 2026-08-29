@@ -5,6 +5,7 @@
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import PasswordForm from '$lib/components/PasswordForm.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let { params }: PageProps = $props();
 	const key = $derived(params.key);
@@ -16,7 +17,7 @@
 		try {
 			keyErrors = authErrors(await readPasswordReset(key));
 		} catch {
-			keyErrors = [{ message: 'L’API est injoignable.', code: 'unreachable' }];
+			keyErrors = [{ message: m.api_unreachable(), code: 'unreachable' }];
 		} finally {
 			checked = true;
 		}
@@ -31,30 +32,30 @@
 	readKey();
 </script>
 
-<svelte:head><title>Nouveau mot de passe — Tout Pris</title></svelte:head>
+<svelte:head><title>{m.title_reset_key()}</title></svelte:head>
 
 <Card.Root class="mx-auto max-w-md">
 	<Card.Header>
-		<Card.Title>Choisir un nouveau mot de passe</Card.Title>
+		<Card.Title>{m.reset_key_title()}</Card.Title>
 	</Card.Header>
 	<Card.Content class="grid gap-4">
 		{#if done}
 			<p data-testid="reset-done">
-				Mot de passe changé.
-				<a class="text-primary underline" href={resolve('/account/login')}>Se connecter</a>
+				{m.password_changed()}
+				<a class="text-primary underline" href={resolve('/account/login')}>{m.log_in()}</a>
 			</p>
 		{:else if keyErrors.length > 0}
-			<FormErrors errors={keyErrors} title="Lien inutilisable" />
+			<FormErrors errors={keyErrors} title={m.link_unusable()} />
 			<p class="text-muted-foreground text-sm">
-				Ce lien a expiré ou a déjà servi.
+				{m.reset_key_dead()}
 				<a class="text-primary underline" href={resolve('/account/password/reset')}
-					>Demandes-en un nouveau</a
+					>{m.reset_key_ask_again()}</a
 				>.
 			</p>
 		{:else if checked}
-			<PasswordForm submitLabel="Changer mon mot de passe" onsubmit={submit} />
+			<PasswordForm submitLabel={m.password_change_submit()} onsubmit={submit} />
 		{:else}
-			<p class="text-muted-foreground">Vérification du lien…</p>
+			<p class="text-muted-foreground">{m.link_checking()}</p>
 		{/if}
 	</Card.Content>
 </Card.Root>

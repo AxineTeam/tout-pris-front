@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { AuthError } from '$lib/api.js';
 	import * as Alert from '$lib/components/ui/alert/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 
-	let { errors, title = 'Échec' }: { errors: AuthError[]; title?: string } = $props();
+	let { errors, title = m.errors_title() }: { errors: AuthError[]; title?: string } = $props();
 </script>
 
 {#if errors.length > 0}

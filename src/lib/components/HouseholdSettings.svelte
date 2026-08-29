@@ -13,6 +13,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { households, isOwner } from '$lib/households.svelte.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -74,31 +75,29 @@
 	{#if iAmOwner}
 		<form class="flex items-end gap-3" onsubmit={rename}>
 			<div class="grid flex-1 gap-2">
-				<Label for="household-name">Nom du foyer</Label>
+				<Label for="household-name">{m.household_name_label()}</Label>
 				<Input id="household-name" bind:value={renamed} />
 			</div>
-			<Button type="submit" disabled={!canRename || submission.busy}>Renommer</Button>
+			<Button type="submit" disabled={!canRename || submission.busy}>{m.rename()}</Button>
 		</form>
 	{/if}
 
 	<div class="flex flex-wrap gap-2">
 		{#if alone}
-			<p class="text-muted-foreground text-sm" data-testid="alone">
-				Tu es le seul membre : ce foyer se supprime, il ne se quitte pas.
-			</p>
+			<p class="text-muted-foreground text-sm" data-testid="alone">{m.household_alone()}</p>
 		{:else}
 			<Button variant="outline" onclick={leave} disabled={submission.busy || lastOwner}>
-				Quitter ce foyer
+				{m.household_leave()}
 			</Button>
 			{#if lastOwner}
 				<p class="text-muted-foreground text-sm" data-testid="last-owner">
-					Tu es le dernier propriétaire : nomme quelqu’un d’autre avant de partir.
+					{m.household_last_owner()}
 				</p>
 			{/if}
 		{/if}
 		{#if iAmOwner}
 			<Button variant="destructive" onclick={remove} disabled={submission.busy}>
-				Supprimer ce foyer
+				{m.household_delete()}
 			</Button>
 		{/if}
 	</div>

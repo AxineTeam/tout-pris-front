@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -34,28 +35,28 @@
 	<FormErrors errors={submission.errors} />
 
 	{#if changed}
-		<p data-testid="password-changed">Mot de passe changé.</p>
+		<p data-testid="password-changed">{m.password_changed()}</p>
 	{/if}
 
 	<div class="grid gap-2">
-		<Label for="current-password">Mot de passe actuel</Label>
+		<Label for="current-password">{m.password_current_label()}</Label>
 		<PasswordInput
 			id="current-password"
 			autocomplete="current-password"
-			describes="le mot de passe actuel"
+			describes={m.password_current_it()}
 			bind:value={current}
 		/>
 	</div>
 
 	<div class="grid gap-2">
-		<Label for="new-password">Nouveau mot de passe</Label>
+		<Label for="new-password">{m.password_new_label()}</Label>
 		<PasswordInput
 			id="new-password"
 			autocomplete="new-password"
-			describes="le nouveau mot de passe"
+			describes={m.password_new_it()}
 			bind:value={renewed}
 		/>
 	</div>
 
-	<Button type="submit" disabled={!canSubmit}>Changer mon mot de passe</Button>
+	<Button type="submit" disabled={!canSubmit}>{m.password_change_submit()}</Button>
 </form>

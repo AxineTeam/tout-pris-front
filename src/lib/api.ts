@@ -2,6 +2,8 @@
 // Le front et l'API sont servis depuis la même origine : en production le
 // reverse proxy nginx route /api vers Django, en dev/preview c'est le proxy
 // Vite (voir vite.config.ts). Pas de CORS, pas d'URL absolue.
+import * as m from '$lib/paraglide/messages.js';
+
 export const API_BASE = '/api';
 const AUTH_BASE = `${API_BASE}/auth/browser/v1`;
 
@@ -126,8 +128,8 @@ export function authErrors(response: AuthResponse<unknown>): AuthError[] {
 
 function refusedWithoutSaying(status: number): AuthError {
 	return status === 429
-		? { message: 'Trop de tentatives, réessaie dans une minute.', code: 'rate_limited' }
-		: { message: 'L’API a refusé la demande.', code: 'refused' };
+		? { message: m.api_rate_limited(), code: 'rate_limited' }
+		: { message: m.api_refused(), code: 'refused' };
 }
 
 function relayed(body: unknown): AuthError[] {
