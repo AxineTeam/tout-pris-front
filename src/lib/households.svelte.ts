@@ -1,4 +1,5 @@
 import { listHouseholds, type Household, type Member } from '$lib/api.js';
+import * as m from '$lib/paraglide/messages.js';
 
 const LAST_VISITED = 'tout-pris:household';
 
@@ -57,5 +58,5 @@ export function isOwner(members: Member[], user: number | undefined): boolean {
 }
 
 export function householdLabel(household: Household): string {
-	return household.personal ? 'Personnel' : household.name;
+	return household.personal ? m.household_personal() : household.name;
 }

@@ -15,6 +15,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { isOwner } from '$lib/households.svelte.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 	import { session } from '$lib/session.svelte.js';
 
@@ -84,8 +85,7 @@
 
 	{#if iAmNobody}
 		<p class="rounded-md border border-dashed px-3 py-2 text-sm" data-testid="claim-invite">
-			Tu es membre de ce foyer sans y être encore quelqu’un. Choisis la personne que tu es pour
-			pouvoir modifier quoi que ce soit.
+			{m.person_claim_prompt()}
 		</p>
 	{/if}
 
@@ -96,11 +96,12 @@
 				{#if renaming === person.id}
 					<form class="flex flex-1 items-end gap-2" onsubmit={rename}>
 						<div class="grid flex-1 gap-2">
-							<Label for="rename-{person.id}">Nouveau nom de {person.name}</Label>
+							<Label for="rename-{person.id}">{m.person_rename_label({ name: person.name })}</Label>
 							<Input id="rename-{person.id}" bind:value={renamed} />
 						</div>
-						<Button type="submit" size="sm" disabled={submission.busy}>Enregistrer</Button>
-						<Button variant="ghost" size="sm" onclick={() => (renaming = null)}>Annuler</Button>
+						<Button type="submit" size="sm" disabled={submission.busy}>{m.save()}</Button>
+						<Button variant="ghost" size="sm" onclick={() => (renaming = null)}>{m.cancel()}</Button
+						>
 					</form>
 				{:else}
 					<span class="text-sm">{person.name}</span>
@@ -108,11 +109,11 @@
 						<span class="text-muted-foreground text-xs">{account.email}</span>
 						{#if account.role === 'owner'}
 							<span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-								propriétaire
+								{m.role_owner()}
 							</span>
 						{/if}
 					{:else}
-						<span class="text-muted-foreground text-xs">sans compte</span>
+						<span class="text-muted-foreground text-xs">{m.person_no_account()}</span>
 					{/if}
 					<span class="ml-auto flex flex-wrap gap-2">
 						{#if iAmNobody && !person.user}
@@ -121,11 +122,11 @@
 								size="sm"
 								onclick={() => act(() => claimPerson(household.id, person.id))}
 							>
-								Je suis {person.name}
+								{m.person_claim({ name: person.name })}
 							</Button>
 						{/if}
 						<Button variant="outline" size="sm" onclick={() => startRenaming(person)}>
-							Renommer {person.name}
+							{m.person_rename({ name: person.name })}
 						</Button>
 						{#if account && iAmOwner && account.user !== me}
 							<Button
@@ -134,14 +135,14 @@
 								onclick={() => act(() => setMemberRole(household.id, account.id, 'owner'))}
 								disabled={account.role === 'owner'}
 							>
-								Nommer {person.name} propriétaire
+								{m.person_make_owner({ name: person.name })}
 							</Button>
 							<Button
 								variant="outline"
 								size="sm"
 								onclick={() => act(() => removeMember(household.id, account.id))}
 							>
-								Retirer le compte de {person.name}
+								{m.person_remove_account({ name: person.name })}
 							</Button>
 						{/if}
 						<Button
@@ -149,7 +150,7 @@
 							size="sm"
 							onclick={() => act(() => deletePerson(household.id, person.id))}
 						>
-							Supprimer {person.name}
+							{m.person_delete({ name: person.name })}
 						</Button>
 					</span>
 				{/if}
@@ -159,9 +160,7 @@
 
 	{#if strangers.length > 0}
 		<div class="grid gap-2" data-testid="strangers">
-			<p class="text-muted-foreground text-sm">
-				Membres qui ne sont encore personne dans ce foyer :
-			</p>
+			<p class="text-muted-foreground text-sm">{m.strangers_heading()}</p>
 			<ul class="grid gap-2">
 				{#each strangers as stranger (stranger.id)}
 					<li class="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2">
@@ -173,7 +172,7 @@
 								class="ml-auto"
 								onclick={() => act(() => removeMember(household.id, stranger.id))}
 							>
-								Retirer {stranger.email}
+								{m.stranger_remove({ email: stranger.email })}
 							</Button>
 						{/if}
 					</li>
@@ -184,9 +183,9 @@
 
 	<form class="flex items-end gap-3" onsubmit={add}>
 		<div class="grid flex-1 gap-2">
-			<Label for="new-person">Ajouter une personne</Label>
+			<Label for="new-person">{m.person_add_label()}</Label>
 			<Input id="new-person" bind:value={added} />
 		</div>
-		<Button type="submit" disabled={!canAdd}>Ajouter</Button>
+		<Button type="submit" disabled={!canAdd}>{m.add()}</Button>
 	</form>
 </div>

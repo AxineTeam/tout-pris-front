@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -28,12 +29,12 @@
 	<FormErrors errors={submission.errors} />
 
 	<div class="grid gap-2">
-		<Label for="password">Nouveau mot de passe</Label>
+		<Label for="password">{m.password_new_label()}</Label>
 		<PasswordInput
 			id="password"
 			name="password"
 			autocomplete="new-password"
-			describes="le nouveau mot de passe"
+			describes={m.password_new_it()}
 			bind:value={password}
 		/>
 	</div>

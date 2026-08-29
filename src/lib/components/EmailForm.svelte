@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -28,7 +29,7 @@
 	<FormErrors errors={submission.errors} />
 
 	<div class="grid gap-2">
-		<Label for="email">Adresse email</Label>
+		<Label for="email">{m.email_label()}</Label>
 		<Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
 	</div>
 

@@ -4,4 +4,6 @@ node_modules/
 test-results/
 playwright-report/
 package-lock.json
+project.inlang/
+src/lib/paraglide/
 .claude/skills/

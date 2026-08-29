@@ -2,6 +2,7 @@
 	import EyeIcon from '@lucide/svelte/icons/eye';
 	import EyeOffIcon from '@lucide/svelte/icons/eye-off';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let {
 		id,
@@ -18,7 +19,9 @@
 	} = $props();
 
 	let revealed = $state(false);
-	let action = $derived(revealed ? `Masquer ${describes}` : `Afficher ${describes}`);
+	let action = $derived(
+		revealed ? m.password_hide({ field: describes }) : m.password_show({ field: describes })
+	);
 </script>
 
 <div class="relative">

@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -32,17 +33,17 @@
 	<FormErrors errors={submission.errors} />
 
 	<div class="grid gap-2">
-		<Label for="email">Adresse email</Label>
+		<Label for="email">{m.email_label()}</Label>
 		<Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
 	</div>
 
 	<div class="grid gap-2">
-		<Label for="password">Mot de passe</Label>
+		<Label for="password">{m.password_label()}</Label>
 		<PasswordInput
 			id="password"
 			name="password"
 			autocomplete={passwordAutocomplete}
-			describes="le mot de passe"
+			describes={m.password_it()}
 			bind:value={password}
 		/>
 	</div>

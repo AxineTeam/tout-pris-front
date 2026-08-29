@@ -14,6 +14,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	const submission = new Submission();
@@ -53,11 +54,11 @@
 				<span class="text-sm">{address.email}</span>
 				{#if address.primary}
 					<span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-						principale
+						{m.email_primary()}
 					</span>
 				{:else}
 					<span class="text-muted-foreground text-xs">
-						{address.verified ? 'vérifiée' : 'non vérifiée'}
+						{address.verified ? m.email_verified() : m.email_unverified()}
 					</span>
 				{/if}
 				<span class="ml-auto flex gap-2">
@@ -67,7 +68,7 @@
 							size="sm"
 							onclick={() => act(() => resendEmailVerification(address.email))}
 						>
-							Renvoyer la vérification
+							{m.email_resend_verification()}
 						</Button>
 					{/if}
 					{#if !address.primary && address.verified}
@@ -76,7 +77,7 @@
 							size="sm"
 							onclick={() => act(() => makeEmailPrimary(address.email))}
 						>
-							Rendre principale
+							{m.email_make_primary()}
 						</Button>
 					{/if}
 					{#if !address.primary}
@@ -85,7 +86,7 @@
 							size="sm"
 							onclick={() => act(() => removeEmail(address.email))}
 						>
-							Supprimer
+							{m.delete()}
 						</Button>
 					{/if}
 				</span>
@@ -95,9 +96,9 @@
 
 	<form class="flex items-end gap-3" onsubmit={add}>
 		<div class="grid flex-1 gap-2">
-			<Label for="new-email">Ajouter une adresse</Label>
+			<Label for="new-email">{m.email_add_label()}</Label>
 			<Input id="new-email" type="email" autocomplete="email" bind:value={added} />
 		</div>
-		<Button type="submit" disabled={!canAdd}>Ajouter</Button>
+		<Button type="submit" disabled={!canAdd}>{m.add()}</Button>
 	</form>
 </div>

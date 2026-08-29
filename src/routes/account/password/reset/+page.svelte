@@ -3,6 +3,7 @@
 	import { authErrors, requestPasswordReset } from '$lib/api.js';
 	import EmailForm from '$lib/components/EmailForm.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as m from '$lib/paraglide/messages.js';
 
 	let sent = $state(false);
 
@@ -13,25 +14,21 @@
 	}
 </script>
 
-<svelte:head><title>Mot de passe oublié — Tout Pris</title></svelte:head>
+<svelte:head><title>{m.title_reset()}</title></svelte:head>
 
 <Card.Root class="mx-auto max-w-md">
 	<Card.Header>
-		<Card.Title>Mot de passe oublié</Card.Title>
-		<Card.Description>On t’envoie un lien pour en choisir un nouveau.</Card.Description>
+		<Card.Title>{m.reset_title()}</Card.Title>
+		<Card.Description>{m.reset_intro()}</Card.Description>
 	</Card.Header>
 	<Card.Content>
 		{#if sent}
-			<p data-testid="reset-requested">
-				Si un compte utilise cette adresse, un lien vient de lui être envoyé.
-			</p>
+			<p data-testid="reset-requested">{m.reset_sent()}</p>
 		{:else}
-			<EmailForm submitLabel="Envoyer le lien" onsubmit={submit} />
+			<EmailForm submitLabel={m.reset_submit()} onsubmit={submit} />
 		{/if}
 	</Card.Content>
 	<Card.Footer>
-		<a class="text-primary text-sm underline" href={resolve('/account/login')}
-			>Revenir à la connexion</a
-		>
+		<a class="text-primary text-sm underline" href={resolve('/account/login')}>{m.reset_back()}</a>
 	</Card.Footer>
 </Card.Root>
