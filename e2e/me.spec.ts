@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, address, logIn, register, signInShared } from './account';
+import { PASSWORD, address, logIn, logOut, register, signInShared } from './account';
 import { forget } from './mailpit';
 
 test('changer son mot de passe, puis se connecter avec le nouveau', async ({ page }) => {
@@ -20,7 +20,7 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 	await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
 	await expect(page.getByTestId('password-changed')).toBeVisible();
 
-	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await logOut(page);
 	await logIn(page, email, renewed);
 	await expect(page).toHaveURL(/\/households\/\d+$/);
 
@@ -63,14 +63,4 @@ test('ajouter puis supprimer une adresse secondaire', async ({ page }) => {
 	await expect(addresses.getByRole('listitem')).toHaveCount(1);
 
 	await forget(second);
-});
-
-test('le lien de l’en-tête mène au compte', async ({ page }) => {
-	const email = await signInShared(page);
-
-	await page.goto('/');
-	await page.getByTestId('account-email').click();
-
-	await expect(page).toHaveURL('/me');
-	await expect(page.getByTestId('account-display')).toHaveText(email.split('@')[0]);
 });

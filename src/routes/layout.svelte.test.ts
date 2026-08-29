@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import userEvent from '@testing-library/user-event';
-import { screen, waitFor } from '@testing-library/svelte';
+import { waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 class SystemPreference extends EventTarget {
@@ -12,30 +11,22 @@ let cleanupLayout: () => void = () => {};
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
 
-vi.mock('$lib/build.js', () => ({
-	build: { version: 'test', commit: 'abcdef0' },
-	apiBuild: () => new Promise(() => {})
-}));
-
 function switchSystemTo(dark: boolean) {
 	systemPreference.matches = dark;
 	systemPreference.dispatchEvent(new Event('change'));
 }
 
-const LONG_EMAIL = 'prenom.deuxieme-prenom.nom@exemple-tres-long.example';
-
-async function renderLayout(email?: string) {
+async function renderLayout() {
 	vi.resetModules();
 	const { render, cleanup } = await import('@testing-library/svelte');
 	const { createRawSnippet } = await import('svelte');
-	const { session } = await import('$lib/session.svelte.js');
-	if (email) session.user = { id: 1, display: 'Prénom Nom', email, has_usable_password: true };
+	const { theme } = await import('$lib/theme.svelte.js');
 	const { default: Layout } = await import('./+layout.svelte');
 	cleanupLayout = cleanup;
 	render(Layout, {
 		props: { children: createRawSnippet(() => ({ render: () => '<p>page</p>' })) }
 	});
-	return userEvent.setup();
+	return theme;
 }
 
 const isDark = () => document.documentElement.classList.contains('dark');
@@ -71,23 +62,14 @@ describe('+layout', () => {
 	});
 
 	it('ignore le système quand un thème est forcé', async () => {
-		const user = await renderLayout();
+		const theme = await renderLayout();
 
-		await user.click(screen.getByRole('button', { name: 'Thème système. Passer au thème clair' }));
+		theme.choose('light');
 
 		switchSystemTo(true);
 		await settled();
 
 		expect(isDark()).toBe(false);
-	});
-
-	it('garde l’adresse entière et la déconnexion dans l’en-tête, même très longue', async () => {
-		await renderLayout(LONG_EMAIL);
-
-		const address = screen.getByTestId('account-email');
-		expect(address).toHaveTextContent(LONG_EMAIL);
-		expect(address).toHaveAttribute('href', '/me');
-		expect(screen.getByRole('button', { name: 'Se déconnecter' })).toBeInTheDocument();
 	});
 
 	it('peint le choix persisté avant toute interaction', async () => {

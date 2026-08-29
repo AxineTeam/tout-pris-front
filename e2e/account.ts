@@ -58,6 +58,17 @@ export async function expectRefusalShown(page: Page) {
 	await expect(page.getByRole('alert').getByRole('listitem')).toHaveText(/\S/);
 }
 
+export async function expectSignedInAs(page: Page, email: string) {
+	await page.goto('/me');
+	await expect(page.getByTestId('account-email')).toHaveText(email);
+}
+
+export async function logOut(page: Page) {
+	await page.goto('/me');
+	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await expect(page).toHaveURL('/account/login');
+}
+
 export async function signInShared(page: Page): Promise<string> {
 	const email = await sharedAccount();
 	await page.goto('/account/login');

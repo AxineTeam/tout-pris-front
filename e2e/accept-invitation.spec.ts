@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { address, register, signInShared } from './account';
+import { address, logOut, register, signInShared } from './account';
 import { createShared, deleteShared, name } from './households';
 import { forget, waitForPath } from './mailpit';
 
@@ -20,7 +20,7 @@ test('un invité rejoint le foyer sans y être personne, puis devient celle qu�
 
 	const link = await waitForPath(guest, '/invitations/');
 
-	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await logOut(page);
 	await register(page, guest);
 
 	await page.goto(link);
@@ -45,8 +45,7 @@ test('un invité rejoint le foyer sans y être personne, puis devient celle qu�
 	await page.getByRole('button', { name: 'Quitter ce foyer' }).click();
 	await expect(page.getByRole('link', { name: shared.name })).toHaveCount(0);
 
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await logOut(page);
 	await signInShared(page);
 	await deleteShared(page, shared);
 	await forget(guest);
