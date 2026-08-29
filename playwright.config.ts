@@ -17,6 +17,7 @@ export default defineConfig({
 	retries: process.env.CI ? 2 : 0,
 	use: {
 		baseURL: BASE_URL,
+		locale: 'fr-FR',
 		...(executablePath ? { launchOptions: { executablePath } } : {})
 	},
 	webServer: {

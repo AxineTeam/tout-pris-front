@@ -9,6 +9,7 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
+	import { locale } from '$lib/locale.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { theme } from '$lib/theme.svelte.js';
@@ -22,6 +23,10 @@
 
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', theme.dark);
+	});
+
+	$effect(() => {
+		document.documentElement.lang = locale.current;
 	});
 
 	async function disconnect() {

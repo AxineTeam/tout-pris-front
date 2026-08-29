@@ -76,6 +76,7 @@ export interface AuthUser {
 	display: string;
 	email: string;
 	has_usable_password: boolean;
+	language?: string;
 }
 
 export interface AuthFlow {
