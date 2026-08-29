@@ -1,16 +1,11 @@
 <script lang="ts">
 	import '../app.css';
 	import type { Snippet } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import { locale } from '$lib/locale.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { theme } from '$lib/theme.svelte.js';
 
@@ -28,12 +23,6 @@
 	$effect(() => {
 		document.documentElement.lang = locale.current;
 	});
-
-	async function disconnect() {
-		await session.logOut();
-		households.reset();
-		await goto(resolve('/account/login'));
-	}
 </script>
 
 <svelte:head>
@@ -41,29 +30,11 @@
 	<title>Tout Pris</title>
 </svelte:head>
 
-<div class="bg-background text-foreground flex min-h-screen flex-col">
-	<header class="border-b">
-		<div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4">
-			<a href={resolve('/')} class="text-primary text-lg font-semibold tracking-tight">Tout Pris</a>
-			<div class="ml-auto flex min-w-0 items-center gap-3">
-				{#if session.authenticated}
-					<a
-						class="text-primary min-w-0 text-sm wrap-anywhere underline"
-						href={resolve('/(app)/me')}
-						data-testid="account-email"
-					>
-						{session.user?.email}
-					</a>
-					<Button variant="outline" size="sm" onclick={disconnect}>{m.log_out()}</Button>
-				{/if}
-				<ThemeToggle />
-			</div>
-		</div>
-	</header>
+<div class="bg-background text-foreground flex min-h-dvh flex-col">
 	<main class="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
 		{@render children()}
+		<footer class="pt-6">
+			<DeployedVersion />
+		</footer>
 	</main>
-	<footer class="mx-auto w-full max-w-3xl px-4 pb-6">
-		<DeployedVersion />
-	</footer>
 </div>

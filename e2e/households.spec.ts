@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { address, register, signInShared } from './account';
+import { address, logOut, register, signInShared } from './account';
 import { createShared, deleteShared, name } from './households';
 import { forget } from './mailpit';
 
@@ -20,8 +20,7 @@ test('le foyer d’un autre compte répond 404', async ({ page }) => {
 
 	await register(page, owner);
 	const [theirs] = await (await page.request.get('/api/households/')).json();
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await logOut(page);
 
 	await signInShared(page);
 	await page.goto(`/households/${theirs.id}`);
