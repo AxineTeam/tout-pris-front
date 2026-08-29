@@ -348,6 +348,16 @@ export function cancelInvitation(household: number, id: number): Promise<void> {
 	return request(`/households/${household}/invitations/${id}/`, { method: 'DELETE' });
 }
 
+export interface InvitationPreview {
+	household: string;
+	inviter: string | null;
+	expires_at: string;
+}
+
+export function readInvitation(token: string): Promise<InvitationPreview> {
+	return request(`/invitations/${encodeURIComponent(token)}/`);
+}
+
 export function acceptInvitation(token: string): Promise<Household> {
 	return request('/invitations/accept/', { method: 'POST', body: JSON.stringify({ token }) });
 }
