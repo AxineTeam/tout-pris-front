@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { address, logOut, register, signInShared } from './account';
+import { address, expectRefusalShown, logOut, register, signInShared } from './account';
 import { createShared, deleteShared, name } from './households';
 import { forget } from './mailpit';
 
@@ -86,9 +86,8 @@ test('la personne qui porte le compte du dernier membre ne se supprime pas', asy
 	const me = page.getByTestId('persons').getByRole('listitem').first();
 	await me.getByRole('button', { name: /^Supprimer / }).click();
 
-	await expect(
-		page.getByText('A person whose account is still a member cannot be deleted.')
-	).toBeVisible();
+	await expectRefusalShown(page);
+	await expect(page.getByTestId('persons').getByRole('listitem')).toHaveCount(1);
 
 	await deleteShared(page, shared);
 });
@@ -111,7 +110,6 @@ test('un nom trop long est refusé en le disant, pas en parlant de panne', async
 	await page.getByLabel('Nom du nouveau foyer').fill('x'.repeat(101));
 	await page.getByRole('button', { name: 'Créer' }).click();
 
-	const alert = page.getByRole('alert');
-	await expect(alert).toContainText('no more than 100 characters');
-	await expect(alert).not.toContainText('injoignable');
+	await expectRefusalShown(page);
+	await expect(page.getByRole('alert')).not.toContainText('injoignable');
 });

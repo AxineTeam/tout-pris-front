@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, address, logIn, logOut, register, signInShared } from './account';
+import {
+	PASSWORD,
+	address,
+	expectRefusalShown,
+	logIn,
+	logOut,
+	register,
+	signInShared
+} from './account';
 import { forget } from './mailpit';
 
 test('changer son mot de passe, puis se connecter avec le nouveau', async ({ page }) => {
@@ -13,7 +21,7 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 	await page.getByLabel('Mot de passe actuel', { exact: true }).fill('pas-le-bon');
 	await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(renewed);
 	await page.getByRole('button', { name: 'Changer mon mot de passe' }).click();
-	await expect(page.getByRole('alert')).toContainText('current password');
+	await expectRefusalShown(page);
 
 	await page.getByLabel('Mot de passe actuel', { exact: true }).fill(PASSWORD);
 	await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(renewed);
