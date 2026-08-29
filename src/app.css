@@ -31,6 +31,15 @@
 	--chart-3: oklch(0.78 0.125 85);
 	--chart-4: oklch(0.58 0.16 32);
 	--chart-5: oklch(0.55 0.09 295);
+	--avatar-foreground: oklch(0.985 0.005 85);
+	--avatar-1: oklch(0.55 0.09 295);
+	--avatar-2: oklch(0.5 0.075 200);
+	--avatar-3: oklch(0.5 0.075 165);
+	--avatar-4: oklch(0.52 0.085 75);
+	--avatar-5: oklch(0.55 0.09 60);
+	--status-not-started: #7b8189;
+	--status-in-progress: #dcb14f;
+	--status-done: #5c8a66;
 }
 
 .dark {
@@ -60,6 +69,12 @@
 	--chart-3: oklch(0.82 0.13 85);
 	--chart-4: oklch(0.7 0.15 32);
 	--chart-5: oklch(0.72 0.08 295);
+	--avatar-foreground: oklch(0.18 0.012 265);
+	--avatar-1: oklch(0.72 0.08 295);
+	--avatar-2: oklch(0.7 0.07 200);
+	--avatar-3: oklch(0.7 0.07 165);
+	--avatar-4: oklch(0.72 0.08 75);
+	--avatar-5: oklch(0.74 0.085 60);
 }
 
 @theme inline {
@@ -92,6 +107,12 @@
 	--color-chart-3: var(--chart-3);
 	--color-chart-4: var(--chart-4);
 	--color-chart-5: var(--chart-5);
+	--color-avatar-foreground: var(--avatar-foreground);
+	--color-avatar-1: var(--avatar-1);
+	--color-avatar-2: var(--avatar-2);
+	--color-avatar-3: var(--avatar-3);
+	--color-avatar-4: var(--avatar-4);
+	--color-avatar-5: var(--avatar-5);
 }
 
 @layer base {
