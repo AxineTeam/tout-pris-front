@@ -8,13 +8,19 @@ test('une route protégée renvoie vers la connexion', async ({ page }) => {
 	await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
 });
 
-test('des identifiants faux affichent l’erreur de l’API', async ({ page }) => {
+test('des identifiants faux affichent l’erreur sous le champ, sans vider la saisie', async ({
+	page
+}) => {
 	await page.goto('/account/login');
 	await page.getByLabel('Adresse email').fill('inconnu@example.com');
-	await page.getByLabel('Mot de passe', { exact: true }).fill('mauvais-mot-de-passe');
+	const password = page.getByLabel('Mot de passe', { exact: true });
+	await password.fill('mauvais-mot-de-passe');
 	await page.getByRole('button', { name: 'Se connecter' }).click();
 
 	await expectRefusalShown(page);
+	await expect(password).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Adresse email')).toHaveValue('inconnu@example.com');
+	await expect(password).toHaveValue('mauvais-mot-de-passe');
 	await expect(page).toHaveURL('/account/login');
 });
 

@@ -63,7 +63,7 @@ test('réinitialisation du mot de passe de bout en bout', async ({ page }) => {
 
 	await page.goto('/account/login');
 	await logIn(page, email, renewed);
-	await expect(page).toHaveURL(/\/households\/\d+$/);
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 	await expectSignedInAs(page, email);
 
 	await forget(email);
@@ -101,7 +101,7 @@ test('une destination externe passée dans next est ignorée', async ({ page }) 
 		await page.goto(`/account/login?next=${encodeURIComponent(destination)}`);
 		await logIn(page, email, PASSWORD);
 
-		await expect(page).toHaveURL(/\/households\/\d+$/);
+		await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 		await expectSignedInAs(page, email);
 		await logOut(page);
 	}

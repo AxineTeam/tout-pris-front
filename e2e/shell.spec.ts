@@ -11,15 +11,12 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 	page
 }) => {
 	const email = await signInShared(page);
-	const household = new URL(page.url()).pathname;
+	const household = new URL(page.url()).pathname.replace(/\/trips$/, '');
 
-	await expect(bar(page).getByRole('link', { name: 'Foyer' })).toHaveAttribute(
+	await expect(bar(page).getByRole('link', { name: 'Voyages' })).toHaveAttribute(
 		'aria-current',
 		'page'
 	);
-
-	await bar(page).getByRole('link', { name: 'Voyages' }).click();
-	await expect(page).toHaveURL(`${household}/trips`);
 	await expect(page.getByTestId('trips-empty')).toBeVisible();
 
 	await page.reload();
@@ -31,6 +28,13 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 	await bar(page).getByRole('link', { name: 'Kits' }).click();
 	await expect(page).toHaveURL(`${household}/kits`);
 	await expect(bar(page).getByRole('link', { name: 'Kits' })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
+
+	await bar(page).getByRole('link', { name: 'Foyer' }).click();
+	await expect(page).toHaveURL(household);
+	await expect(bar(page).getByRole('link', { name: 'Foyer' })).toHaveAttribute(
 		'aria-current',
 		'page'
 	);

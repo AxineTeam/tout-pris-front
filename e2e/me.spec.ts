@@ -30,7 +30,7 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 
 	await logOut(page);
 	await logIn(page, email, renewed);
-	await expect(page).toHaveURL(/\/households\/\d+$/);
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 
 	await forget(email);
 });

@@ -80,7 +80,7 @@ export async function signInShared(page: Page): Promise<string> {
 	const email = await sharedAccount();
 	await page.goto('/account/login');
 	await logIn(page, email, PASSWORD);
-	await expect(page).toHaveURL(/\/households\/\d+$/);
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 	return email;
 }
 
