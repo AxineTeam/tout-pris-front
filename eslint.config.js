@@ -42,6 +42,13 @@ export default ts.config(
 		}
 	},
 	{
+		// Already resolved paths: a computed tab href, a caller's prop.
+		files: ['src/lib/components/BottomNav.svelte', 'src/lib/components/ScreenHeader.svelte'],
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off'
+		}
+	},
+	{
 		// Global declarations
 		files: ['src/app.d.ts'],
 		rules: {
