@@ -74,6 +74,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - `$state.raw` pour les données de l'API : elles sont réassignées, jamais mutées — inutile de payer le proxy de réactivité profonde
 - Liens internes via `resolve()` de `$app/paths`, jamais de `href` en dur : le front peut être servi sous un sous-chemin par le reverse proxy
 - Blocs `{#each}` toujours keyés sur un identifiant stable, jamais l'index
+- Aucun texte visible en dur dans un composant : tout passe par `m.*()`, avec la clé ajoutée dans `messages/fr.json` **et** `messages/en.json`
 - Avant de finaliser un composant, lance l'autofixer officiel : `npx @sveltejs/mcp svelte-autofixer <fichier>` (skill `svelte-code-writer`)
 - La couleur porte de l'information : un état, une échéance, un élément actif. Pas de couleur décorative — ni filet d'accent en haut des cartes, ni dégradé. Un écran qui n'a rien à distinguer reste en encre sur papier
 - L'indigo (`primary`) marque l'action et l'état courant. Le vermillon (`destructive`) est réservé au danger et ne sert jamais d'accent
