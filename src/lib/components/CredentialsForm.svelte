@@ -1,10 +1,12 @@
 <script lang="ts">
-	import type { AuthError } from '$lib/api.js';
+	import { fieldErrors, formErrors, type AuthError } from '$lib/api.js';
+	import { fieldClass } from '$lib/components/AccountScreen.svelte';
+	import ActionButton from '$lib/components/ActionButton.svelte';
+	import FieldErrors from '$lib/components/FieldErrors.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -22,6 +24,9 @@
 	let email = $state('');
 	let password = $state('');
 	let canSubmit = $derived(email.trim().length > 0 && password.length > 0 && !submission.busy);
+	let emailErrors = $derived(fieldErrors(submission.errors, 'email'));
+	let passwordErrors = $derived(fieldErrors(submission.errors, 'password'));
+	let otherErrors = $derived(formErrors(submission.errors, 'email', 'password'));
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
@@ -29,24 +34,44 @@
 	}
 </script>
 
-<form class="grid gap-4" onsubmit={submit}>
-	<FormErrors errors={submission.errors} />
-
-	<div class="grid gap-2">
-		<Label for="email">{m.email_label()}</Label>
-		<Input id="email" name="email" type="email" autocomplete="email" bind:value={email} />
+<form class="grid gap-[14px]" onsubmit={submit} novalidate>
+	<div class="grid gap-[7px]">
+		<Label for="email" class="text-muted-foreground text-xs">{m.email_label()}</Label>
+		<Input
+			id="email"
+			name="email"
+			type="email"
+			inputmode="email"
+			autocomplete="email"
+			autocapitalize="none"
+			spellcheck={false}
+			aria-invalid={emailErrors.length > 0}
+			aria-describedby={emailErrors.length > 0 ? 'email-errors' : undefined}
+			class={fieldClass}
+			bind:value={email}
+		/>
+		<FieldErrors id="email-errors" errors={emailErrors} />
 	</div>
 
-	<div class="grid gap-2">
-		<Label for="password">{m.password_label()}</Label>
+	<div class="grid gap-[7px]">
+		<Label for="password" class="text-muted-foreground text-xs">{m.password_label()}</Label>
 		<PasswordInput
 			id="password"
 			name="password"
 			autocomplete={passwordAutocomplete}
 			describes={m.password_it()}
+			errors={passwordErrors}
 			bind:value={password}
 		/>
 	</div>
 
-	<Button type="submit" disabled={!canSubmit}>{submitLabel}</Button>
+	<FormErrors errors={otherErrors} />
+
+	<ActionButton
+		type="submit"
+		label={submitLabel}
+		busy={submission.busy}
+		disabled={!canSubmit}
+		class="mt-[2px]"
+	/>
 </form>

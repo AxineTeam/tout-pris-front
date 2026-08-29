@@ -1,6 +1,6 @@
 <script lang="ts">
+	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import InvitationAcceptance from '$lib/components/InvitationAcceptance.svelte';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -10,12 +10,6 @@
 
 <svelte:head><title>{m.title_invitation()}</title></svelte:head>
 
-<Card.Root class="mx-auto max-w-md">
-	<Card.Header>
-		<Card.Title>{m.invitation_title()}</Card.Title>
-		<Card.Description>{m.invitation_intro()}</Card.Description>
-	</Card.Header>
-	<Card.Content class="grid gap-4">
-		<InvitationAcceptance token={key} />
-	</Card.Content>
-</Card.Root>
+<AccountScreen title={m.invitation_title()} intro={m.invitation_intro()}>
+	<InvitationAcceptance token={key} />
+</AccountScreen>

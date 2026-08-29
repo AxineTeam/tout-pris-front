@@ -37,11 +37,13 @@
 	{#if inShell}
 		{@render children()}
 	{:else}
-		<main class="mx-auto w-full max-w-3xl min-h-0 flex-1 overflow-y-auto px-4 py-8">
-			{@render children()}
-			<footer class="pt-6">
-				<DeployedVersion />
-			</footer>
+		<main class="min-h-0 flex-1 overflow-y-auto px-[22px]">
+			<div class="mx-auto flex min-h-full w-full max-w-[340px] flex-col">
+				{@render children()}
+				<footer class="flex justify-center pb-6">
+					<DeployedVersion />
+				</footer>
+			</div>
 		</main>
 	{/if}
 </div>

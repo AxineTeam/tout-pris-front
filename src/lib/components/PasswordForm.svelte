@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { AuthError } from '$lib/api.js';
+	import { fieldErrors, formErrors, type AuthError } from '$lib/api.js';
+	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
+	import { Label } from '$lib/components/ui/label/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -18,6 +18,8 @@
 	const submission = new Submission();
 	let password = $state('');
 	let canSubmit = $derived(password.length > 0 && !submission.busy);
+	let passwordErrors = $derived(fieldErrors(submission.errors, 'password'));
+	let otherErrors = $derived(formErrors(submission.errors, 'password'));
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
@@ -25,19 +27,26 @@
 	}
 </script>
 
-<form class="grid gap-4" onsubmit={submit}>
-	<FormErrors errors={submission.errors} />
-
-	<div class="grid gap-2">
-		<Label for="password">{m.password_new_label()}</Label>
+<form class="grid gap-[14px]" onsubmit={submit} novalidate>
+	<div class="grid gap-[7px]">
+		<Label for="password" class="text-muted-foreground text-xs">{m.password_new_label()}</Label>
 		<PasswordInput
 			id="password"
 			name="password"
 			autocomplete="new-password"
 			describes={m.password_new_it()}
+			errors={passwordErrors}
 			bind:value={password}
 		/>
 	</div>
 
-	<Button type="submit" disabled={!canSubmit}>{submitLabel}</Button>
+	<FormErrors errors={otherErrors} />
+
+	<ActionButton
+		type="submit"
+		label={submitLabel}
+		busy={submission.busy}
+		disabled={!canSubmit}
+		class="mt-[2px]"
+	/>
 </form>

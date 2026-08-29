@@ -150,6 +150,14 @@ export function apiErrors(refusal: ApiError): AuthError[] {
 	return said.length > 0 ? said : [refusedWithoutSaying(refusal.status)];
 }
 
+export function fieldErrors(errors: AuthError[], field: string): AuthError[] {
+	return errors.filter((error) => error.param === field);
+}
+
+export function formErrors(errors: AuthError[], ...fields: string[]): AuthError[] {
+	return errors.filter((error) => error.param === undefined || !fields.includes(error.param));
+}
+
 export function readSession(): Promise<AuthResponse> {
 	return authRequest('/auth/session');
 }
