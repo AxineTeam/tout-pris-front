@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdInvitations from './HouseholdInvitations.svelte';
 import { ApiError, cancelInvitation, sendInvitation, type Invitation } from '$lib/api.js';
+import { session } from '$lib/session.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -11,7 +12,8 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	cancelInvitation: vi.fn()
 }));
 
-const day = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
+const day = new Intl.DateTimeFormat('fr', { dateStyle: 'long' });
+const englishDay = new Intl.DateTimeFormat('en', { dateStyle: 'long' });
 
 function isoInDays(days: number): string {
 	return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -19,6 +21,10 @@ function isoInDays(days: number): string {
 
 function on(moment: string): string {
 	return day.format(new Date(moment));
+}
+
+function onInEnglish(moment: string): string {
+	return englishDay.format(new Date(moment));
 }
 
 const pending: Invitation = {
@@ -45,11 +51,33 @@ function mount(invitations = [pending], canInvite = true, onchanged = vi.fn()) {
 describe('HouseholdInvitations', () => {
 	beforeEach(() => vi.clearAllMocks());
 
+	afterEach(() => {
+		session.user = null;
+	});
+
 	it('date l’invitation en attente', () => {
 		mount();
 
 		expect(
 			screen.getByText(`envoyée le ${on(pending.created_at)}, expire le ${on(pending.expires_at)}`)
+		).toBeInTheDocument();
+	});
+
+	it('date l’invitation dans la langue du compte', () => {
+		session.user = {
+			id: 1,
+			display: 'Alix',
+			email: 'alix@example.com',
+			has_usable_password: true,
+			language: 'en'
+		};
+
+		mount();
+
+		expect(
+			screen.getByText(
+				`sent on ${onInEnglish(pending.created_at)}, expires on ${onInEnglish(pending.expires_at)}`
+			)
 		).toBeInTheDocument();
 	});
 

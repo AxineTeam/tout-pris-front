@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { locale } from '$lib/locale.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -24,12 +25,6 @@
 	let sent = $state(false);
 
 	let canSend = $derived(email.trim().length > 0 && !submission.busy);
-
-	const day = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' });
-
-	function on(moment: string): string {
-		return day.format(new Date(moment));
-	}
 
 	function invite(event: SubmitEvent) {
 		event.preventDefault();
@@ -79,13 +74,13 @@
 				<span class="text-muted-foreground text-xs">
 					{#if expired}
 						{m.invitation_dates_expired({
-							created: on(invitation.created_at),
-							expires: on(invitation.expires_at)
+							created: locale.day(invitation.created_at),
+							expires: locale.day(invitation.expires_at)
 						})}
 					{:else}
 						{m.invitation_dates_pending({
-							created: on(invitation.created_at),
-							expires: on(invitation.expires_at)
+							created: locale.day(invitation.created_at),
+							expires: locale.day(invitation.expires_at)
 						})}
 					{/if}
 				</span>
