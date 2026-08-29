@@ -27,7 +27,14 @@ async function post(context: APIRequestContext, path: string, data: object) {
 // ne portent pas sur l'inscription se partagent donc un compte par worker.
 async function verifiedAccount(): Promise<string> {
 	const email = address('shared');
-	const context = await request.newContext({ baseURL: BASE_URL });
+	// L'API retient la langue dans laquelle l'inscription a été servie, et le
+	// front sert ensuite le compte dans cette langue-là. Un contexte qui ne
+	// demande rien se voit répondre en anglais, alors que toute la suite lit
+	// des écrans français : il annonce donc la même langue que les navigateurs.
+	const context = await request.newContext({
+		baseURL: BASE_URL,
+		extraHTTPHeaders: { 'Accept-Language': 'fr-FR,fr;q=0.9' }
+	});
 	await post(context, '/auth/signup', { email, password: PASSWORD });
 	const link = await waitForPath(email, '/account/verify-email/');
 	const key = decodeURIComponent(link.replace('/account/verify-email/', ''));
