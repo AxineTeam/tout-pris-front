@@ -14,6 +14,7 @@ Frontend SvelteKit for Tout Pris — SPA statique servie par nginx, consommant l
 | CSS             | Tailwind CSS v4 (configuration CSS-first, plugin Vite)                  |
 | UI              | shadcn-svelte (composants copiés dans `src/lib/components/ui/`)         |
 | Langage         | TypeScript strict                                                       |
+| Langues         | Paraglide (`@inlang/paraglide-js`), catalogues compilés                 |
 | Prod            | nginx alpine                                                            |
 | Tests unitaires | Vitest + @testing-library/svelte                                        |
 | Tests E2E       | Playwright, contre la vraie API (pas d'enregistrement HTTP)             |
@@ -91,6 +92,20 @@ Les composants UI sont vendorés dans `src/lib/components/ui/` (voir
 ```bash
 npx shadcn-svelte@latest add <component>
 ```
+
+## Langues
+
+L'interface est traduite avec [Paraglide](https://paraglidejs.com), qui **compile** les catalogues en fonctions de message plutôt que de les résoudre à l'exécution : ce qui n'est appelé nulle part sort du bundle, la bonne propriété pour une SPA statique que le navigateur télécharge en entier.
+
+Les textes vivent dans `messages/fr.json` et `messages/en.json`, la sortie compilée dans `src/lib/paraglide/` — générée, donc hors git, hors Prettier et hors ESLint.
+
+```bash
+npm run paraglide    # recompile les catalogues ; Vite et npm ci le font aussi
+```
+
+La locale a une source unique, `src/lib/locale.svelte.ts` : la langue enregistrée sur le compte, sinon celle du navigateur, sinon le français. C'est elle que lisent les fonctions de message, l'attribut `lang` du document et le formatage des dates. La préférence de compte voyage avec la charge utile de session ; tant que l'API ne l'y met pas, tout le monde suit son navigateur.
+
+Les deux suites de tests fixent leur locale à `fr-FR` au lieu de l'hériter de la machine : leurs locators français assertent l'interface française.
 
 ## Version déployée
 
