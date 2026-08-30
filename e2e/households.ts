@@ -9,6 +9,14 @@ export function name(prefix: string): string {
 	return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
+export async function openPersonal(page: Page) {
+	await page.goto('/');
+	await page
+		.getByRole('navigation', { name: 'Navigation principale' })
+		.getByRole('link', { name: 'Foyer' })
+		.click();
+}
+
 export async function createShared(page: Page, wanted: string): Promise<SharedHousehold> {
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Nouveau foyer' }).click();

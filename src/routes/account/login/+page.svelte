@@ -4,13 +4,13 @@
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import CredentialsForm from '$lib/components/CredentialsForm.svelte';
 	import { authErrors } from '$lib/api.js';
-	import { homePath, returnTo } from '$lib/navigation.js';
+	import { returnTo } from '$lib/navigation.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 
 	async function submit(email: string, password: string) {
 		const response = await session.logIn(email, password);
-		if (session.authenticated) await returnTo(page.url.searchParams.get('next'), await homePath());
+		if (session.authenticated) await returnTo(page.url.searchParams.get('next'), resolve('/'));
 		return authErrors(response);
 	}
 </script>

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { address, signInShared } from './account';
-import { createShared, deleteShared, name } from './households';
+import { createShared, deleteShared, name, openPersonal } from './households';
 import { forget } from './mailpit';
 
 test('inviter une adresse, la voir en attente, puis annuler', async ({ page }) => {
@@ -25,7 +25,7 @@ test('inviter une adresse, la voir en attente, puis annuler', async ({ page }) =
 
 test('le foyer personnel n’a pas d’invitations', async ({ page }) => {
 	await signInShared(page);
-	await page.goto('/');
+	await openPersonal(page);
 
 	await expect(page.getByTestId('household-name')).toHaveText('Personnel');
 	await expect(page.getByLabel('Inviter une adresse')).toHaveCount(0);
