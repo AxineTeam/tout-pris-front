@@ -15,6 +15,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { suggestedColor } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	type Opened =
@@ -47,21 +48,6 @@
 		{ progress: 'done', title: m.progress_done(), counts: m.progress_done_counts() }
 	];
 
-	const tokens: Record<ProgressCategory, string> = {
-		not_started: '--status-not-started',
-		in_progress: '--status-in-progress',
-		done: '--status-done'
-	};
-
-	const fallback = '#7b8189';
-
-	function suggested(progress: ProgressCategory): string {
-		const declared = getComputedStyle(document.documentElement)
-			.getPropertyValue(tokens[progress])
-			.trim();
-		return /^#[0-9a-f]{6}$/i.test(declared) ? declared : fallback;
-	}
-
 	function of(progress: ProgressCategory): ItemStatus[] {
 		return statuses.filter((status) => status.progress === progress);
 	}
@@ -69,7 +55,7 @@
 	function open(next: Opened) {
 		submission.errors = [];
 		typed = next.kind === 'edit' ? next.status.name : '';
-		tinted = next.kind === 'add' ? suggested(next.progress) : next.status.color;
+		tinted = next.kind === 'add' ? suggestedColor(next.progress) : next.status.color;
 		opened = next;
 	}
 

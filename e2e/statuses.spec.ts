@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { signInShared } from './account';
 import { createShared, deleteShared, name, sheet } from './households';
 
-async function addStatus(page: import('@playwright/test').Page, group: string, wanted: string) {
+async function addStatus(page: Page, group: string, wanted: string) {
 	await page
 		.getByTestId(`status-group-${group}`)
 		.getByRole('button', { name: 'Ajouter un statut' })
@@ -12,7 +12,17 @@ async function addStatus(page: import('@playwright/test').Page, group: string, w
 	await expect(page.getByTestId(`status-group-${group}`)).toContainText(wanted);
 }
 
-test('composer les statuts du foyer, désigner celui par défaut, et retirer un autre', async ({
+function firstOf(page: Page, group: string) {
+	return page.getByTestId(`status-group-${group}`).getByRole('listitem').first();
+}
+
+function paintOf(page: Page, group: string) {
+	return firstOf(page, group)
+		.locator('span[style]')
+		.evaluate((swatch) => getComputedStyle(swatch).backgroundColor);
+}
+
+test('un foyer neuf porte ses trois statuts, qu’on complète, redésigne et retire', async ({
 	page
 }) => {
 	await signInShared(page);
@@ -22,24 +32,32 @@ test('composer les statuts du foyer, désigner celui par défaut, et retirer un 
 	await expect(page.getByTestId('screen-title')).toHaveText('Statuts');
 	await expect(page.getByTestId('subtitle')).toHaveText(shared.name);
 
-	await addStatus(page, 'not_started', 'Pas préparé');
-	const first = page.getByTestId('status-group-not_started').getByRole('listitem').first();
-	await expect(first).toContainText('par défaut');
-	await expect(first.getByRole('button', { name: 'Supprimer Pas préparé' })).toHaveCount(0);
+	await expect(firstOf(page, 'not_started')).toContainText('Pas préparé');
+	await expect(firstOf(page, 'in_progress')).toContainText('Sorti du placard');
+	await expect(firstOf(page, 'done')).toContainText('Dans les sacs');
+	await expect(page.getByTestId('status-group-not_started').getByRole('listitem')).toHaveCount(2);
+
+	expect(await paintOf(page, 'not_started')).toBe('rgb(123, 129, 137)');
+	expect(await paintOf(page, 'in_progress')).toBe('rgb(220, 177, 79)');
+	expect(await paintOf(page, 'done')).toBe('rgb(92, 138, 102)');
+
+	await expect(firstOf(page, 'not_started')).toContainText('par défaut');
+	await expect(firstOf(page, 'not_started').getByRole('button', { name: 'Supprimer' })).toHaveCount(
+		0
+	);
+	await expect(firstOf(page, 'in_progress')).not.toContainText('par défaut');
 
 	await addStatus(page, 'in_progress', 'En machine');
 	await expect(page.getByRole('button', { name: 'Supprimer En machine' })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Modifier En machine' }).click();
 	await sheet(page).getByRole('button', { name: 'Utiliser par défaut' }).click();
-	await expect(
-		page.getByTestId('status-group-in_progress').getByRole('listitem').first()
-	).toContainText('par défaut');
-	await expect(first).not.toContainText('par défaut');
+	await expect(page.getByTestId('status-group-in_progress')).toContainText('par défaut');
+	await expect(firstOf(page, 'not_started')).not.toContainText('par défaut');
 
 	await page.getByRole('button', { name: 'Modifier Pas préparé' }).click();
 	await sheet(page).getByRole('button', { name: 'Utiliser par défaut' }).click();
-	await expect(first).toContainText('par défaut');
+	await expect(firstOf(page, 'not_started')).toContainText('par défaut');
 
 	await page.getByRole('button', { name: 'Modifier En machine' }).click();
 	await sheet(page).getByLabel('Nom du statut').fill('Sur la table');

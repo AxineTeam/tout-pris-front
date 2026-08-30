@@ -8,6 +8,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { installBaseStatuses } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let { oncreated }: { oncreated?: () => void } = $props();
@@ -22,6 +23,7 @@
 		const wanted = name.trim();
 		submission.run(async () => {
 			const created = await createHousehold(wanted);
+			await installBaseStatuses(created.id).catch(leaveTheHouseholdWithoutStatuses);
 			households.add(created);
 			name = '';
 			oncreated?.();
@@ -29,6 +31,8 @@
 			return [];
 		});
 	}
+
+	function leaveTheHouseholdWithoutStatuses() {}
 </script>
 
 <div class="grid gap-4">
