@@ -43,7 +43,7 @@
 				href={resolve(section, { id: String(household.id) })}
 				onclick={close}
 				aria-current={household.id === current.id ? 'page' : undefined}
-				class="flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium"
+				class="hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
 			>
 				<span class="text-primary flex w-4 flex-none">
 					{#if household.id === current.id}
@@ -63,7 +63,7 @@
 				close();
 				creating = true;
 			}}
-			class="text-primary flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium"
+			class="text-primary hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
 		>
 			<span class="flex w-4 flex-none"><PlusIcon size={15} aria-hidden="true" /></span>
 			{m.household_new()}
