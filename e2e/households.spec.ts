@@ -75,6 +75,11 @@ test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page 
 
 	const renamed = name('chez-nous');
 	await page.getByRole('button', { name: 'Renommer le foyer' }).click();
+	await expect(sheet(page)).toBeVisible();
+	await page.mouse.click(5, 5);
+	await expect(sheet(page)).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Renommer le foyer' }).click();
 	await sheet(page).getByLabel('Nom du foyer').fill(renamed);
 	await sheet(page).getByRole('button', { name: 'Renommer' }).click();
 	await expect(page.getByTestId('household-switcher')).toHaveText(renamed);
