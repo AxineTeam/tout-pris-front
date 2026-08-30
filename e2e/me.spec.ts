@@ -5,8 +5,8 @@ import {
 	expectRefusalShown,
 	logIn,
 	logOut,
-	register,
-	signInShared
+	openAsShared,
+	register
 } from './account';
 import { forget } from './mailpit';
 
@@ -36,7 +36,7 @@ test('changer son mot de passe, puis se connecter avec le nouveau', async ({ pag
 });
 
 test('chaque œil de l’écran nomme le champ qu’il dévoile', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto('/me');
 
 	const current = page.getByLabel('Mot de passe actuel', { exact: true });
@@ -52,7 +52,7 @@ test('chaque œil de l’écran nomme le champ qu’il dévoile', async ({ page 
 test('ajouter puis supprimer une adresse secondaire', async ({ page }) => {
 	const second = address('me-email-second');
 
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto('/me');
 
 	const addresses = page.getByTestId('email-addresses');

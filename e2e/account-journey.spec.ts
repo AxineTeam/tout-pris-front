@@ -95,7 +95,7 @@ test('une demande de réinitialisation refusée ne prétend pas avoir envoyé', 
 });
 
 test('une destination externe passée dans next est ignorée', async ({ page }) => {
-	const email = await sharedAccount();
+	const { email } = await sharedAccount();
 
 	for (const destination of EXTERNAL_DESTINATIONS) {
 		await page.goto(`/account/login?next=${encodeURIComponent(destination)}`);

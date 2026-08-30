@@ -22,10 +22,16 @@ async function post(context: APIRequestContext, path: string, data: object) {
 	});
 }
 
-// Créer un compte coûte une inscription, et allauth en limite le débit par IP :
-// une par test ferait tomber la suite en 429 dès qu'elle grossit. Les tests qui
-// ne portent pas sur l'inscription se partagent donc un compte par worker.
-async function verifiedAccount(): Promise<string> {
+interface SharedAccount {
+	email: string;
+	cookies: Awaited<ReturnType<APIRequestContext['storageState']>>['cookies'];
+}
+
+// Inscriptions et connexions sont toutes deux limitées par IP et par minute par
+// allauth, 20 et 30 : une de chacune par test ferait tomber la suite en 429 dès
+// qu'elle grossit. Les tests qui ne portent ni sur l'une ni sur l'autre se
+// partagent donc un compte par worker, et la session que sa vérification ouvre.
+async function verifiedAccount(): Promise<SharedAccount> {
 	const email = address('shared');
 	// L'API retient la langue dans laquelle l'inscription a été servie, et le
 	// front sert ensuite le compte dans cette langue-là. Un contexte qui ne
@@ -38,14 +44,18 @@ async function verifiedAccount(): Promise<string> {
 	await post(context, '/auth/signup', { email, password: PASSWORD });
 	const link = await waitForPath(email, '/account/verify-email/');
 	const key = decodeURIComponent(link.replace('/account/verify-email/', ''));
+	// L'API connecte le compte à la confirmation de son adresse
+	// (ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION) : le contexte ressort authentifié
+	// sans avoir touché la route de connexion, et ses cookies suffisent.
 	await post(context, '/auth/email/verify', { key });
+	const { cookies } = await context.storageState();
 	await context.dispose();
-	return email;
+	return { email, cookies };
 }
 
-let shared: Promise<string> | null = null;
+let shared: Promise<SharedAccount> | null = null;
 
-export function sharedAccount(): Promise<string> {
+export function sharedAccount(): Promise<SharedAccount> {
 	shared ??= verifiedAccount().catch((error) => {
 		shared = null;
 		throw error;
@@ -76,10 +86,21 @@ export async function logOut(page: Page) {
 	await expect(page).toHaveURL('/account/login');
 }
 
+// Réservé aux tests qui se déconnectent ensuite : ils ouvrent leur propre
+// session, dont la fermeture ne peut alors pas emporter celle que openAsShared
+// rejoue dans tous les autres.
 export async function signInShared(page: Page): Promise<string> {
-	const email = await sharedAccount();
+	const { email } = await sharedAccount();
 	await page.goto('/account/login');
 	await logIn(page, email, PASSWORD);
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
+	return email;
+}
+
+export async function openAsShared(page: Page): Promise<string> {
+	const { email, cookies } = await sharedAccount();
+	await page.context().addCookies(cookies);
+	await page.goto('/');
 	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 	return email;
 }
