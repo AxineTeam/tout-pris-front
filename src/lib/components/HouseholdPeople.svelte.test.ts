@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, within } from '@testing-library/svelte';
-import userEvent from '@testing-library/user-event';
+import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdPeople from './HouseholdPeople.svelte';
 import {
@@ -49,6 +49,14 @@ function mount(
 
 function sheet() {
 	return screen.getByRole('dialog');
+}
+
+function menu() {
+	return screen.getByRole('menu');
+}
+
+async function openActions(user: UserEvent, name: string) {
+	await user.click(screen.getByRole('button', { name: `Actions sur ${name}` }));
 }
 
 describe('HouseholdPeople', () => {
@@ -115,8 +123,8 @@ describe('HouseholdPeople', () => {
 		);
 		mount([camille, sacha], [owner, member]);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Sacha') }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
+		await openActions(user, 'Sacha');
+		await user.click(within(menu()).getByRole('menuitem', { name: 'Retirer du foyer' }));
 
 		expect(within(sheet()).getByTestId('removal-order')).toBeVisible();
 		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
@@ -131,8 +139,8 @@ describe('HouseholdPeople', () => {
 		vi.mocked(deletePerson).mockResolvedValue(undefined);
 		const onchanged = mount();
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Léo') }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
+		await openActions(user, 'Léo');
+		await user.click(within(menu()).getByRole('menuitem', { name: 'Retirer du foyer' }));
 
 		expect(within(sheet()).getByText(/deviennent communes au voyage/)).toBeVisible();
 		expect(within(sheet()).queryByTestId('removal-order')).not.toBeInTheDocument();
@@ -148,13 +156,12 @@ describe('HouseholdPeople', () => {
 		vi.mocked(setMemberRole).mockResolvedValue({ ...member, role: 'owner' });
 		mount([camille, sacha], [owner, member]);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Camille') }));
-		expect(within(sheet()).queryByRole('button', { name: 'Rétrograder en membre' })).toBeNull();
-		expect(within(sheet()).queryByRole('button', { name: 'Nommer propriétaire' })).toBeNull();
-		await user.click(within(sheet()).getByRole('button', { name: 'Fermer' }));
+		await openActions(user, 'Camille');
+		expect(within(menu()).queryByRole('menuitem', { name: 'Rétrograder en membre' })).toBeNull();
+		expect(within(menu()).queryByRole('menuitem', { name: 'Nommer propriétaire' })).toBeNull();
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Sacha') }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Nommer propriétaire' }));
+		await openActions(user, 'Sacha');
+		await user.click(within(menu()).getByRole('menuitem', { name: 'Nommer propriétaire' }));
 
 		expect(setMemberRole).toHaveBeenCalledWith(7, 101, 'owner');
 	});
@@ -164,33 +171,33 @@ describe('HouseholdPeople', () => {
 		session.user = { ...me, id: 2 };
 		mount([camille, sacha], [owner, member], false);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Camille') }));
+		await openActions(user, 'Camille');
 
-		expect(within(sheet()).queryByRole('button', { name: 'Nommer propriétaire' })).toBeNull();
+		expect(within(menu()).queryByRole('menuitem', { name: 'Nommer propriétaire' })).toBeNull();
 		expect(
-			within(sheet()).queryByRole('button', { name: 'Retirer son compte du foyer' })
+			within(menu()).queryByRole('menuitem', { name: 'Retirer son compte du foyer' })
 		).toBeNull();
-		expect(within(sheet()).getByRole('button', { name: 'Renommer' })).toBeVisible();
+		expect(within(menu()).getByRole('menuitem', { name: 'Renommer' })).toBeVisible();
 	});
 
 	it('n’offre pas de quitter au dernier propriétaire, ni au dernier membre', async () => {
 		const user = userEvent.setup();
 		mount([camille, sacha], [owner, member]);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Camille') }));
+		await openActions(user, 'Camille');
 
-		expect(within(sheet()).queryByRole('button', { name: 'Quitter ce foyer' })).toBeNull();
-		expect(within(sheet()).queryByRole('button', { name: 'Supprimer ce foyer' })).toBeNull();
+		expect(within(menu()).queryByRole('menuitem', { name: 'Quitter ce foyer' })).toBeNull();
+		expect(within(menu()).queryByRole('menuitem', { name: 'Supprimer ce foyer' })).toBeNull();
 	});
 
 	it('offre au dernier membre de supprimer le foyer plutôt que de le quitter', async () => {
 		const user = userEvent.setup();
 		mount([camille], [owner]);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Camille') }));
+		await openActions(user, 'Camille');
 
-		expect(within(sheet()).queryByRole('button', { name: 'Quitter ce foyer' })).toBeNull();
-		expect(within(sheet()).getByRole('button', { name: 'Supprimer ce foyer' })).toBeVisible();
+		expect(within(menu()).queryByRole('menuitem', { name: 'Quitter ce foyer' })).toBeNull();
+		expect(within(menu()).getByRole('menuitem', { name: 'Supprimer ce foyer' })).toBeVisible();
 	});
 
 	it('laisse partir un membre qui laisse un propriétaire derrière lui', async () => {
@@ -199,8 +206,8 @@ describe('HouseholdPeople', () => {
 		session.user = { ...me, id: 2 };
 		mount([camille, sacha], [owner, member], false);
 
-		await user.click(screen.getByRole('button', { name: new RegExp('^Sacha') }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Quitter ce foyer' }));
+		await openActions(user, 'Sacha');
+		await user.click(within(menu()).getByRole('menuitem', { name: 'Quitter ce foyer' }));
 		await user.click(within(sheet()).getByRole('button', { name: 'Quitter ce foyer' }));
 
 		expect(removeMember).toHaveBeenCalledWith(7, 101);
@@ -211,8 +218,8 @@ describe('HouseholdPeople', () => {
 		vi.mocked(removeMember).mockResolvedValue(undefined);
 		mount([camille], [owner, newcomer]);
 
-		await user.click(screen.getByRole('button', { name: /alix@example\.com/ }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
+		await openActions(user, 'alix@example.com');
+		await user.click(within(menu()).getByRole('menuitem', { name: 'Retirer du foyer' }));
 
 		expect(removeMember).toHaveBeenCalledWith(7, 102);
 	});

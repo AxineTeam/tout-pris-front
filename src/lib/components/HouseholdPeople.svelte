@@ -1,6 +1,13 @@
 <script lang="ts">
+	import type { LucideIcon } from '@lucide/svelte';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+	import LogOutIcon from '@lucide/svelte/icons/log-out';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import ShieldIcon from '@lucide/svelte/icons/shield';
+	import TrashIcon from '@lucide/svelte/icons/trash-2';
+	import UnlinkIcon from '@lucide/svelte/icons/unlink';
+	import UserMinusIcon from '@lucide/svelte/icons/user-minus';
 	import {
 		createPerson,
 		deleteHousehold,
@@ -13,6 +20,7 @@
 		type Person
 	} from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -24,8 +32,6 @@
 	import { Submission } from '$lib/submission.svelte.js';
 
 	type Opened =
-		| { kind: 'person'; person: Person }
-		| { kind: 'newcomer'; member: Member }
 		| { kind: 'add' }
 		| { kind: 'rename'; person: Person }
 		| { kind: 'removePerson'; person: Person }
@@ -110,60 +116,164 @@
 	</span>
 {/snippet}
 
+{#snippet separator()}
+	<div class="bg-border mx-2 my-1 h-px"></div>
+{/snippet}
+
+{#snippet entry(icon: LucideIcon, text: string, onclick: () => void, danger = false)}
+	{@const Icon = icon}
+	<button
+		type="button"
+		role="menuitem"
+		disabled={submission.busy}
+		{onclick}
+		class={[
+			'flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium',
+			danger && 'text-destructive'
+		]}
+	>
+		<Icon size={16} aria-hidden="true" class="flex-none" />
+		{text}
+	</button>
+{/snippet}
+
 <section class="grid gap-3">
 	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
 		{m.people_title()}
 	</h2>
 
+	{#if opened === null}
+		<FormErrors errors={submission.errors} />
+	{/if}
+
 	<ul class="grid gap-2" data-testid="persons">
 		{#each persons as person (person.id)}
 			{@const account = accountOf(person)}
-			<li>
-				<button
-					type="button"
-					onclick={() => open({ kind: 'person', person })}
-					class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
-				>
-					<PersonAvatar id={person.id} name={person.name} />
-					<span class="min-w-0 flex-1">
-						<span class="block truncate text-sm font-semibold">{person.name}</span>
-						<span class="text-muted-foreground block truncate text-xs">
-							{account ? account.email : m.person_no_account()}
-						</span>
+			<li
+				class="border-border bg-card flex min-h-11 items-center gap-3 rounded-xl border px-3 py-2.5"
+			>
+				<PersonAvatar id={person.id} name={person.name} />
+				<span class="min-w-0 flex-1">
+					<span class="block truncate text-sm font-semibold">{person.name}</span>
+					<span class="text-muted-foreground block truncate text-xs">
+						{account ? account.email : m.person_no_account()}
 					</span>
-					{#if account?.role === 'owner'}
-						{@render chip(m.role_owner())}
-					{/if}
-					<EllipsisIcon size={18} aria-hidden="true" class="text-muted-foreground flex-none" />
-				</button>
+				</span>
+				{#if account?.role === 'owner'}
+					{@render chip(m.role_owner())}
+				{/if}
+				<Menu
+					label={m.person_actions({ name: person.name })}
+					align="right"
+					triggerClass="text-muted-foreground -my-2.5 -mr-3 flex size-11 flex-none items-center justify-center"
+				>
+					{#snippet trigger()}
+						<EllipsisIcon size={18} aria-hidden="true" />
+					{/snippet}
+					{#snippet children(close: () => void)}
+						{@render entry(PencilIcon, m.rename(), () => {
+							close();
+							open({ kind: 'rename', person }, person.name);
+						})}
+						{#if account && account.user === me}
+							{#if onlyMember}
+								{@render separator()}
+								{@render entry(
+									TrashIcon,
+									m.household_delete(),
+									() => {
+										close();
+										open({ kind: 'dissolve' });
+									},
+									true
+								)}
+							{:else if !lastOwner}
+								{@render separator()}
+								{@render entry(
+									LogOutIcon,
+									m.household_leave(),
+									() => {
+										close();
+										open({ kind: 'leave' });
+									},
+									true
+								)}
+							{/if}
+						{:else}
+							{#if account && owner}
+								{@render entry(
+									ShieldIcon,
+									account.role === 'owner' ? m.role_demote() : m.role_promote(),
+									() => {
+										close();
+										act(() =>
+											setMemberRole(
+												household.id,
+												account.id,
+												account.role === 'owner' ? 'member' : 'owner'
+											)
+										);
+									}
+								)}
+							{/if}
+							{@render separator()}
+							{#if account && owner}
+								{@render entry(
+									UnlinkIcon,
+									m.member_remove(),
+									() => {
+										close();
+										open({ kind: 'removeMember', member: account, name: person.name });
+									},
+									true
+								)}
+							{/if}
+							{@render entry(
+								UserMinusIcon,
+								m.person_remove(),
+								() => {
+									close();
+									open({ kind: 'removePerson', person });
+								},
+								true
+							)}
+						{/if}
+					{/snippet}
+				</Menu>
 			</li>
 		{/each}
 
 		{#each newcomers as newcomer (newcomer.id)}
-			<li data-testid="newcomer">
+			<li
+				data-testid="newcomer"
+				class="border-border text-muted-foreground flex min-h-11 items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
+			>
+				<span aria-hidden="true" class="bg-muted size-9 flex-none rounded-full"></span>
+				<span class="min-w-0 flex-1">
+					<span class="block truncate text-sm">{newcomer.email}</span>
+					<span class="block truncate text-xs">{m.newcomer_note()}</span>
+				</span>
 				{#if owner}
-					<button
-						type="button"
-						onclick={() => open({ kind: 'newcomer', member: newcomer })}
-						class="border-border text-muted-foreground flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed px-3 py-2.5 text-left"
+					<Menu
+						label={m.person_actions({ name: newcomer.email })}
+						align="right"
+						triggerClass="-my-2.5 -mr-3 flex size-11 flex-none items-center justify-center"
 					>
-						<span aria-hidden="true" class="bg-muted size-9 flex-none rounded-full"></span>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-sm">{newcomer.email}</span>
-							<span class="block truncate text-xs">{m.newcomer_note()}</span>
-						</span>
-						<EllipsisIcon size={18} aria-hidden="true" class="flex-none" />
-					</button>
-				{:else}
-					<div
-						class="border-border text-muted-foreground flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
-					>
-						<span aria-hidden="true" class="bg-muted size-9 flex-none rounded-full"></span>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-sm">{newcomer.email}</span>
-							<span class="block truncate text-xs">{m.newcomer_note()}</span>
-						</span>
-					</div>
+						{#snippet trigger()}
+							<EllipsisIcon size={18} aria-hidden="true" />
+						{/snippet}
+						{#snippet children(close: () => void)}
+							{@render entry(
+								UserMinusIcon,
+								m.person_remove(),
+								() => {
+									close();
+									act(() => removeMember(household.id, newcomer.id));
+								},
+								true
+							)}
+						{/snippet}
+					</Menu>
 				{/if}
 			</li>
 		{/each}
@@ -179,71 +289,7 @@
 	</button>
 </section>
 
-{#if opened?.kind === 'person'}
-	{@const person = opened.person}
-	{@const account = accountOf(person)}
-	<Modal
-		title={person.name}
-		description={account ? account.email : m.person_no_account()}
-		onclose={() => (opened = null)}
-	>
-		<FormErrors errors={submission.errors} />
-		<div class="grid gap-2">
-			<Button variant="outline" onclick={() => open({ kind: 'rename', person }, person.name)}>
-				{m.rename()}
-			</Button>
-			{#if account && account.user === me}
-				{#if onlyMember}
-					<Button variant="destructive" onclick={() => open({ kind: 'dissolve' })}>
-						{m.household_delete()}
-					</Button>
-				{:else if !lastOwner}
-					<Button variant="destructive" onclick={() => open({ kind: 'leave' })}>
-						{m.household_leave()}
-					</Button>
-				{/if}
-			{:else}
-				{#if account && owner}
-					<Button
-						variant="outline"
-						disabled={submission.busy}
-						onclick={() =>
-							act(() =>
-								setMemberRole(
-									household.id,
-									account.id,
-									account.role === 'owner' ? 'member' : 'owner'
-								)
-							)}
-					>
-						{account.role === 'owner' ? m.role_demote() : m.role_promote()}
-					</Button>
-					<Button
-						variant="outline"
-						onclick={() => open({ kind: 'removeMember', member: account, name: person.name })}
-					>
-						{m.member_remove()}
-					</Button>
-				{/if}
-				<Button variant="destructive" onclick={() => open({ kind: 'removePerson', person })}>
-					{m.person_remove()}
-				</Button>
-			{/if}
-		</div>
-	</Modal>
-{:else if opened?.kind === 'newcomer'}
-	{@const newcomer = opened.member}
-	<Modal title={newcomer.email} description={m.newcomer_note()} onclose={() => (opened = null)}>
-		<FormErrors errors={submission.errors} />
-		<Button
-			variant="destructive"
-			disabled={submission.busy}
-			onclick={() => act(() => removeMember(household.id, newcomer.id))}
-		>
-			{m.person_remove()}
-		</Button>
-	</Modal>
-{:else if opened?.kind === 'add'}
+{#if opened?.kind === 'add'}
 	<Modal title={m.person_add()} onclose={() => (opened = null)}>
 		<FormErrors errors={submission.errors} />
 		<form class="grid gap-4" onsubmit={add}>

@@ -3,9 +3,11 @@ import { BASE_URL } from '../playwright.config';
 import { address, expectRefusalShown, register, signInShared } from './account';
 import {
 	addPerson,
+	closeMenu,
 	closeSheet,
 	createShared,
 	deleteShared,
+	menu,
 	name,
 	openPerson,
 	personRow,
@@ -39,12 +41,14 @@ test('un invité rejoint le foyer, s’y désigne, y est promu puis en est retir
 	await register(sacha, guest);
 	await sacha.goto(link);
 	await expect(sacha.getByTestId('invitation-household')).toContainText(shared.name);
+	await expect(sacha.getByTestId('invitation-account')).toContainText(guest);
 	await sacha.getByRole('button', { name: 'Rejoindre ce foyer' }).click();
 	await expect(sacha).toHaveURL(new RegExp(`/households/${shared.id}$`));
 
 	await expect(sacha.getByTestId('claim')).toBeVisible();
 	await expect(sacha.getByTestId('claimable')).toContainText('Mamie');
 	await expect(sacha.getByTestId('claim-rest')).toContainText(hersEmail);
+	await expect(sacha.getByTestId('claim-rest')).not.toContainText(guest);
 	await expect(sacha.getByRole('button', { name: 'Ajouter une personne' })).toHaveCount(0);
 
 	await camille.goto(`/households/${shared.id}`);
@@ -61,44 +65,44 @@ test('un invité rejoint le foyer, s’y désigne, y est promu puis en est retir
 	await expect(sacha.getByRole('button', { name: 'Envoyer une invitation' })).toHaveCount(0);
 
 	await openPerson(sacha, 'Mamie');
-	await expect(sheet(sacha).getByRole('button', { name: 'Nommer propriétaire' })).toHaveCount(0);
-	await expect(sheet(sacha).getByRole('button', { name: 'Renommer' })).toBeVisible();
-	await closeSheet(sacha);
+	await expect(menu(sacha).getByRole('menuitem', { name: 'Nommer propriétaire' })).toHaveCount(0);
+	await expect(menu(sacha).getByRole('menuitem', { name: 'Renommer' })).toBeVisible();
+	await closeMenu(sacha);
 
 	await openPerson(sacha, 'Sacha');
-	await expect(sheet(sacha).getByRole('button', { name: 'Quitter ce foyer' })).toBeVisible();
-	await closeSheet(sacha);
+	await expect(menu(sacha).getByRole('menuitem', { name: 'Quitter ce foyer' })).toBeVisible();
+	await closeMenu(sacha);
 
 	await camille.reload();
 	await openPerson(camille, 'Sacha');
-	await sheet(camille).getByRole('button', { name: 'Nommer propriétaire' }).click();
+	await menu(camille).getByRole('menuitem', { name: 'Nommer propriétaire' }).click();
 	await expect(personRow(camille, 'Sacha')).toContainText('propriétaire');
 
 	await openPerson(camille, 'Sacha');
-	await sheet(camille).getByRole('button', { name: 'Rétrograder en membre' }).click();
+	await menu(camille).getByRole('menuitem', { name: 'Rétrograder en membre' }).click();
 	await expect(personRow(camille, 'Sacha')).not.toContainText('propriétaire');
 
 	await openPerson(camille, hersEmail);
-	await expect(sheet(camille).getByRole('button', { name: 'Rétrograder en membre' })).toHaveCount(
+	await expect(menu(camille).getByRole('menuitem', { name: 'Rétrograder en membre' })).toHaveCount(
 		0
 	);
-	await expect(sheet(camille).getByRole('button', { name: 'Quitter ce foyer' })).toHaveCount(0);
-	await closeSheet(camille);
+	await expect(menu(camille).getByRole('menuitem', { name: 'Quitter ce foyer' })).toHaveCount(0);
+	await closeMenu(camille);
 
 	await openPerson(camille, 'Sacha');
-	await sheet(camille).getByRole('button', { name: 'Retirer du foyer' }).click();
+	await menu(camille).getByRole('menuitem', { name: 'Retirer du foyer' }).click();
 	await expect(sheet(camille).getByTestId('removal-order')).toBeVisible();
 	await sheet(camille).getByRole('button', { name: 'Retirer du foyer' }).click();
 	await expectRefusalShown(camille);
 	await closeSheet(camille);
 
 	await openPerson(camille, 'Sacha');
-	await sheet(camille).getByRole('button', { name: 'Retirer son compte du foyer' }).click();
+	await menu(camille).getByRole('menuitem', { name: 'Retirer son compte du foyer' }).click();
 	await sheet(camille).getByRole('button', { name: 'Retirer son compte du foyer' }).click();
 	await expect(personRow(camille, 'Sacha')).toContainText('sans compte');
 
 	await openPerson(camille, 'Sacha');
-	await sheet(camille).getByRole('button', { name: 'Retirer du foyer' }).click();
+	await menu(camille).getByRole('menuitem', { name: 'Retirer du foyer' }).click();
 	await expect(sheet(camille).getByTestId('removal-order')).toHaveCount(0);
 	await sheet(camille).getByRole('button', { name: 'Retirer du foyer' }).click();
 	await expect(camille.getByTestId('persons')).not.toContainText('Sacha');
