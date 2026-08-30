@@ -7,5 +7,5 @@ export const load: PageLoad = async () => {
 	await households.ensureLoaded();
 	const landing = households.landing;
 	if (!landing) redirect(307, resolve('/(app)/households/new'));
-	redirect(307, resolve('/(app)/households/[id]', { id: String(landing.id) }));
+	redirect(307, resolve('/(app)/households/[id]/trips', { id: String(landing.id) }));
 };

@@ -1,18 +1,22 @@
 import { expect, test } from '@playwright/test';
 import { address, expectRefusalShown, logOut, register, signInShared } from './account';
-import { createShared, deleteShared, name } from './households';
+import { createShared, deleteShared, name, openPersonal } from './households';
 import { forget } from './mailpit';
 
-test('l’accueil mène au foyer personnel, nommé « Personnel »', async ({ page }) => {
+test('l’accueil mène aux voyages du foyer personnel, nommé « Personnel »', async ({ page }) => {
 	await signInShared(page);
 	await page.goto('/');
 
-	await expect(page).toHaveURL(/\/households\/\d+$/);
-	await expect(page.getByTestId('household-name')).toHaveText('Personnel');
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 	await expect(page.getByRole('link', { name: 'Personnel' })).toHaveAttribute(
 		'aria-current',
 		'page'
 	);
+	await expect(
+		page
+			.getByRole('navigation', { name: 'Navigation principale' })
+			.getByRole('link', { name: 'Voyages' })
+	).toHaveAttribute('aria-current', 'page');
 });
 
 test('le foyer d’un autre compte répond 404', async ({ page }) => {
@@ -42,7 +46,7 @@ test('le dernier foyer visité est celui où l’on revient', async ({ page }) =
 	await page.goto('/account/login');
 	await page.goto('/');
 
-	await expect(page).toHaveURL(visited);
+	await expect(page).toHaveURL(`${visited}/trips`);
 
 	await deleteShared(page, shared);
 });
@@ -94,7 +98,7 @@ test('la personne qui porte le compte du dernier membre ne se supprime pas', asy
 
 test('le foyer personnel n’a rien à partager', async ({ page }) => {
 	await signInShared(page);
-	await page.goto('/');
+	await openPersonal(page);
 
 	await expect(page.getByTestId('household-name')).toHaveText('Personnel');
 	await expect(page.getByLabel('Nom du foyer')).toHaveCount(0);
