@@ -42,7 +42,7 @@
 	"invitation_cancel_label": "Annuler l’invitation de {email}",
 	"invitation_dates_expired": "envoyée le {created}, expirée le {expires}",
 	"invitation_dates_pending": "envoyée le {created}, expire le {expires}",
-	"invitation_dead": "Cette invitation est inconnue, expirée, ou a déjà été acceptée — l’API ne dit pas laquelle des trois. Un lien vaut une semaine et ne sert qu’une fois. Demande à un propriétaire du foyer de t’en envoyer un nouveau.",
+	"invitation_dead": "Cette invitation est inconnue, expirée, ou a déjà été acceptée. Un lien a une durée de vie d'une semaine et ne sert qu’une fois. Demande aux propriétaires du foyer de en envoyer une nouvelle invitation.",
 	"invitation_email_label": "Inviter une adresse",
 	"invitation_expired_badge": "Expirée",
 	"invitation_expires": "Ce lien expire le {date}.",
