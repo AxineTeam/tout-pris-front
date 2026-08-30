@@ -18,6 +18,8 @@
 	"email_label": "Email address",
 	"email_make_primary": "Make primary",
 	"email_primary": "primary",
+	"email_remove_explains": "This address no longer identifies you, nor reaches you. You can add it again later, it will go through a verification email once more.",
+	"email_remove_title": "Remove {email}?",
 	"email_resend_verification": "Send the verification again",
 	"email_unverified": "unverified",
 	"email_verified": "verified",
