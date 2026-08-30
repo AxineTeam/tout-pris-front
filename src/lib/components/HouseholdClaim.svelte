@@ -1,9 +1,10 @@
 <script lang="ts">
-	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { claimPerson, createPerson, type Household, type Member, type Person } from '$lib/api.js';
+	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
+	import RowCard from '$lib/components/RowCard.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -75,12 +76,10 @@
 	<ul class="grid min-w-0 gap-2" data-testid="claimable">
 		{#each free as person (person.id)}
 			<li>
-				<button
-					type="button"
+				<RowCard
 					aria-label={m.person_claim({ name: person.name })}
 					disabled={claiming.busy}
 					onclick={() => act(claiming, () => claimPerson(household.id, person.id))}
-					class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
 				>
 					<PersonAvatar id={person.id} name={person.name} />
 					<span class="min-w-0 flex-1">
@@ -88,23 +87,19 @@
 						<span class="text-muted-foreground block truncate text-xs">{m.person_no_account()}</span
 						>
 					</span>
-				</button>
+				</RowCard>
 			</li>
 		{/each}
 	</ul>
 
-	<button
-		type="button"
+	<AddCard
+		label={m.claim_create()}
 		onclick={() => {
 			inventing.errors = [];
 			typed = '';
 			creating = true;
 		}}
-		class="border-border text-primary flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed px-3 py-2.5 text-left text-sm font-semibold"
-	>
-		<PlusIcon size={18} aria-hidden="true" />
-		{m.claim_create()}
-	</button>
+	/>
 </section>
 
 <section class="grid gap-3 opacity-60" data-testid="claim-rest" inert>

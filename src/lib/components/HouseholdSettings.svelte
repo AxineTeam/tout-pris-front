@@ -4,6 +4,7 @@
 	import { deleteHousehold, renameHousehold, type Household, type ItemStatus } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import RowCard from '$lib/components/RowCard.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -62,10 +63,9 @@
 
 	<ul class="grid min-w-0 gap-2">
 		<li>
-			<a
+			<RowCard
 				href={resolve('/(app)/households/[id]/statuses', { id: String(household.id) })}
 				data-testid="statuses"
-				class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
 			>
 				<span aria-hidden="true" class="flex flex-none gap-[3px]">
 					{#each statuses.slice(0, 3) as status (status.id)}
@@ -77,26 +77,18 @@
 					<span class="text-muted-foreground block truncate text-xs">{m.statuses_manage()}</span>
 				</span>
 				<ChevronRightIcon size={16} aria-hidden="true" class="text-muted-foreground flex-none" />
-			</a>
+			</RowCard>
 		</li>
 		{#if owner}
 			<li>
-				<button
-					type="button"
-					onclick={() => open('rename')}
-					class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold"
-				>
+				<RowCard class="text-sm font-semibold" onclick={() => open('rename')}>
 					{m.household_rename()}
-				</button>
+				</RowCard>
 			</li>
 			<li>
-				<button
-					type="button"
-					onclick={() => open('dissolve')}
-					class="border-destructive/40 bg-card text-destructive flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold"
-				>
+				<RowCard class="text-sm font-semibold" destructive onclick={() => open('dissolve')}>
 					{m.household_delete()}
-				</button>
+				</RowCard>
 			</li>
 		{/if}
 	</ul>
