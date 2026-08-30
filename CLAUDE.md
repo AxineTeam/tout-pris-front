@@ -38,6 +38,7 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - `src/routes/` : pages (`+page.svelte`), layout et désactivation SSR (`+layout.svelte`, `+layout.ts`)
 - `src/lib/api.ts` : client HTTP typé de l'API — types alignés sur son `openapi.yaml` pour le domaine et sur la spec servie par allauth sur `/api/auth/openapi.yaml` pour l'authentification ; porte le cookie de session et le jeton CSRF
 - `src/lib/components/` : composants métier ; `src/lib/components/ui/` : shadcn-svelte vendoré (`npx shadcn-svelte@latest add <component>`, config dans `components.json`)
+- Les boîtes de dialogue passent par `src/lib/components/Modal.svelte`, qui compose le `Dialog` vendoré de shadcn-svelte : le focus, la fermeture sur Échap, le portail et le verrou du corps viennent de bits-ui, et le composant n'ajoute que la feuille du bas sur mobile et le bouton de fermeture localisé. Ne réécris pas une boîte de dialogue en `Dialog.*` inline : les seize appels partagent la même forme `title` / `description` / `onclose`
 - `src/lib/build.ts` : ref git et commit de l'image, injectés au build par `vite.config.ts` (`APP_VERSION`/`APP_COMMIT`), et lecture du build de l'API via `/api/health/` — `.git` n'étant pas dans le contexte de build, **rien dans le code ne peut ni ne doit interroger git**
 - `src/lib/utils.ts` : `cn()` et types utilitaires shadcn
 - `src/app.css` : import Tailwind + thème (variables clair/sombre)
