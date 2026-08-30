@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdClaim from './HouseholdClaim.svelte';
 import { ApiError, claimPerson, createPerson, type Member, type Person } from '$lib/api.js';
+import { session } from '$lib/session.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -27,7 +28,15 @@ function mount(persons: Person[] = [camille, child], onchanged = vi.fn()) {
 }
 
 describe('HouseholdClaim', () => {
-	beforeEach(() => vi.clearAllMocks());
+	beforeEach(() => {
+		vi.clearAllMocks();
+		session.user = {
+			id: 2,
+			display: 'sacha',
+			email: 'sacha@example.com',
+			has_usable_password: true
+		};
+	});
 
 	it('pose la question et dit ce qu’elle coûte de ne pas y répondre', () => {
 		mount();
@@ -81,7 +90,7 @@ describe('HouseholdClaim', () => {
 		await user.click(screen.getByRole('button', { name: 'Je suis Léo' }));
 
 		expect(await screen.findByText('That person already has an account.')).toBeInTheDocument();
-		expect(onchanged).not.toHaveBeenCalled();
+		expect(onchanged).toHaveBeenCalled();
 	});
 
 	it('montre le reste du foyer sans laisser y toucher', () => {
@@ -89,7 +98,32 @@ describe('HouseholdClaim', () => {
 
 		const rest = screen.getByTestId('claim-rest');
 		expect(within(rest).getByText('Camille')).toBeVisible();
-		expect(within(rest).getByText('sacha@example.com')).toBeVisible();
 		expect(within(rest).queryByRole('button')).toBeNull();
+	});
+
+	it('ne se compte pas soi-même parmi ceux qui ne sont encore personne', () => {
+		mount();
+
+		expect(within(screen.getByTestId('claim-rest')).queryByText('sacha@example.com')).toBeNull();
+	});
+
+	it('recharge le foyer même quand la désignation a échoué après la création', async () => {
+		const user = userEvent.setup();
+		vi.mocked(createPerson).mockResolvedValue({ id: 12, name: 'Sacha', user: null });
+		vi.mocked(claimPerson).mockRejectedValue(
+			new ApiError(409, { detail: 'You are already someone in this household.' }, 'conflict')
+		);
+		const onchanged = mount();
+
+		await user.click(screen.getByRole('button', { name: 'Aucun d’eux, créer ma personne' }));
+		const sheet = screen.getByRole('dialog');
+		await user.type(within(sheet).getByLabelText('Ton nom dans ce foyer'), 'Sacha');
+		await user.click(within(sheet).getByRole('button', { name: 'Créer' }));
+
+		expect(createPerson).toHaveBeenCalledWith(7, 'Sacha');
+		expect(onchanged).toHaveBeenCalled();
+		expect(
+			await screen.findByText('You are already someone in this household.')
+		).toBeInTheDocument();
 	});
 });
