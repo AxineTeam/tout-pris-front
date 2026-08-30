@@ -29,7 +29,7 @@ test('le foyer personnel n’a pas d’invitations', async ({ page }) => {
 	await signInShared(page);
 	await openPersonal(page);
 
-	await expect(page.getByTestId('screen-title')).toHaveText('Personnel');
+	await expect(page.getByTestId('household-switcher')).toHaveText('Personnel');
 	await expect(page.getByRole('button', { name: 'Envoyer une invitation' })).toHaveCount(0);
 	await expect(page.getByTestId('invitations')).toHaveCount(0);
 });

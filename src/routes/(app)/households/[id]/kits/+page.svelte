@@ -5,5 +5,5 @@
 
 <svelte:head><title>{m.title_kits()}</title></svelte:head>
 
-<ScreenHeader title={m.kits_title()} />
+<ScreenHeader title={m.kits_title()} switcher />
 <p class="text-muted-foreground text-sm" data-testid="kits-empty">{m.kits_empty()}</p>

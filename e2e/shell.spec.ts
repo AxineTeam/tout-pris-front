@@ -47,11 +47,11 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 test('le sélecteur de foyer ne suit pas jusqu’au profil', async ({ page }) => {
 	await signInShared(page);
 
-	await expect(page.getByRole('navigation', { name: 'Foyers' })).toBeVisible();
+	await expect(page.getByTestId('household-switcher')).toBeVisible();
 
 	await bar(page).getByRole('link', { name: 'Profil' }).click();
 
-	await expect(page.getByRole('navigation', { name: 'Foyers' })).toHaveCount(0);
+	await expect(page.getByTestId('household-switcher')).toHaveCount(0);
 	await expect(bar(page)).toBeVisible();
 });
 

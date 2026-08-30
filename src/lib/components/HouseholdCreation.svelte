@@ -10,7 +10,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
-	let { oncancel }: { oncancel?: () => void } = $props();
+	let { oncreated }: { oncreated?: () => void } = $props();
 
 	const submission = new Submission();
 	let name = $state('');
@@ -24,24 +24,21 @@
 			const created = await createHousehold(wanted);
 			households.add(created);
 			name = '';
-			oncancel?.();
+			oncreated?.();
 			await goto(resolve('/(app)/households/[id]', { id: String(created.id) }));
 			return [];
 		});
 	}
 </script>
 
-<div class="grid gap-2">
+<div class="grid gap-4">
 	<FormErrors errors={submission.errors} />
 
-	<form class="flex flex-wrap items-end gap-3" onsubmit={create}>
-		<div class="grid min-w-40 flex-1 gap-2">
+	<form class="grid gap-4" onsubmit={create}>
+		<div class="grid gap-2">
 			<Label for="new-household">{m.household_new_label()}</Label>
 			<Input id="new-household" bind:value={name} />
 		</div>
 		<Button type="submit" disabled={!canCreate}>{m.create()}</Button>
-		{#if oncancel}
-			<Button variant="ghost" onclick={oncancel}>{m.cancel()}</Button>
-		{/if}
 	</form>
 </div>
