@@ -102,3 +102,38 @@ test('choisir sa langue retourne l’application, et le rechargement la garde', 
 
 	await forget(email);
 });
+
+test('choisir le thème sombre en un clic, et le rechargement le garde', async ({ page }) => {
+	await openAsShared(page);
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/me');
+
+	const themes = page.getByRole('group', { name: 'Choix du thème' });
+	const dark = themes.getByRole('button', { name: 'Sombre' });
+	await expect(themes.getByRole('button', { name: 'Système' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+
+	for (const name of ['Système', 'Clair', 'Sombre']) {
+		const box = await themes.getByRole('button', { name }).boundingBox();
+		expect(box!.height).toBeGreaterThanOrEqual(44);
+	}
+	expect(
+		await page.evaluate(
+			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+		)
+	).toBeLessThanOrEqual(0);
+
+	await dark.click();
+	await expect(dark).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('html')).toHaveClass(/dark/);
+
+	await page.reload();
+
+	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(themes.getByRole('button', { name: 'Sombre' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+});

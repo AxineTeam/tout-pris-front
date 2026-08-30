@@ -8,7 +8,7 @@
 	import LanguageChoice from '$lib/components/LanguageChoice.svelte';
 	import PasswordChangeForm from '$lib/components/PasswordChangeForm.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import ThemeChoice from '$lib/components/ThemeChoice.svelte';
 	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
@@ -77,10 +77,7 @@
 
 	<section class="grid gap-3">
 		{@render section(m.me_appearance_title())}
-		<div class="flex items-center justify-between gap-3">
-			<span class="text-sm">{m.me_theme_label()}</span>
-			<ThemeToggle />
-		</div>
+		<ThemeChoice />
 	</section>
 
 	<div class="grid gap-4">
