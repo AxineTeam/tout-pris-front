@@ -69,15 +69,23 @@
 
 	<ul class="grid gap-2" data-testid="invitations">
 		{#each invitations as invitation (invitation.id)}
-			<li class="bg-pending text-pending-foreground flex items-center gap-3 rounded-xl px-3 py-2.5">
-				<MailIcon size={18} aria-hidden="true" class="flex-none" />
+			{@const expired = new Date(invitation.expires_at).getTime() <= Date.now()}
+			<li class="bg-pending text-pending-foreground flex items-start gap-3 rounded-xl px-3 py-2.5">
+				<MailIcon size={18} aria-hidden="true" class="mt-0.5 flex-none" />
 				<span class="min-w-0 flex-1">
-					<span class="block truncate text-sm font-semibold">{invitation.email}</span>
-					<span class="block truncate text-xs">
-						{m.invitation_dates_pending({
-							created: locale.day(invitation.created_at),
-							expires: locale.day(invitation.expires_at)
-						})}
+					<span class="block text-sm font-semibold wrap-anywhere">{invitation.email}</span>
+					<span class="block text-xs wrap-anywhere">
+						{#if expired}
+							{m.invitation_dates_expired({
+								created: locale.day(invitation.created_at),
+								expires: locale.day(invitation.expires_at)
+							})}
+						{:else}
+							{m.invitation_dates_pending({
+								created: locale.day(invitation.created_at),
+								expires: locale.day(invitation.expires_at)
+							})}
+						{/if}
 					</span>
 				</span>
 				<button
@@ -85,7 +93,7 @@
 					aria-label={m.invitation_cancel_label({ email: invitation.email })}
 					disabled={cancelling.busy}
 					onclick={() => cancel(invitation)}
-					class="-m-2 flex size-11 flex-none items-center justify-center"
+					class="-mt-2 -mr-2 -mb-2 flex size-11 flex-none items-center justify-center"
 				>
 					<XIcon size={18} aria-hidden="true" />
 				</button>
