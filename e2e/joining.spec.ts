@@ -50,6 +50,7 @@ test('un invité rejoint le foyer, s’y désigne, y est promu puis en est retir
 	await expect(sacha.getByTestId('claim-rest')).toContainText(hersEmail);
 	await expect(sacha.getByTestId('claim-rest')).not.toContainText(guest);
 	await expect(sacha.getByRole('button', { name: 'Ajouter une personne' })).toHaveCount(0);
+	await expect(sacha.getByTestId('statuses')).toHaveCount(0);
 
 	await camille.goto(`/households/${shared.id}`);
 	const rows = camille.getByTestId('persons').getByRole('listitem');
@@ -63,6 +64,7 @@ test('un invité rejoint le foyer, s’y désigne, y est promu puis en est retir
 	await expect(sacha.getByTestId('claim')).toHaveCount(0);
 	await expect(personRow(sacha, 'Sacha')).toContainText(guest);
 	await expect(sacha.getByRole('button', { name: 'Envoyer une invitation' })).toHaveCount(0);
+	await expect(sacha.getByTestId('statuses')).toBeVisible();
 
 	await openPerson(sacha, 'Mamie');
 	await expect(menu(sacha).getByRole('menuitem', { name: 'Nommer propriétaire' })).toHaveCount(0);

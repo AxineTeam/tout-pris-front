@@ -50,9 +50,11 @@
 	{/if}
 {/if}
 
-<HouseholdSettings
-	household={data.household}
-	statuses={data.statuses}
-	owner={owner && !nobody}
-	onchanged={invalidateAll}
-/>
+{#if !nobody}
+	<HouseholdSettings
+		household={data.household}
+		statuses={data.statuses}
+		{owner}
+		onchanged={invalidateAll}
+	/>
+{/if}
