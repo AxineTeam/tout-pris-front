@@ -8,22 +8,17 @@
 
 	let {
 		title,
-		intro,
 		children,
 		footer
 	}: {
 		title: string;
-		intro?: string;
 		children: Snippet;
 		footer?: Snippet;
 	} = $props();
 </script>
 
 <div class="my-auto w-full py-8">
-	<h1 class="text-3xl leading-[1.05] font-bold">{title}</h1>
-	{#if intro}
-		<p class="text-muted-foreground mt-[7px] text-sm">{intro}</p>
-	{/if}
+	<h1 class="text-primary text-3xl leading-[1.05] font-bold">{title}</h1>
 	<div class="mt-[22px] grid gap-[22px]">
 		{@render children()}
 	</div>
