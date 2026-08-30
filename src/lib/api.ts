@@ -200,6 +200,21 @@ export function resetPassword(key: string, password: string): Promise<AuthRespon
 	});
 }
 
+// Les codes de langue de l'API ne sont pas ceux de paraglide : elle connaît
+// « en-us » et « fr » (settings.LANGUAGES), le projet inlang « en » et « fr ».
+// C'est le code de l'API qui part ici, tout autre valeur est refusée en 400.
+export type ApiLocale = 'fr' | 'en-us';
+
+export interface Me {
+	id: number;
+	email: string;
+	language: ApiLocale;
+}
+
+export function updateMe(language: ApiLocale): Promise<Me> {
+	return request('/me/', { method: 'PATCH', body: JSON.stringify({ language }) });
+}
+
 export interface Health {
 	status: string;
 	version?: string;

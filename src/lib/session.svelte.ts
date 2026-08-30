@@ -4,7 +4,9 @@ import {
 	logOut,
 	readSession,
 	signUp,
+	updateMe,
 	verifyEmail,
+	type ApiLocale,
 	type AuthResponse,
 	type AuthUser
 } from '$lib/api.js';
@@ -39,6 +41,13 @@ class Session {
 
 	async verifyEmail(key: string): Promise<AuthResponse> {
 		return this.#apply(await verifyEmail(key));
+	}
+
+	// L'API ne rend ici que {id, email, language} : fusionner le champ plutôt que
+	// remplacer l'utilisateur, sinon `display` et `has_usable_password` disparaissent.
+	async changeLanguage(language: ApiLocale): Promise<void> {
+		const me = await updateMe(language);
+		if (this.user) this.user = { ...this.user, language: me.language };
 	}
 
 	async logOut(): Promise<void> {
