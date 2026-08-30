@@ -3,10 +3,7 @@ import { address, logOut, register, signInShared } from './account';
 import { createShared, deleteShared, name } from './households';
 import { forget, waitForPath } from './mailpit';
 
-// L'API nomme l'invitant par son nom complet, à défaut par la partie locale de
-// son adresse (`display_name_of`) : le compte partagé n'a pas de nom, c'est
-// donc celle-là qui s'affiche.
-function displayed(email: string): string {
+function inviterWithoutName(email: string): string {
 	return email.split('@')[0];
 }
 
@@ -32,7 +29,7 @@ test('un invité rejoint le foyer sans y être personne, puis devient celle qu�
 
 	await page.goto(link);
 	await expect(page.getByTestId('invitation-household')).toContainText(shared.name);
-	await expect(page.getByTestId('invitation-household')).toContainText(displayed(inviter));
+	await expect(page.getByTestId('invitation-household')).toContainText(inviterWithoutName(inviter));
 	await expect(page.getByTestId('invitation-account')).toContainText(guest);
 	await page.getByRole('button', { name: 'Rejoindre ce foyer' }).click();
 
@@ -77,8 +74,7 @@ test('sans session, le lien nomme le foyer et son invitant avant de proposer les
 	await page.goto(link);
 
 	await expect(page.getByTestId('invitation-household')).toContainText(shared.name);
-	await expect(page.getByTestId('invitation-household')).toContainText(displayed(inviter));
-	await expect(page.getByTestId('invitation-anonymous')).toBeVisible();
+	await expect(page.getByTestId('invitation-household')).toContainText(inviterWithoutName(inviter));
 	await expect(page.getByRole('link', { name: 'Se connecter' })).toHaveAttribute(
 		'href',
 		`/account/login?next=${encodeURIComponent(link)}`

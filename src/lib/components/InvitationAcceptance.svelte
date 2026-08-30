@@ -66,7 +66,31 @@
 	read();
 </script>
 
-<FormErrors errors={[...readErrors, ...submission.errors]} title={m.invitation_unusable()} />
+<FormErrors errors={[...readErrors, ...submission.errors]} />
+
+{#snippet actions()}
+	{#if session.authenticated}
+		<div class="grid gap-2">
+			<ActionButton
+				label={m.invitation_accept()}
+				busy={submission.busy}
+				disabled={submission.busy}
+				onclick={accept}
+			/>
+			<ActionButton
+				variant="outline"
+				label={m.invitation_other_account()}
+				disabled={submission.busy}
+				onclick={change}
+			/>
+		</div>
+	{:else}
+		<div class="grid gap-2">
+			<ActionButton label={m.log_in()} href={login} />
+			<ActionButton variant="outline" label={m.signup_link()} href={resolve('/account/signup')} />
+		</div>
+	{/if}
+{/snippet}
 
 {#if dead}
 	<div class="border-border bg-card grid gap-1 rounded-xl border p-4">
@@ -89,28 +113,10 @@
 
 	{#if session.authenticated}
 		<p class="text-sm wrap-anywhere" data-testid="invitation-account">
-			{m.invitation_account_before()}
-			<strong>{session.user?.email}</strong>{m.invitation_account_after()}
+			{m.invitation_account({ email: session.user?.email ?? '' })}
 		</p>
-		<div class="grid gap-2">
-			<ActionButton
-				label={m.invitation_accept()}
-				busy={submission.busy}
-				disabled={submission.busy}
-				onclick={accept}
-			/>
-			<ActionButton
-				variant="outline"
-				label={m.invitation_other_account()}
-				disabled={submission.busy}
-				onclick={change}
-			/>
-		</div>
-	{:else}
-		<p class="text-sm" data-testid="invitation-anonymous">{m.invitation_anonymous()}</p>
-		<div class="grid gap-2">
-			<ActionButton label={m.log_in()} href={login} />
-			<ActionButton variant="outline" label={m.signup_link()} href={resolve('/account/signup')} />
-		</div>
 	{/if}
+	{@render actions()}
+{:else}
+	{@render actions()}
 {/if}

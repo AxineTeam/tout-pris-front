@@ -25,6 +25,7 @@ const preview = {
 };
 
 const dead = () => new ApiError(404, { detail: 'Not found.' }, 'not found');
+const broken = () => new ApiError(500, { detail: 'Boom.' }, 'server error');
 
 describe('InvitationAcceptance', () => {
 	beforeEach(() => {
@@ -55,8 +56,7 @@ describe('InvitationAcceptance', () => {
 	it('offre les deux chemins à qui n’est pas connecté, sans deviner lequel', async () => {
 		render(InvitationAcceptance, { props: { token: 'abc' } });
 
-		expect(await screen.findByTestId('invitation-anonymous')).toBeInTheDocument();
-		expect(screen.getByRole('link', { name: 'Se connecter' })).toHaveAttribute(
+		expect(await screen.findByRole('link', { name: 'Se connecter' })).toHaveAttribute(
 			'href',
 			'/account/login?next=%2Finvitations%2Fabc'
 		);
@@ -107,6 +107,30 @@ describe('InvitationAcceptance', () => {
 		expect(await screen.findByTestId('invitation-dead')).toBeInTheDocument();
 		expect(screen.queryByText('Not found.')).not.toBeInTheDocument();
 		expect(goto).not.toHaveBeenCalled();
+	});
+
+	it('garde les deux chemins quand la lecture échoue autrement qu’en lien mort', async () => {
+		vi.mocked(readInvitation).mockRejectedValue(broken());
+		render(InvitationAcceptance, { props: { token: 'abc' } });
+
+		expect(await screen.findByRole('link', { name: 'Se connecter' })).toHaveAttribute(
+			'href',
+			'/account/login?next=%2Finvitations%2Fabc'
+		);
+		expect(screen.getByRole('link', { name: 'Créer un compte' })).toBeInTheDocument();
+		expect(screen.queryByTestId('invitation-household')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('invitation-dead')).not.toBeInTheDocument();
+		expect(screen.getByRole('alert')).not.toHaveTextContent('Invitation inutilisable');
+	});
+
+	it('offre encore de rejoindre quand la lecture échoue et que la session est ouverte', async () => {
+		session.user = me;
+		vi.mocked(readInvitation).mockRejectedValue(broken());
+		render(InvitationAcceptance, { props: { token: 'abc' } });
+
+		expect(await screen.findByRole('button', { name: 'Rejoindre ce foyer' })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Utiliser un autre compte' })).toBeInTheDocument();
+		expect(screen.queryByTestId('invitation-household')).not.toBeInTheDocument();
 	});
 
 	it('repart vers la connexion quand on veut un autre compte', async () => {

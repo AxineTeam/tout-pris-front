@@ -10,6 +10,6 @@
 
 <svelte:head><title>{m.title_invitation()}</title></svelte:head>
 
-<AccountScreen title={m.invitation_title()} intro={m.invitation_intro()}>
+<AccountScreen title={m.invitation_title()}>
 	<InvitationAcceptance token={key} />
 </AccountScreen>
