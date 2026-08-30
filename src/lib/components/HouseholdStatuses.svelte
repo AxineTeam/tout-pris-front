@@ -34,7 +34,7 @@
 	let typed = $state('');
 	let tinted = $state('');
 
-	const groups: { progress: ProgressCategory; title: string; counts: string }[] = [
+	let groups = $derived<{ progress: ProgressCategory; title: string; counts: string }[]>([
 		{
 			progress: 'not_started',
 			title: m.progress_not_started(),
@@ -46,7 +46,7 @@
 			counts: m.progress_in_progress_counts()
 		},
 		{ progress: 'done', title: m.progress_done(), counts: m.progress_done_counts() }
-	];
+	]);
 
 	function of(progress: ProgressCategory): ItemStatus[] {
 		return statuses.filter((status) => status.progress === progress);

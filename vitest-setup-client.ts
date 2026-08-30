@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom/vitest';
+// The root layout is what hands paraglide the locale of the session: without
+// it a component under test stays in the base locale whatever the account says.
+import './src/lib/locale.svelte.js';
 import { afterAll, afterEach } from 'vitest';
 
 Object.defineProperty(navigator, 'languages', { value: ['fr-FR'] });
