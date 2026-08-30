@@ -75,7 +75,10 @@ test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page 
 
 	const renamed = name('chez-nous');
 	await page.getByRole('button', { name: 'Renommer le foyer' }).click();
-	await expect(sheet(page)).toBeVisible();
+	// bits-ui n'arme l'écoute du clic extérieur qu'un tour de boucle après avoir
+	// monté la feuille, et lui donne le focus à la frame suivante : un clic tiré
+	// dès qu'elle est visible n'est entendu par personne.
+	await expect(sheet(page).getByRole('button', { name: 'Fermer' })).toBeFocused();
 	await page.mouse.click(5, 5);
 	await expect(sheet(page)).toHaveCount(0);
 
