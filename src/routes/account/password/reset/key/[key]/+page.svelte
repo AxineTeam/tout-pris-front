@@ -5,6 +5,7 @@
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import PasswordForm from '$lib/components/PasswordForm.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
 	let { params }: PageProps = $props();
@@ -38,15 +39,15 @@
 	{#if done}
 		<p class="text-sm" data-testid="reset-done">
 			{m.password_changed()}
-			<a class="text-primary font-semibold" href={resolve('/account/login')}>{m.log_in()}</a>
+			<TextLink href={resolve('/account/login')}>{m.log_in()}</TextLink>
 		</p>
 	{:else if keyErrors.length > 0}
 		<FormErrors errors={keyErrors} title={m.link_unusable()} />
 		<p class="text-muted-foreground text-sm">
 			{m.reset_key_dead()}
-			<a class="text-primary font-semibold" href={resolve('/account/password/reset')}>
+			<TextLink href={resolve('/account/password/reset')}>
 				{m.reset_key_ask_again()}
-			</a>.
+			</TextLink>.
 		</p>
 	{:else if checked}
 		<PasswordForm submitLabel={m.password_change_submit()} onsubmit={submit} />

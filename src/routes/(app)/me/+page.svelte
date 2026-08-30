@@ -8,6 +8,7 @@
 	import LanguageChoice from '$lib/components/LanguageChoice.svelte';
 	import PasswordChangeForm from '$lib/components/PasswordChangeForm.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import ThemeChoice from '$lib/components/ThemeChoice.svelte';
 	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -48,12 +49,9 @@
 		<p class="text-muted-foreground text-sm">
 			{m.me_name_intro()}
 			{#if landing}
-				<a
-					class="text-primary underline"
-					href={resolve('/(app)/households/[id]', { id: String(landing.id) })}
-				>
+				<TextLink href={resolve('/(app)/households/[id]', { id: String(landing.id) })}>
 					{m.me_name_link()}
-				</a>
+				</TextLink>
 			{:else}
 				{m.me_name_link()}
 			{/if}.

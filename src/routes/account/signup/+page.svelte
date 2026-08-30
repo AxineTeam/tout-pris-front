@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import CredentialsForm from '$lib/components/CredentialsForm.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import { authErrors } from '$lib/api.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session, verificationPending } from '$lib/session.svelte.js';
@@ -31,6 +32,6 @@
 
 	{#snippet footer()}
 		{m.signup_have_account()}
-		<a class="text-primary font-semibold" href={resolve('/account/login')}>{m.log_in()}</a>
+		<TextLink href={resolve('/account/login')}>{m.log_in()}</TextLink>
 	{/snippet}
 </AccountScreen>

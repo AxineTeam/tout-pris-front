@@ -3,6 +3,7 @@
 	import { authErrors, requestPasswordReset } from '$lib/api.js';
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import EmailForm from '$lib/components/EmailForm.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
 	let sent = $state(false);
@@ -24,6 +25,6 @@
 	{/if}
 
 	{#snippet footer()}
-		<a class="text-primary font-semibold" href={resolve('/account/login')}>{m.reset_back()}</a>
+		<TextLink href={resolve('/account/login')}>{m.reset_back()}</TextLink>
 	{/snippet}
 </AccountScreen>

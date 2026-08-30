@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import CredentialsForm from '$lib/components/CredentialsForm.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import { authErrors } from '$lib/api.js';
 	import { returnTo } from '$lib/navigation.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -24,13 +25,13 @@
 		onsubmit={submit}
 	/>
 	<p class="text-center">
-		<a class="text-primary p-2 text-sm font-medium" href={resolve('/account/password/reset')}>
+		<TextLink class="p-2 text-sm" href={resolve('/account/password/reset')}>
 			{m.password_forgotten_link()}
-		</a>
+		</TextLink>
 	</p>
 
 	{#snippet footer()}
 		{m.login_no_account()}
-		<a class="text-primary font-semibold" href={resolve('/account/signup')}>{m.signup_link()}</a>
+		<TextLink href={resolve('/account/signup')}>{m.signup_link()}</TextLink>
 	{/snippet}
 </AccountScreen>
