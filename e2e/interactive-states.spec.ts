@@ -109,3 +109,17 @@ test('chaque pop-up à champ texte s’ouvre sur son champ', async ({ page }) =>
 		await deleteShared(page, household);
 	}
 });
+
+test('le choix de la langue s’allume aussi sous la souris', async ({ page }) => {
+	await openAsShared(page);
+	await page.goto('/me');
+	await expect(page.getByRole('heading', { name: 'Mon compte', level: 1 })).toBeVisible();
+
+	const trigger = 'Choix de la langue Français';
+	const resting = await background(page, trigger);
+	await page.getByRole('button', { name: trigger }).hover();
+
+	await expect
+		.poll(() => background(page, trigger), { message: 'le déclencheur reste éteint au survol' })
+		.not.toBe(resting);
+});
