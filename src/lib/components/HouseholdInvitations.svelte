@@ -90,15 +90,16 @@
 						{/if}
 					</span>
 				</span>
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
 					aria-label={m.invitation_cancel_label({ email: invitation.email })}
 					disabled={cancelling.busy}
 					onclick={() => cancel(invitation)}
-					class="-mt-2 -mr-2 -mb-2 flex size-11 flex-none items-center justify-center"
+					class="-mt-2 -mr-2 -mb-2 size-11 flex-none"
 				>
-					<XIcon size={18} aria-hidden="true" />
-				</button>
+					<XIcon class="size-[18px]" aria-hidden="true" />
+				</Button>
 			</li>
 		{/each}
 	</ul>

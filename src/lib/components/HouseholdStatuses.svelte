@@ -249,23 +249,25 @@
 								{m.status_default_badge()}
 							</span>
 						{/if}
-						<button
-							type="button"
+						<Button
+							variant="ghost"
+							size="icon"
 							aria-label={m.status_edit({ name: status.name })}
 							onclick={() => open({ kind: 'edit', status })}
-							class="text-muted-foreground flex size-11 flex-none items-center justify-center"
+							class="text-muted-foreground size-11 flex-none"
 						>
-							<PencilIcon size={15} aria-hidden="true" />
-						</button>
+							<PencilIcon class="size-[15px]" aria-hidden="true" />
+						</Button>
 						{#if !status.is_default}
-							<button
-								type="button"
+							<Button
+								variant="ghost"
+								size="icon"
 								aria-label={m.status_delete({ name: status.name })}
 								onclick={() => open({ kind: 'remove', status })}
-								class="text-muted-foreground -mr-3 flex size-11 flex-none items-center justify-center"
+								class="text-muted-foreground -mr-3 size-11 flex-none"
 							>
-								<TrashIcon size={15} aria-hidden="true" />
-							</button>
+								<TrashIcon class="size-[15px]" aria-hidden="true" />
+							</Button>
 						{:else}
 							<span class="-mr-3 block size-11 flex-none"></span>
 						{/if}

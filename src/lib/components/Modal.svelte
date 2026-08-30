@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import XIcon from '@lucide/svelte/icons/x';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 
@@ -29,11 +30,17 @@
 					<Dialog.Description class="mt-1 wrap-anywhere">{description}</Dialog.Description>
 				{/if}
 			</div>
-			<Dialog.Close
-				aria-label={m.close()}
-				class="text-muted-foreground -m-2 flex size-11 flex-none items-center justify-center"
-			>
-				<XIcon size={18} aria-hidden="true" />
+			<Dialog.Close aria-label={m.close()}>
+				{#snippet child({ props })}
+					<Button
+						variant="ghost"
+						size="icon"
+						class="text-muted-foreground -m-2 size-11 flex-none"
+						{...props}
+					>
+						<XIcon class="size-[18px]" aria-hidden="true" />
+					</Button>
+				{/snippet}
 			</Dialog.Close>
 		</Dialog.Header>
 		{@render children()}
