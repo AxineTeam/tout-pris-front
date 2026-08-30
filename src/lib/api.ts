@@ -56,7 +56,7 @@ async function refusalBody(response: Response): Promise<unknown> {
 	}
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function call(path: string, init: RequestInit): Promise<Response> {
 	const method = methodOf(init);
 	const response = await send(`${API_BASE}${path}`, init);
 	if (response.status === 401) sessionExpired?.();
@@ -67,6 +67,11 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 			`${method} ${path} → ${response.status}`
 		);
 	}
+	return response;
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+	const response = await call(path, init);
 	if (response.status === 204) return undefined as T;
 	return response.json();
 }
@@ -423,4 +428,108 @@ export function updateItemStatus(
 
 export function deleteItemStatus(household: number, id: number): Promise<void> {
 	return request(`/households/${household}/item-statuses/${id}/`, { method: 'DELETE' });
+}
+
+export interface ItemType {
+	id: number;
+	name: string;
+	description: string;
+}
+
+export interface ItemTypeOutcome {
+	item: ItemType;
+	created: boolean;
+}
+
+export function listItemTypes(household: number): Promise<ItemType[]> {
+	return request(`/households/${household}/item-types/`);
+}
+
+export async function createItemType(
+	household: number,
+	name: string,
+	description = ''
+): Promise<ItemTypeOutcome> {
+	const response = await call(`/households/${household}/item-types/`, {
+		method: 'POST',
+		body: JSON.stringify({ name, description })
+	});
+	return { item: await response.json(), created: response.status === 201 };
+}
+
+export interface Kit {
+	id: number;
+	name: string;
+	description: string;
+	position: number;
+}
+
+export interface KitItem {
+	id: number;
+	item_type: ItemType;
+	person: Person | null;
+	quantity: number;
+	note: string;
+	position: number;
+}
+
+export interface KitDetail extends Kit {
+	items: KitItem[];
+}
+
+export function listKits(household: number): Promise<Kit[]> {
+	return request(`/households/${household}/kits/`);
+}
+
+export function readKit(household: number, id: number): Promise<KitDetail> {
+	return request(`/households/${household}/kits/${id}/`);
+}
+
+export function createKit(household: number, name: string, description: string): Promise<Kit> {
+	return request(`/households/${household}/kits/`, {
+		method: 'POST',
+		body: JSON.stringify({ name, description })
+	});
+}
+
+export function updateKit(
+	household: number,
+	id: number,
+	changes: { name?: string; description?: string; position?: number }
+): Promise<KitDetail> {
+	return request(`/households/${household}/kits/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
+}
+
+export function deleteKit(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/kits/${id}/`, { method: 'DELETE' });
+}
+
+export function createKitItem(
+	household: number,
+	kit: number,
+	line: { item_type: number; person?: number | null; quantity?: number; note?: string }
+): Promise<KitItem> {
+	return request(`/households/${household}/kits/${kit}/items/`, {
+		method: 'POST',
+		body: JSON.stringify(line)
+	});
+}
+
+export function updateKitItem(
+	household: number,
+	kit: number,
+	id: number,
+	changes: { person?: number | null; quantity?: number; note?: string; position?: number }
+): Promise<KitItem> {
+	return request(`/households/${household}/kits/${kit}/items/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
+}
+
+export function deleteKitItem(household: number, kit: number, id: number): Promise<void> {
+	return request(`/households/${household}/kits/${kit}/items/${id}/`, { method: 'DELETE' });
 }
