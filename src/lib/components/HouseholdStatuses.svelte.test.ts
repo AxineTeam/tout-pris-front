@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdStatuses from './HouseholdStatuses.svelte';
 import {
 	ApiError,
@@ -10,6 +11,7 @@ import {
 	updateItemStatus,
 	type ItemStatus
 } from '$lib/api.js';
+import { session } from '$lib/session.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -64,6 +66,7 @@ async function addIn(user: UserEvent, group: string) {
 
 describe('HouseholdStatuses', () => {
 	beforeEach(() => vi.clearAllMocks());
+	afterEach(() => (session.user = null));
 
 	it('range chaque statut sous la section qui compte pour lui', () => {
 		mount();
@@ -152,6 +155,25 @@ describe('HouseholdStatuses', () => {
 
 		expect(deleteItemStatus).toHaveBeenCalledWith(7, 3);
 		expect(onchanged).toHaveBeenCalled();
+	});
+
+	it('suit la langue du compte quand elle change sous les sections', async () => {
+		mount();
+
+		expect(screen.getByTestId('status-group-not_started')).toHaveTextContent('Pas prêt');
+
+		session.user = {
+			id: 1,
+			display: 'sacha',
+			email: 'sacha@example.com',
+			has_usable_password: true,
+			language: 'en'
+		};
+		await tick();
+
+		expect(screen.getByTestId('status-group-not_started')).toHaveTextContent('Not ready');
+		expect(screen.getByTestId('status-group-in_progress')).toHaveTextContent('In progress');
+		expect(screen.getByTestId('status-group-done')).toHaveTextContent('Ready');
 	});
 
 	it('relaie le refus de l’API plutôt que d’annoncer une panne', async () => {
