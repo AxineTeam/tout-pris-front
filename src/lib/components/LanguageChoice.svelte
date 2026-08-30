@@ -45,7 +45,7 @@
 			<Select.Trigger
 				id="language-choice"
 				aria-labelledby="language-label language-choice"
-				class={cn(fieldClass, 'w-full px-3 data-[size=default]:h-[46px]')}
+				class={cn(fieldClass, 'hover:bg-accent w-full px-3 data-[size=default]:h-[46px]')}
 			>
 				{name}
 			</Select.Trigger>
