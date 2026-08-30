@@ -20,7 +20,22 @@ const camille = {
 	language: 'fr'
 };
 
-const button = (name: string) => screen.getByRole('button', { name });
+const trigger = () => screen.getByRole('button');
+
+// La liste flotte : jsdom ne mesure rien, donc bits-ui la laisse en
+// `visibility: hidden`, Testing Library la tient pour inaccessible et le nom
+// des options y est vide. Elle ne s'ouvre pas non plus au clic, faute de vrai
+// pointeur, mais le clavier la déplie et les options répondent ensuite au clic.
+async function options() {
+	return screen.findAllByRole('option', { hidden: true });
+}
+
+async function pick(user: ReturnType<typeof userEvent.setup>, name: string) {
+	trigger().focus();
+	await user.keyboard('{ArrowDown}');
+	const chosen = (await options()).find((option) => option.textContent?.trim() === name);
+	await user.click(chosen!);
+}
 
 describe('LanguageChoice', () => {
 	beforeEach(() => {
@@ -28,18 +43,32 @@ describe('LanguageChoice', () => {
 		updateMe.mockResolvedValue({ id: 1, email: camille.email, language: 'en-us' });
 	});
 
-	it('marque la langue courante du compte', () => {
+	it('montre la langue courante du compte, sous le nom du contrôle', () => {
 		render(LanguageChoice);
 
-		expect(button('Français')).toHaveAttribute('aria-pressed', 'true');
-		expect(button('English')).toHaveAttribute('aria-pressed', 'false');
+		expect(trigger()).toHaveTextContent('Français');
+		expect(trigger()).toHaveAttribute('aria-labelledby', 'language-label language-choice');
+		expect(screen.getByText('Choix de la langue')).toHaveAttribute('id', 'language-label');
+	});
+
+	it('offre chaque langue écrite dans la sienne', async () => {
+		const user = userEvent.setup();
+		render(LanguageChoice);
+		trigger().focus();
+
+		await user.keyboard('{ArrowDown}');
+
+		expect((await options()).map((option) => option.textContent?.trim())).toEqual([
+			'Français',
+			'English'
+		]);
 	});
 
 	it('envoie le code de l’API, pas celui de paraglide', async () => {
 		const user = userEvent.setup();
 		render(LanguageChoice);
 
-		await user.click(button('English'));
+		await pick(user, 'English');
 
 		expect(updateMe).toHaveBeenCalledWith('en-us');
 	});
@@ -48,7 +77,7 @@ describe('LanguageChoice', () => {
 		const user = userEvent.setup();
 		render(LanguageChoice);
 
-		await user.click(button('English'));
+		await pick(user, 'English');
 
 		expect(session.user).toEqual({ ...camille, language: 'en-us' });
 	});
@@ -57,7 +86,7 @@ describe('LanguageChoice', () => {
 		const user = userEvent.setup();
 		render(LanguageChoice);
 
-		await user.click(button('Français'));
+		await pick(user, 'Français');
 
 		expect(updateMe).not.toHaveBeenCalled();
 	});
@@ -67,9 +96,10 @@ describe('LanguageChoice', () => {
 		const user = userEvent.setup();
 		render(LanguageChoice);
 
-		await user.click(button('English'));
+		await pick(user, 'English');
 
 		expect(await screen.findByText('Choix invalide.')).toBeInTheDocument();
 		expect(session.user).toEqual(camille);
+		expect(trigger()).toHaveTextContent('Français');
 	});
 });

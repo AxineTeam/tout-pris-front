@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
 	PASSWORD,
 	address,
@@ -9,6 +9,15 @@ import {
 	register
 } from './account';
 import { forget } from './mailpit';
+
+// Le contenu d'un Select bits-ui arme ses écouteurs après son montage : une
+// option visible n'est pas encore une option cliquable.
+async function choose(page: Page, control: string, language: string) {
+	await page.getByRole('button', { name: control }).click();
+	const option = page.getByRole('option', { name: language });
+	await expect(option).toBeVisible();
+	await option.click();
+}
 
 test('changer son mot de passe, puis se connecter avec le nouveau', async ({ page }) => {
 	const email = address('me-password');
@@ -80,13 +89,10 @@ test('choisir sa langue retourne l’application, et le rechargement la garde', 
 	await page.goto('/me');
 	await expect(page.getByRole('heading', { name: 'Mon compte', level: 1 })).toBeVisible();
 
-	await page.getByRole('button', { name: 'English' }).click();
+	await choose(page, 'Choix de la langue Français', 'English');
 
 	await expect(page.getByRole('heading', { name: 'My account', level: 1 })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'English' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
+	await expect(page.getByRole('button', { name: 'Language choice English' })).toBeVisible();
 	await expect(page.getByTestId('account-display')).toHaveText(email.split('@')[0]);
 	await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
 
@@ -95,7 +101,7 @@ test('choisir sa langue retourne l’application, et le rechargement la garde', 
 	await expect(page.getByRole('heading', { name: 'My account', level: 1 })).toBeVisible();
 	await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
 
-	await page.getByRole('button', { name: 'Français' }).click();
+	await choose(page, 'Language choice English', 'Français');
 
 	await expect(page.getByRole('heading', { name: 'Mon compte', level: 1 })).toBeVisible();
 	await expect(page.getByLabel('Mot de passe actuel', { exact: true })).toBeVisible();
