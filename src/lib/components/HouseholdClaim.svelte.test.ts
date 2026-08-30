@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdClaim from './HouseholdClaim.svelte';
@@ -25,6 +25,12 @@ function mount(persons: Person[] = [camille, child], onchanged = vi.fn()) {
 		props: { household, persons, members: [owner, arriving], onchanged }
 	});
 	return onchanged;
+}
+
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 describe('HouseholdClaim', () => {
@@ -71,9 +77,8 @@ describe('HouseholdClaim', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Aucun d’eux, créer ma personne' }));
-		const sheet = screen.getByRole('dialog');
-		await user.type(within(sheet).getByLabelText('Ton nom dans ce foyer'), 'Sacha');
-		await user.click(within(sheet).getByRole('button', { name: 'Créer' }));
+		await user.type(within(await sheet()).getByLabelText('Ton nom dans ce foyer'), 'Sacha');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
 
 		expect(createPerson).toHaveBeenCalledWith(7, 'Sacha');
 		expect(claimPerson).toHaveBeenCalledWith(7, 12);
@@ -116,9 +121,8 @@ describe('HouseholdClaim', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Aucun d’eux, créer ma personne' }));
-		const sheet = screen.getByRole('dialog');
-		await user.type(within(sheet).getByLabelText('Ton nom dans ce foyer'), 'Sacha');
-		await user.click(within(sheet).getByRole('button', { name: 'Créer' }));
+		await user.type(within(await sheet()).getByLabelText('Ton nom dans ce foyer'), 'Sacha');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
 
 		expect(createPerson).toHaveBeenCalledWith(7, 'Sacha');
 		expect(onchanged).toHaveBeenCalled();

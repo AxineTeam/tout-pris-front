@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdPeople from './HouseholdPeople.svelte';
@@ -47,8 +47,10 @@ function mount(
 	return onchanged;
 }
 
-function sheet() {
-	return screen.getByRole('dialog');
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 function menu() {
@@ -88,8 +90,8 @@ describe('HouseholdPeople', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Ajouter une personne' }));
-		await user.type(within(sheet()).getByLabelText('Nom de la personne'), 'Mamie');
-		await user.click(within(sheet()).getByRole('button', { name: 'Ajouter' }));
+		await user.type(within(await sheet()).getByLabelText('Nom de la personne'), 'Mamie');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Ajouter' }));
 
 		expect(createPerson).toHaveBeenCalledWith(7, 'Mamie');
 		expect(onchanged).toHaveBeenCalled();
@@ -103,8 +105,8 @@ describe('HouseholdPeople', () => {
 		mount();
 
 		await user.click(screen.getByRole('button', { name: 'Ajouter une personne' }));
-		await user.type(within(sheet()).getByLabelText('Nom de la personne'), 'x');
-		await user.click(within(sheet()).getByRole('button', { name: 'Ajouter' }));
+		await user.type(within(await sheet()).getByLabelText('Nom de la personne'), 'x');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Ajouter' }));
 
 		expect(
 			await screen.findByText('Ensure this field has no more than 100 characters.')
@@ -126,8 +128,8 @@ describe('HouseholdPeople', () => {
 		await openActions(user, 'Sacha');
 		await user.click(within(menu()).getByRole('menuitem', { name: 'Retirer du foyer' }));
 
-		expect(within(sheet()).getByTestId('removal-order')).toBeVisible();
-		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
+		expect(within(await sheet()).getByTestId('removal-order')).toBeVisible();
+		await user.click(within(await sheet()).getByRole('button', { name: 'Retirer du foyer' }));
 
 		expect(
 			await screen.findByText('A person whose account is still a member cannot be deleted.')
@@ -142,10 +144,10 @@ describe('HouseholdPeople', () => {
 		await openActions(user, 'Léo');
 		await user.click(within(menu()).getByRole('menuitem', { name: 'Retirer du foyer' }));
 
-		expect(within(sheet()).getByText(/deviennent communes au voyage/)).toBeVisible();
-		expect(within(sheet()).queryByTestId('removal-order')).not.toBeInTheDocument();
+		expect(within(await sheet()).getByText(/deviennent communes au voyage/)).toBeVisible();
+		expect(within(await sheet()).queryByTestId('removal-order')).not.toBeInTheDocument();
 
-		await user.click(within(sheet()).getByRole('button', { name: 'Retirer du foyer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Retirer du foyer' }));
 
 		expect(deletePerson).toHaveBeenCalledWith(7, 11);
 		expect(onchanged).toHaveBeenCalled();
@@ -208,7 +210,7 @@ describe('HouseholdPeople', () => {
 
 		await openActions(user, 'Sacha');
 		await user.click(within(menu()).getByRole('menuitem', { name: 'Quitter ce foyer' }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Quitter ce foyer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Quitter ce foyer' }));
 
 		expect(removeMember).toHaveBeenCalledWith(7, 101);
 	});

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdInvitations from './HouseholdInvitations.svelte';
@@ -39,14 +39,16 @@ function mount(invitations = [pending], onchanged = vi.fn()) {
 	return onchanged;
 }
 
-function sheet() {
-	return screen.getByRole('dialog');
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 async function fillInvitation(user: UserEvent, invited: string) {
 	await user.click(screen.getByRole('button', { name: 'Envoyer une invitation' }));
-	await user.type(within(sheet()).getByLabelText('Inviter une adresse'), invited);
-	await user.click(within(sheet()).getByRole('button', { name: 'Inviter' }));
+	await user.type(within(await sheet()).getByLabelText('Inviter une adresse'), invited);
+	await user.click(within(await sheet()).getByRole('button', { name: 'Inviter' }));
 }
 
 describe('HouseholdInvitations', () => {

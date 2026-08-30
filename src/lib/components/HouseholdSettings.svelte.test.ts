@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdSettings from './HouseholdSettings.svelte';
@@ -32,8 +32,10 @@ function mount(owner = true, onchanged = vi.fn()) {
 	return onchanged;
 }
 
-function sheet() {
-	return screen.getByRole('dialog');
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 describe('HouseholdSettings', () => {
@@ -62,10 +64,10 @@ describe('HouseholdSettings', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Renommer le foyer' }));
-		const name = within(sheet()).getByLabelText('Nom du foyer');
+		const name = within(await sheet()).getByLabelText('Nom du foyer');
 		await user.clear(name);
 		await user.type(name, 'Chez nous');
-		await user.click(within(sheet()).getByRole('button', { name: 'Renommer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Renommer' }));
 
 		expect(renameHousehold).toHaveBeenCalledWith(7, 'Chez nous');
 		expect(households.all[0].name).toBe('Chez nous');
@@ -79,10 +81,10 @@ describe('HouseholdSettings', () => {
 
 		await user.click(screen.getByRole('button', { name: 'Supprimer ce foyer' }));
 
-		expect(within(sheet()).getByText(/C’est définitif/)).toBeVisible();
+		expect(within(await sheet()).getByText(/C’est définitif/)).toBeVisible();
 		expect(deleteHousehold).not.toHaveBeenCalled();
 
-		await user.click(within(sheet()).getByRole('button', { name: 'Supprimer ce foyer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Supprimer ce foyer' }));
 
 		expect(deleteHousehold).toHaveBeenCalledWith(7);
 	});

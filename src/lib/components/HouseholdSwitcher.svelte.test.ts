@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdSwitcher from './HouseholdSwitcher.svelte';
@@ -22,6 +22,12 @@ function menu() {
 
 async function unfold(user: UserEvent) {
 	await user.click(screen.getByRole('button', { name: 'Changer de foyer' }));
+}
+
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 describe('HouseholdSwitcher', () => {
@@ -82,9 +88,8 @@ describe('HouseholdSwitcher', () => {
 		await unfold(user);
 		await user.click(within(menu()).getByRole('menuitem', { name: 'Nouveau foyer' }));
 
-		const sheet = screen.getByRole('dialog');
-		await user.type(within(sheet).getByLabelText('Nom du nouveau foyer'), 'Famille Martin');
-		await user.click(within(sheet).getByRole('button', { name: 'Créer' }));
+		await user.type(within(await sheet()).getByLabelText('Nom du nouveau foyer'), 'Famille Martin');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
 
 		expect(createHousehold).toHaveBeenCalledWith('Famille Martin');
 		expect(households.all).toContain(shared);

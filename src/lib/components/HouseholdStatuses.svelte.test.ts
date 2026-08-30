@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,8 +56,10 @@ const loaded: ItemStatus = {
 	is_default: false
 };
 
-function sheet() {
-	return screen.getByRole('dialog');
+async function sheet() {
+	const opened = await screen.findByRole('dialog');
+	await waitFor(() => expect(opened.contains(document.activeElement)).toBe(true));
+	return opened;
 }
 
 const BANDS: Record<string, number> = { not_started: 0, in_progress: 300, done: 600 };
@@ -148,8 +150,8 @@ describe('HouseholdStatuses', () => {
 		const onchanged = mount();
 
 		await addIn(user, 'in_progress');
-		await user.type(within(sheet()).getByLabelText('Nom du statut'), 'En machine');
-		await user.click(within(sheet()).getByRole('button', { name: 'Ajouter' }));
+		await user.type(within(await sheet()).getByLabelText('Nom du statut'), 'En machine');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Ajouter' }));
 
 		expect(createItemStatus).toHaveBeenCalledWith(
 			7,
@@ -166,27 +168,33 @@ describe('HouseholdStatuses', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Modifier Dans les sacs' }));
-		const name = within(sheet()).getByLabelText('Nom du statut');
+		const name = within(await sheet()).getByLabelText('Nom du statut');
 		await user.clear(name);
 		await user.type(name, 'Chargé');
-		await user.click(within(sheet()).getByRole('button', { name: 'Enregistrer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Enregistrer' }));
 
 		expect(updateItemStatus).toHaveBeenCalledWith(7, 3, { name: 'Chargé', color: '#5c8a66' });
 		expect(onchanged).toHaveBeenCalled();
 	});
 
-	it('passe le défaut à un autre statut plutôt que de le retirer à celui-ci', async () => {
+	it('passe le défaut à un autre statut', async () => {
 		const user = userEvent.setup();
 		vi.mocked(updateItemStatus).mockResolvedValue({ ...inProgress, is_default: true });
 		mount();
 
 		await user.click(screen.getByRole('button', { name: 'Modifier Sorti du placard' }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Utiliser par défaut' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Utiliser par défaut' }));
 
 		expect(updateItemStatus).toHaveBeenCalledWith(7, 2, { is_default: true });
+	});
+
+	it('n’offre pas de retirer le défaut au statut qui le porte', async () => {
+		const user = userEvent.setup();
+		mount();
 
 		await user.click(screen.getByRole('button', { name: 'Modifier Pas préparé' }));
-		expect(within(sheet()).queryByRole('button', { name: 'Utiliser par défaut' })).toBeNull();
+
+		expect(within(await sheet()).queryByRole('button', { name: 'Utiliser par défaut' })).toBeNull();
 	});
 
 	it('dit où partent les lignes de voyage avant de supprimer un statut', async () => {
@@ -196,12 +204,12 @@ describe('HouseholdStatuses', () => {
 
 		await user.click(screen.getByRole('button', { name: 'Supprimer Dans les sacs' }));
 
-		expect(within(sheet()).getByTestId('status-fallout')).toHaveTextContent(
+		expect(within(await sheet()).getByTestId('status-fallout')).toHaveTextContent(
 			'passent à un autre statut de la même section'
 		);
 		expect(deleteItemStatus).not.toHaveBeenCalled();
 
-		await user.click(within(sheet()).getByRole('button', { name: 'Supprimer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Supprimer' }));
 
 		expect(deleteItemStatus).toHaveBeenCalledWith(7, 3);
 		expect(onchanged).toHaveBeenCalled();
@@ -262,8 +270,8 @@ describe('HouseholdStatuses', () => {
 		const onchanged = mount();
 
 		await user.click(screen.getByRole('button', { name: 'Modifier Dans les sacs' }));
-		await user.selectOptions(within(sheet()).getByLabelText('Section'), 'in_progress');
-		await user.click(within(sheet()).getByRole('button', { name: 'Enregistrer' }));
+		await user.selectOptions(within(await sheet()).getByLabelText('Section'), 'in_progress');
+		await user.click(within(await sheet()).getByRole('button', { name: 'Enregistrer' }));
 
 		expect(updateItemStatus).toHaveBeenCalledWith(7, 3, {
 			name: 'Dans les sacs',
@@ -287,7 +295,7 @@ describe('HouseholdStatuses', () => {
 		mount();
 
 		await user.click(screen.getByRole('button', { name: 'Supprimer Dans les sacs' }));
-		await user.click(within(sheet()).getByRole('button', { name: 'Supprimer' }));
+		await user.click(within(await sheet()).getByRole('button', { name: 'Supprimer' }));
 
 		expect(
 			await screen.findByText(
