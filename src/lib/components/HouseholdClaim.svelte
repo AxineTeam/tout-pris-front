@@ -72,7 +72,7 @@
 
 	<FormErrors errors={claiming.errors} />
 
-	<ul class="grid gap-2" data-testid="claimable">
+	<ul class="grid min-w-0 gap-2" data-testid="claimable">
 		{#each free as person (person.id)}
 			<li>
 				<button
@@ -111,10 +111,12 @@
 	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
 		{m.claim_rest()}
 	</h2>
-	<ul class="grid gap-2">
+	<ul class="grid min-w-0 gap-2">
 		{#each taken as person (person.id)}
 			{@const account = person.user === null ? undefined : accounts.get(person.user)}
-			<li class="border-border bg-card flex items-center gap-3 rounded-xl border px-3 py-2.5">
+			<li
+				class="border-border bg-card flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5"
+			>
 				<PersonAvatar id={person.id} name={person.name} />
 				<span class="min-w-0 flex-1">
 					<span class="block truncate text-sm font-semibold">{person.name}</span>
@@ -131,7 +133,7 @@
 		{/each}
 		{#each newcomers as newcomer (newcomer.id)}
 			<li
-				class="border-border text-muted-foreground flex items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
+				class="border-border text-muted-foreground flex min-w-0 items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
 			>
 				<span aria-hidden="true" class="bg-muted size-9 flex-none rounded-full"></span>
 				<span class="min-w-0 flex-1">

@@ -137,3 +137,25 @@ test('un nom trop long est refusé en le disant, pas en parlant de panne', async
 	await expectRefusalShown(page);
 	await expect(page.getByRole('alert')).not.toContainText('injoignable');
 });
+
+test('une longue adresse ne pousse rien hors de l’écran d’un téléphone', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await signInShared(page);
+	const shared = await createShared(page, name('debordement'));
+	const guest = `une-adresse-vraiment-tres-longue-qui-ne-tient-pas-sur-une-ligne-${Date.now()}@example.com`;
+
+	await addPerson(page, 'Léo');
+	await page.getByRole('button', { name: 'Envoyer une invitation' }).click();
+	await sheet(page).getByLabel('Inviter une adresse').fill(guest);
+	await sheet(page).getByRole('button', { name: 'Inviter' }).click();
+	await expect(page.getByTestId('invitations')).toContainText(guest);
+
+	const sideways = await page.evaluate(() => {
+		const scroller = document.querySelector('.overflow-y-auto');
+		return scroller ? scroller.scrollWidth - scroller.clientWidth : -1;
+	});
+	expect(sideways).toBe(0);
+
+	await deleteShared(page, shared);
+	await forget(guest);
+});

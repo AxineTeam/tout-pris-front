@@ -60,7 +60,7 @@
 		{m.household_settings()}
 	</h2>
 
-	<ul class="grid gap-2">
+	<ul class="grid min-w-0 gap-2">
 		<li>
 			<a
 				href={resolve('/(app)/households/[id]/statuses', { id: String(household.id) })}

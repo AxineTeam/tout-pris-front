@@ -121,9 +121,9 @@
 				<span class="text-muted-foreground text-[11.5px]">{group.counts}</span>
 			</div>
 
-			<ul class="grid">
+			<ul class="grid min-w-0">
 				{#each of(group.progress) as status (status.id)}
-					<li class="border-border/60 flex min-h-11 items-center gap-2.5 border-t">
+					<li class="border-border/60 flex min-h-11 min-w-0 items-center gap-2.5 border-t">
 						{@render swatch(status.color)}
 						<span class="min-w-0 flex-1 truncate text-sm font-medium">{status.name}</span>
 						{#if status.is_default}
