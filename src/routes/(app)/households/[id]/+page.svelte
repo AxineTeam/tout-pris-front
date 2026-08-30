@@ -22,10 +22,7 @@
 
 <svelte:head><title>{m.title_household({ name: label })}</title></svelte:head>
 
-<ScreenHeader
-	title={label}
-	subtitle={data.household.personal ? m.household_personal_intro() : m.household_shared_intro()}
-/>
+<ScreenHeader title={m.nav_household()} switcher />
 
 {#if !data.household.personal}
 	{#if nobody}

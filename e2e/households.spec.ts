@@ -2,12 +2,14 @@ import { expect, test } from '@playwright/test';
 import { address, expectRefusalShown, logOut, register, signInShared } from './account';
 import {
 	addPerson,
-	closeSheet,
+	closeMenu,
 	createShared,
 	deleteShared,
+	menu,
 	name,
 	openPerson,
 	openPersonal,
+	openSwitcher,
 	personRow,
 	sheet
 } from './households';
@@ -18,10 +20,7 @@ test('l’accueil mène aux voyages du foyer personnel, nommé « Personnel »',
 	await page.goto('/');
 
 	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
-	await expect(page.getByRole('link', { name: 'Personnel' })).toHaveAttribute(
-		'aria-current',
-		'page'
-	);
+	await expect(page.getByTestId('household-switcher')).toHaveText('Personnel');
 	await expect(
 		page
 			.getByRole('navigation', { name: 'Navigation principale' })
@@ -69,7 +68,7 @@ test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page 
 	await expect(personRow(page, 'Léo')).toContainText('sans compte');
 
 	await openPerson(page, 'Léo');
-	await sheet(page).getByRole('button', { name: 'Renommer' }).click();
+	await menu(page).getByRole('menuitem', { name: 'Renommer' }).click();
 	await sheet(page).getByLabel('Nouveau nom de Léo').fill('Léa');
 	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(page.getByTestId('persons')).toContainText('Léa');
@@ -78,8 +77,7 @@ test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page 
 	await page.getByRole('button', { name: 'Renommer le foyer' }).click();
 	await sheet(page).getByLabel('Nom du foyer').fill(renamed);
 	await sheet(page).getByRole('button', { name: 'Renommer' }).click();
-	await expect(page.getByTestId('screen-title')).toHaveText(renamed);
-	await expect(page.getByRole('link', { name: renamed })).toBeVisible();
+	await expect(page.getByTestId('household-switcher')).toHaveText(renamed);
 
 	await deleteShared(page, { ...shared, name: renamed });
 });
@@ -90,9 +88,9 @@ test('le dernier membre se voit offrir la suppression, jamais le départ', async
 	const email = page.getByTestId('persons').getByRole('listitem').first();
 
 	await email.getByRole('button').click();
-	await expect(sheet(page).getByRole('button', { name: 'Quitter ce foyer' })).toHaveCount(0);
-	await expect(sheet(page).getByRole('button', { name: 'Supprimer ce foyer' })).toBeVisible();
-	await closeSheet(page);
+	await expect(menu(page).getByRole('menuitem', { name: 'Quitter ce foyer' })).toHaveCount(0);
+	await expect(menu(page).getByRole('menuitem', { name: 'Supprimer ce foyer' })).toBeVisible();
+	await closeMenu(page);
 
 	await deleteShared(page, shared);
 });
@@ -103,7 +101,7 @@ test('le retrait d’une personne rappelle le sort des lignes de voyage', async 
 
 	await addPerson(page, 'Mamie');
 	await openPerson(page, 'Mamie');
-	await sheet(page).getByRole('button', { name: 'Retirer du foyer' }).click();
+	await menu(page).getByRole('menuitem', { name: 'Retirer du foyer' }).click();
 
 	await expect(sheet(page)).toContainText('deviennent communes au voyage');
 	await sheet(page).getByRole('button', { name: 'Retirer du foyer' }).click();
@@ -117,7 +115,7 @@ test('le foyer personnel n’a que ses statuts', async ({ page }) => {
 	await signInShared(page);
 	await openPersonal(page);
 
-	await expect(page.getByTestId('screen-title')).toHaveText('Personnel');
+	await expect(page.getByTestId('household-switcher')).toHaveText('Personnel');
 	await expect(page.getByTestId('statuses')).toBeVisible();
 	await expect(page.getByTestId('persons')).toHaveCount(0);
 	await expect(page.getByTestId('invitations')).toHaveCount(0);
@@ -131,9 +129,10 @@ test('un nom trop long est refusé en le disant, pas en parlant de panne', async
 	await signInShared(page);
 	await page.goto('/');
 
-	await page.getByRole('button', { name: 'Nouveau foyer' }).click();
-	await page.getByLabel('Nom du nouveau foyer').fill('x'.repeat(101));
-	await page.getByRole('button', { name: 'Créer' }).click();
+	await openSwitcher(page);
+	await menu(page).getByRole('menuitem', { name: 'Nouveau foyer' }).click();
+	await sheet(page).getByLabel('Nom du nouveau foyer').fill('x'.repeat(101));
+	await sheet(page).getByRole('button', { name: 'Créer' }).click();
 
 	await expectRefusalShown(page);
 	await expect(page.getByRole('alert')).not.toContainText('injoignable');

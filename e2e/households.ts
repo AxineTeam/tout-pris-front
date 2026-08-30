@@ -19,11 +19,21 @@ export async function openPersonal(page: Page) {
 
 export async function createShared(page: Page, wanted: string): Promise<SharedHousehold> {
 	await page.goto('/');
-	await page.getByRole('button', { name: 'Nouveau foyer' }).click();
-	await page.getByLabel('Nom du nouveau foyer').fill(wanted);
-	await page.getByRole('button', { name: 'Créer' }).click();
-	await expect(page.getByTestId('screen-title')).toHaveText(wanted);
+	await openSwitcher(page);
+	await page.getByRole('menuitem', { name: 'Nouveau foyer' }).click();
+	await sheet(page).getByLabel('Nom du nouveau foyer').fill(wanted);
+	await sheet(page).getByRole('button', { name: 'Créer' }).click();
+	await expect(page.getByTestId('household-switcher')).toHaveText(wanted);
 	return { id: Number(new URL(page.url()).pathname.split('/').pop()), name: wanted };
+}
+
+export async function openSwitcher(page: Page) {
+	await page.getByRole('button', { name: 'Changer de foyer' }).click();
+	await expect(page.getByRole('menu')).toBeVisible();
+}
+
+export function menu(page: Page) {
+	return page.getByRole('menu');
 }
 
 export async function addPerson(page: Page, wanted: string) {
@@ -43,7 +53,12 @@ export function personRow(page: Page, holds: string) {
 
 export async function openPerson(page: Page, holds: string) {
 	await personRow(page, holds).getByRole('button').click();
-	await expect(sheet(page)).toBeVisible();
+	await expect(menu(page)).toBeVisible();
+}
+
+export async function closeMenu(page: Page) {
+	await page.keyboard.press('Escape');
+	await expect(menu(page)).toHaveCount(0);
 }
 
 export async function closeSheet(page: Page) {
@@ -55,5 +70,8 @@ export async function deleteShared(page: Page, household: SharedHousehold) {
 	await page.goto(`/households/${household.id}`);
 	await page.getByRole('button', { name: 'Supprimer ce foyer' }).click();
 	await sheet(page).getByRole('button', { name: 'Supprimer ce foyer' }).click();
-	await expect(page.getByRole('link', { name: household.name })).toHaveCount(0);
+	await expect(page.getByTestId('household-switcher')).not.toHaveText(household.name);
+	await openSwitcher(page);
+	await expect(menu(page).getByRole('menuitem', { name: household.name })).toHaveCount(0);
+	await closeMenu(page);
 }
