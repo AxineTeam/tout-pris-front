@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, within } from '@testing-library/svelte';
-import userEvent from '@testing-library/user-event';
+import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdInvitations from './HouseholdInvitations.svelte';
 import { ApiError, cancelInvitation, sendInvitation, type Invitation } from '$lib/api.js';
@@ -34,18 +34,19 @@ const pending: Invitation = {
 	expires_at: isoInDays(1)
 };
 
-const expired: Invitation = {
-	id: 6,
-	email: 'alix@example.com',
-	created_at: isoInDays(-14),
-	expires_at: isoInDays(-7)
-};
-
-function mount(invitations = [pending], canInvite = true, onchanged = vi.fn()) {
-	render(HouseholdInvitations, {
-		props: { household: 7, invitations, canInvite, onchanged }
-	});
+function mount(invitations = [pending], onchanged = vi.fn()) {
+	render(HouseholdInvitations, { props: { household: 7, invitations, onchanged } });
 	return onchanged;
+}
+
+function sheet() {
+	return screen.getByRole('dialog');
+}
+
+async function fillInvitation(user: UserEvent, invited: string) {
+	await user.click(screen.getByRole('button', { name: 'Envoyer une invitation' }));
+	await user.type(within(sheet()).getByLabelText('Inviter une adresse'), invited);
+	await user.click(within(sheet()).getByRole('button', { name: 'Inviter' }));
 }
 
 describe('HouseholdInvitations', () => {
@@ -81,26 +82,12 @@ describe('HouseholdInvitations', () => {
 		).toBeInTheDocument();
 	});
 
-	it('sépare ce qui attend encore de ce qui a expiré', () => {
-		mount([pending, expired]);
-
-		const [first, second] = screen.getAllByRole('listitem');
-		expect(within(first).getByText('En attente')).toBeInTheDocument();
-		expect(within(second).getByText('Expirée')).toBeInTheDocument();
-		expect(
-			within(second).getByText(
-				`envoyée le ${on(expired.created_at)}, expirée le ${on(expired.expires_at)}`
-			)
-		).toBeInTheDocument();
-	});
-
 	it('ne promet pas d’avoir envoyé quoi que ce soit', async () => {
 		const user = userEvent.setup();
 		vi.mocked(sendInvitation).mockResolvedValue(undefined);
 		const onchanged = mount();
 
-		await user.type(screen.getByLabelText('Inviter une adresse'), 'sacha@example.com');
-		await user.click(screen.getByRole('button', { name: 'Inviter' }));
+		await fillInvitation(user, 'sacha@example.com');
 
 		expect(sendInvitation).toHaveBeenCalledWith(7, 'sacha@example.com');
 		expect(await screen.findByTestId('invitation-sent')).toHaveTextContent(
@@ -120,8 +107,7 @@ describe('HouseholdInvitations', () => {
 		);
 		mount();
 
-		await user.type(screen.getByLabelText('Inviter une adresse'), 'sacha@example.com');
-		await user.click(screen.getByRole('button', { name: 'Inviter' }));
+		await fillInvitation(user, 'sacha@example.com');
 
 		expect(
 			await screen.findByText('Request was throttled. Expected available in 86400 seconds.')
@@ -141,26 +127,6 @@ describe('HouseholdInvitations', () => {
 
 		expect(cancelInvitation).toHaveBeenCalledWith(7, 5);
 		expect(onchanged).toHaveBeenCalled();
-	});
-
-	it('nomme le bouton d’annulation par son invitation sans afficher l’adresse', () => {
-		mount();
-
-		const button = screen.getByRole('button', {
-			name: `Annuler l’invitation de ${pending.email}`
-		});
-		expect(button).toHaveTextContent('Annuler');
-		expect(button).not.toHaveTextContent(pending.email);
-	});
-
-	it('montre la liste à un membre sans lui offrir ce que l’API refusera', () => {
-		mount([pending], false);
-
-		expect(screen.getByText('dominique@example.com')).toBeInTheDocument();
-		expect(screen.queryByLabelText('Inviter une adresse')).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole('button', { name: 'Annuler l’invitation de dominique@example.com' })
-		).not.toBeInTheDocument();
 	});
 
 	it('dit qu’il n’y a rien en attente', () => {

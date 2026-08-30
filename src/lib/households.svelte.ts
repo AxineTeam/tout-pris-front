@@ -1,3 +1,5 @@
+import { goto } from '$app/navigation';
+import { resolve } from '$app/paths';
 import { listHouseholds, type Household, type Member } from '$lib/api.js';
 import * as m from '$lib/paraglide/messages.js';
 
@@ -52,6 +54,16 @@ class Households {
 }
 
 export const households = new Households();
+
+export async function leaveBehind(id: number): Promise<void> {
+	households.drop(id);
+	const landing = households.landing;
+	await goto(
+		landing
+			? resolve('/(app)/households/[id]', { id: String(landing.id) })
+			: resolve('/(app)/households/new')
+	);
+}
 
 export function isOwner(members: Member[], user: number | undefined): boolean {
 	return members.some((member) => member.user === user && member.role === 'owner');
