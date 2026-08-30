@@ -1,8 +1,8 @@
 <script lang="ts">
 	import MailIcon from '@lucide/svelte/icons/mail';
-	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { cancelInvitation, sendInvitation, type Invitation } from '$lib/api.js';
+	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -107,17 +107,13 @@
 		<p class="text-muted-foreground text-sm" data-testid="no-invitation">{m.invitation_none()}</p>
 	{/if}
 
-	<button
-		type="button"
+	<AddCard
+		label={m.invitation_send()}
 		onclick={() => {
 			sending.errors = [];
 			inviting = true;
 		}}
-		class="border-border text-primary flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed px-3 py-2.5 text-left text-sm font-semibold"
-	>
-		<PlusIcon size={18} aria-hidden="true" />
-		{m.invitation_send()}
-	</button>
+	/>
 </section>
 
 {#if inviting}

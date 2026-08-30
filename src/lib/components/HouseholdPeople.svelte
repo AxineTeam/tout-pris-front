@@ -3,7 +3,6 @@
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
-	import PlusIcon from '@lucide/svelte/icons/plus';
 	import ShieldIcon from '@lucide/svelte/icons/shield';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import UnlinkIcon from '@lucide/svelte/icons/unlink';
@@ -19,6 +18,7 @@
 		type Member,
 		type Person
 	} from '$lib/api.js';
+	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -279,14 +279,7 @@
 		{/each}
 	</ul>
 
-	<button
-		type="button"
-		onclick={() => open({ kind: 'add' })}
-		class="border-border text-primary flex min-h-11 w-full items-center gap-3 rounded-xl border border-dashed px-3 py-2.5 text-left text-sm font-semibold"
-	>
-		<PlusIcon size={18} aria-hidden="true" />
-		{m.person_add()}
-	</button>
+	<AddCard label={m.person_add()} onclick={() => open({ kind: 'add' })} />
 </section>
 
 {#if opened?.kind === 'add'}
