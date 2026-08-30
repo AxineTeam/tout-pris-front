@@ -9,6 +9,10 @@ const children = createRawSnippet(() => ({
 	render: () => '<p>Ce foyer et tout ce qu’il contient.</p>'
 }));
 
+const form = createRawSnippet(() => ({
+	render: () => '<label>Nom du foyer<input /></label>'
+}));
+
 function mount(onclose = vi.fn(), description?: string) {
 	render(Modal, { props: { title: 'Supprimer le foyer', description, onclose, children } });
 	return onclose;
@@ -45,6 +49,20 @@ describe('Modal', () => {
 		await user.click(within(opened).getByRole('button', { name: 'Fermer' }));
 
 		expect(onclose).toHaveBeenCalled();
+	});
+
+	it('pose le focus sur le premier champ à l’ouverture', async () => {
+		render(Modal, { props: { title: 'Renommer le foyer', onclose: vi.fn(), children: form } });
+		const opened = await screen.findByRole('dialog');
+
+		await waitFor(() => expect(within(opened).getByLabelText('Nom du foyer')).toHaveFocus());
+	});
+
+	it('laisse le focus à la boîte quand elle n’a aucun champ', async () => {
+		mount();
+		const opened = await screen.findByRole('dialog');
+
+		await waitFor(() => expect(opened).toHaveFocus());
 	});
 
 	it('rend l’écran au reste de la page une fois refermée', async () => {
