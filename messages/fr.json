@@ -96,6 +96,7 @@
 	"password_show": "Afficher {field}",
 	"password_title": "Mot de passe",
 	"people_title": "Les personnes",
+	"person_actions": "Actions sur {name}",
 	"person_add": "Ajouter une personne",
 	"person_claim": "Je suis {name}",
 	"person_name_label": "Nom de la personne",
