@@ -74,6 +74,11 @@ test('ajouter puis supprimer une adresse secondaire', async ({ page }) => {
 	await expect(added).toContainText('non vérifiée');
 
 	await added.getByRole('button', { name: 'Supprimer' }).click();
+	const confirmation = page.getByRole('dialog');
+	await expect(confirmation).toContainText(second);
+	await confirmation.getByRole('button', { name: 'Supprimer' }).click();
+
+	await expect(confirmation).toHaveCount(0);
 	await expect(addresses.getByRole('listitem')).toHaveCount(1);
 
 	await page.reload();

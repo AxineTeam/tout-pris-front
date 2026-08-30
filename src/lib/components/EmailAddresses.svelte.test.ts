@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EmailAddresses from './EmailAddresses.svelte';
@@ -83,17 +83,50 @@ describe('EmailAddresses', () => {
 	it('laisse le bouton d’ajout au repos pendant une action de ligne', async () => {
 		const user = userEvent.setup();
 		let answer!: (response: AuthResponse<EmailAddress[]>) => void;
-		vi.mocked(removeEmail).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+		vi.mocked(resendEmailVerification).mockReturnValue(
+			new Promise((resolve) => (answer = resolve))
+		);
 		render(EmailAddresses);
 		await screen.findAllByRole('listitem');
 
-		const remove = screen.getByRole('button', { name: 'Supprimer' });
-		await user.click(remove);
+		const resend = screen.getByRole('button', { name: 'Renvoyer la vérification' });
+		await user.click(resend);
 
 		expect(screen.getByRole('button', { name: 'Ajouter' })).toHaveAttribute('aria-busy', 'false');
-		expect(remove).toBeDisabled();
+		expect(resend).toBeDisabled();
 
 		answer({ status: 200, data: [primary] });
+	});
+
+	it('ne supprime une adresse qu’une fois la suppression confirmée', async () => {
+		const user = userEvent.setup();
+		vi.mocked(removeEmail).mockResolvedValue({ status: 200, data: [primary] });
+		render(EmailAddresses);
+		const items = await screen.findAllByRole('listitem');
+
+		await user.click(within(items[1]).getByRole('button', { name: 'Supprimer' }));
+
+		const modal = await screen.findByRole('dialog');
+		expect(modal).toHaveTextContent(pending.email);
+		expect(removeEmail).not.toHaveBeenCalled();
+
+		await user.click(within(modal).getByRole('button', { name: 'Supprimer' }));
+
+		expect(removeEmail).toHaveBeenCalledWith(pending.email);
+		await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+	});
+
+	it('laisse la boîte ouverte sur le refus de l’API', async () => {
+		const user = userEvent.setup();
+		vi.mocked(removeEmail).mockResolvedValue({ status: 403 });
+		render(EmailAddresses);
+		const items = await screen.findAllByRole('listitem');
+
+		await user.click(within(items[1]).getByRole('button', { name: 'Supprimer' }));
+		const modal = await screen.findByRole('dialog');
+		await user.click(within(modal).getByRole('button', { name: 'Supprimer' }));
+
+		expect(await within(modal).findByText('L’API a refusé la demande.')).toBeInTheDocument();
 	});
 
 	it('explique un refus sans corps d’erreur', async () => {

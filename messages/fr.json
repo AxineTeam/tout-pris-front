@@ -18,6 +18,8 @@
 	"email_label": "Adresse email",
 	"email_make_primary": "Rendre principale",
 	"email_primary": "principale",
+	"email_remove_explains": "Cette adresse ne te reconnaît plus et ne te joint plus. Tu peux la rajouter ensuite, elle repassera par un mail de vérification.",
+	"email_remove_title": "Supprimer {email} ?",
 	"email_resend_verification": "Renvoyer la vérification",
 	"email_unverified": "non vérifiée",
 	"email_verified": "vérifiée",

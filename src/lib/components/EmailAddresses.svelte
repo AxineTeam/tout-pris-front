@@ -13,6 +13,7 @@
 	import { fieldClass } from '$lib/components/AccountScreen.svelte';
 	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -25,6 +26,7 @@
 	let addresses = $state.raw<EmailAddress[]>([]);
 	let added = $state('');
 	let adding = $state(false);
+	let removing = $state.raw<EmailAddress | null>(null);
 	let canAdd = $derived(added.trim().length > 0 && !submission.busy);
 
 	function apply(response: AuthResponse<EmailAddress[]>): AuthError[] {
@@ -38,7 +40,16 @@
 
 	function act(call: () => Promise<AuthResponse<EmailAddress[]>>) {
 		adding = false;
-		submission.run(async () => apply(await call()));
+		submission.run(async () => {
+			const errors = apply(await call());
+			if (errors.length === 0) removing = null;
+			return errors;
+		});
+	}
+
+	function askRemoval(address: EmailAddress) {
+		submission.errors = [];
+		removing = address;
 	}
 
 	function add(event: SubmitEvent) {
@@ -57,7 +68,9 @@
 </script>
 
 <div class="grid gap-4">
-	<FormErrors errors={submission.errors} />
+	{#if removing === null}
+		<FormErrors errors={submission.errors} />
+	{/if}
 
 	<ul class="grid gap-2" data-testid="email-addresses">
 		{#each addresses as address (address.email)}
@@ -100,7 +113,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(() => removeEmail(address.email))}
+							onclick={() => askRemoval(address)}
 						>
 							{m.delete()}
 						</Button>
@@ -130,3 +143,18 @@
 		/>
 	</form>
 </div>
+
+{#if removing}
+	{@const address = removing}
+	<Modal title={m.email_remove_title({ email: address.email })} onclose={() => (removing = null)}>
+		<FormErrors errors={submission.errors} />
+		<p class="text-muted-foreground text-sm">{m.email_remove_explains()}</p>
+		<Button
+			variant="destructive"
+			disabled={submission.busy}
+			onclick={() => act(() => removeEmail(address.email))}
+		>
+			{m.delete()}
+		</Button>
+	</Modal>
+{/if}
