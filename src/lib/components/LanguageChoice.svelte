@@ -1,27 +1,33 @@
 <script lang="ts">
 	import type { ApiLocale } from '$lib/api.js';
-	import ActionButton from '$lib/components/ActionButton.svelte';
+	import { fieldClass } from '$lib/components/AccountScreen.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Select from '$lib/components/ui/select/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
+	import { cn } from '$lib/utils.js';
 
 	// Chaque langue s'écrit dans la sienne : c'est ainsi qu'on la reconnaît
 	// quand on ne comprend pas celle qui est affichée.
-	const languages: { code: ApiLocale; label: string }[] = [
-		{ code: 'fr', label: 'Français' },
-		{ code: 'en-us', label: 'English' }
-	];
+	const names: Record<ApiLocale, string> = {
+		fr: 'Français',
+		'en-us': 'English'
+	};
+	const languages = Object.entries(names) as [ApiLocale, string][];
 
 	const submission = new Submission();
-	let asked = $state('');
-	let spoken = $derived(session.user?.language);
+	// allauth sert la langue du compte en simple chaîne : le nom affiché se
+	// cherche dans la table plutôt que de l'y indexer.
+	let spoken = $derived(session.user?.language ?? '');
+	let name = $derived(languages.find(([code]) => code === spoken)?.[1] ?? '');
 
-	function choose(code: ApiLocale) {
-		if (code === spoken || submission.busy) return;
-		asked = code;
+	function choose(value: string) {
+		const chosen = languages.find(([code]) => code === value);
+		if (!chosen || chosen[0] === spoken || submission.busy) return;
 		submission.run(async () => {
-			await session.changeLanguage(code);
+			await session.changeLanguage(chosen[0]);
 			return [];
 		});
 	}
@@ -30,16 +36,24 @@
 <div class="grid gap-3">
 	<FormErrors errors={submission.errors} />
 
-	<div class="grid grid-cols-2 gap-3" role="group" aria-label={m.me_language_choice()}>
-		{#each languages as language (language.code)}
-			<ActionButton
-				label={language.label}
-				variant={language.code === spoken ? 'default' : 'outline'}
-				aria-pressed={language.code === spoken}
-				busy={submission.busy && language.code === asked}
-				disabled={submission.busy}
-				onclick={() => choose(language.code)}
-			/>
-		{/each}
+	<div class="grid gap-2">
+		<Label id="language-label" for="language-choice" class="text-muted-foreground text-xs">
+			{m.me_language_choice()}
+		</Label>
+
+		<Select.Root type="single" disabled={submission.busy} bind:value={() => spoken, choose}>
+			<Select.Trigger
+				id="language-choice"
+				aria-labelledby="language-label language-choice"
+				class={cn(fieldClass, 'w-full px-3 data-[size=default]:h-[46px]')}
+			>
+				{name}
+			</Select.Trigger>
+			<Select.Content class="p-1">
+				{#each languages as [code, written] (code)}
+					<Select.Item value={code} label={written} class="h-11 pl-3" />
+				{/each}
+			</Select.Content>
+		</Select.Root>
 	</div>
 </div>
