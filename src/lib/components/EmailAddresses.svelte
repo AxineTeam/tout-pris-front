@@ -10,6 +10,8 @@
 		type AuthResponse,
 		type EmailAddress
 	} from '$lib/api.js';
+	import { fieldClass } from '$lib/components/AccountScreen.svelte';
+	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -17,9 +19,12 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
+	const rowActionClass = 'h-11 rounded-[10px] px-3 text-[13px]';
+
 	const submission = new Submission();
 	let addresses = $state.raw<EmailAddress[]>([]);
 	let added = $state('');
+	let acting = $state('');
 	let canAdd = $derived(added.trim().length > 0 && !submission.busy);
 
 	function apply(response: AuthResponse<EmailAddress[]>): AuthError[] {
@@ -27,7 +32,12 @@
 		return authErrors(response);
 	}
 
-	function act(call: () => Promise<AuthResponse<EmailAddress[]>>) {
+	function load() {
+		submission.run(async () => apply(await listEmails()));
+	}
+
+	function act(email: string, call: () => Promise<AuthResponse<EmailAddress[]>>) {
+		acting = email;
 		submission.run(async () => apply(await call()));
 	}
 
@@ -35,6 +45,7 @@
 		event.preventDefault();
 		if (!canAdd) return;
 		const email = added.trim();
+		acting = '';
 		submission.run(async () => {
 			const errors = apply(await addEmail(email));
 			if (errors.length === 0) added = '';
@@ -42,7 +53,7 @@
 		});
 	}
 
-	act(listEmails);
+	load();
 </script>
 
 <div class="grid gap-4">
@@ -50,7 +61,9 @@
 
 	<ul class="grid gap-2" data-testid="email-addresses">
 		{#each addresses as address (address.email)}
-			<li class="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
+			<li
+				class="bg-card border-border flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2"
+			>
 				<span class="text-sm">{address.email}</span>
 				{#if address.primary}
 					<span class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
@@ -65,8 +78,9 @@
 					{#if !address.verified}
 						<Button
 							variant="outline"
-							size="sm"
-							onclick={() => act(() => resendEmailVerification(address.email))}
+							class={rowActionClass}
+							disabled={submission.busy}
+							onclick={() => act(address.email, () => resendEmailVerification(address.email))}
 						>
 							{m.email_resend_verification()}
 						</Button>
@@ -74,8 +88,9 @@
 					{#if !address.primary && address.verified}
 						<Button
 							variant="outline"
-							size="sm"
-							onclick={() => act(() => makeEmailPrimary(address.email))}
+							class={rowActionClass}
+							disabled={submission.busy}
+							onclick={() => act(address.email, () => makeEmailPrimary(address.email))}
 						>
 							{m.email_make_primary()}
 						</Button>
@@ -83,8 +98,9 @@
 					{#if !address.primary}
 						<Button
 							variant="outline"
-							size="sm"
-							onclick={() => act(() => removeEmail(address.email))}
+							class={rowActionClass}
+							disabled={submission.busy}
+							onclick={() => act(address.email, () => removeEmail(address.email))}
 						>
 							{m.delete()}
 						</Button>
@@ -94,11 +110,23 @@
 		{/each}
 	</ul>
 
-	<form class="flex items-end gap-3" onsubmit={add}>
-		<div class="grid flex-1 gap-2">
-			<Label for="new-email">{m.email_add_label()}</Label>
-			<Input id="new-email" type="email" autocomplete="email" bind:value={added} />
-		</div>
-		<Button type="submit" disabled={!canAdd}>{m.add()}</Button>
+	<form class="grid gap-2" onsubmit={add}>
+		<Label for="new-email" class="text-muted-foreground text-xs">{m.email_add_label()}</Label>
+		<Input
+			id="new-email"
+			type="email"
+			inputmode="email"
+			autocomplete="email"
+			autocapitalize="none"
+			spellcheck={false}
+			class={fieldClass}
+			bind:value={added}
+		/>
+		<ActionButton
+			type="submit"
+			label={m.add()}
+			busy={submission.busy && acting === ''}
+			disabled={!canAdd}
+		/>
 	</form>
 </div>

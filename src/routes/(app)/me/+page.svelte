@@ -2,12 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { authErrors, changePassword } from '$lib/api.js';
+	import ActionButton from '$lib/components/ActionButton.svelte';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
 	import EmailAddresses from '$lib/components/EmailAddresses.svelte';
+	import LanguageChoice from '$lib/components/LanguageChoice.svelte';
 	import PasswordChangeForm from '$lib/components/PasswordChangeForm.svelte';
+	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
@@ -27,55 +28,63 @@
 
 <svelte:head><title>{m.title_me()}</title></svelte:head>
 
-<div class="space-y-6">
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>{m.me_title()}</Card.Title>
-			<Card.Description data-testid="account-display">{session.user?.display}</Card.Description>
-		</Card.Header>
-		<Card.Content class="space-y-4">
-			<p class="min-w-0 text-sm wrap-anywhere" data-testid="account-email">
-				{session.user?.email}
-			</p>
-			<p class="text-muted-foreground text-sm">
-				{m.me_name_intro()}
-				{#if landing}
-					<a
-						class="text-primary underline"
-						href={resolve('/(app)/households/[id]', { id: String(landing.id) })}
-					>
-						{m.me_name_link()}
-					</a>
-				{:else}
+{#snippet section(title: string, intro?: string)}
+	<div class="grid gap-1.5">
+		<h2 class="border-border border-b pb-2 text-base font-semibold">{title}</h2>
+		{#if intro}
+			<p class="text-muted-foreground text-xs">{intro}</p>
+		{/if}
+	</div>
+{/snippet}
+
+<ScreenHeader title={m.me_title()} />
+
+<div class="grid gap-7">
+	<div class="grid gap-1.5">
+		<p class="text-base font-semibold" data-testid="account-display">{session.user?.display}</p>
+		<p class="text-muted-foreground min-w-0 text-sm wrap-anywhere" data-testid="account-email">
+			{session.user?.email}
+		</p>
+		<p class="text-muted-foreground text-sm">
+			{m.me_name_intro()}
+			{#if landing}
+				<a
+					class="text-primary underline"
+					href={resolve('/(app)/households/[id]', { id: String(landing.id) })}
+				>
 					{m.me_name_link()}
-				{/if}.
-			</p>
-			<div class="flex flex-wrap items-center gap-3">
-				<Button variant="outline" size="sm" onclick={disconnect}>{m.log_out()}</Button>
-				<ThemeToggle />
-			</div>
-		</Card.Content>
-	</Card.Root>
+				</a>
+			{:else}
+				{m.me_name_link()}
+			{/if}.
+		</p>
+	</div>
 
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>{m.emails_title()}</Card.Title>
-			<Card.Description>{m.emails_intro()}</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<EmailAddresses />
-		</Card.Content>
-	</Card.Root>
+	<section class="grid gap-3">
+		{@render section(m.me_language_title(), m.me_language_intro())}
+		<LanguageChoice />
+	</section>
 
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>{m.password_title()}</Card.Title>
-			<Card.Description>{m.password_intro()}</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<PasswordChangeForm onsubmit={change} />
-		</Card.Content>
-	</Card.Root>
+	<section class="grid gap-3">
+		{@render section(m.emails_title(), m.emails_intro())}
+		<EmailAddresses />
+	</section>
 
-	<DeployedVersion />
+	<section class="grid gap-3">
+		{@render section(m.password_title(), m.password_intro())}
+		<PasswordChangeForm onsubmit={change} />
+	</section>
+
+	<section class="grid gap-3">
+		{@render section(m.me_appearance_title())}
+		<div class="flex items-center justify-between gap-3">
+			<span class="text-sm">{m.me_theme_label()}</span>
+			<ThemeToggle />
+		</div>
+	</section>
+
+	<div class="grid gap-4">
+		<ActionButton variant="outline" label={m.log_out()} onclick={disconnect} />
+		<div class="text-center"><DeployedVersion /></div>
+	</div>
 </div>
