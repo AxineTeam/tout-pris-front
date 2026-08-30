@@ -13,6 +13,10 @@ function background(page: Page, label: string) {
 		.evaluate((surface) => getComputedStyle(surface).backgroundColor);
 }
 
+function color(page: Page, label: string) {
+	return page.getByRole('link', { name: label }).evaluate((link) => getComputedStyle(link).color);
+}
+
 async function foyer(page: Page) {
 	await page
 		.getByRole('navigation', { name: 'Navigation principale' })
@@ -122,4 +126,31 @@ test('le choix de la langue s’allume aussi sous la souris', async ({ page }) =
 	await expect
 		.poll(() => background(page, trigger), { message: 'le déclencheur reste éteint au survol' })
 		.not.toBe(resting);
+});
+
+test('l’écran de connexion allume ses liens et montre où va le clavier', async ({ page }) => {
+	await page.goto('/account/login');
+	await expect(page.getByRole('heading', { name: 'Connexion', level: 1 })).toBeVisible();
+
+	const link = 'mot de passe oublié';
+	const resting = await color(page, link);
+	await page.getByRole('link', { name: link }).hover();
+	await expect
+		.poll(() => color(page, link), { message: 'le lien reste éteint au survol' })
+		.not.toBe(resting);
+
+	await page.getByRole('heading', { name: 'Connexion', level: 1 }).click();
+	await readShadowsAtRest(page);
+
+	const stops: Stop[] = [];
+	for (let press = 0; press < 30 && stops.at(-1)?.label !== 'Créer un compte'; press++) {
+		await page.keyboard.press('Tab');
+		const stop = await stopped(page);
+		if (stop) stops.push(stop);
+	}
+
+	expect(stops.map((stop) => stop.label)).toEqual(
+		expect.arrayContaining(['mot de passe oublié', 'Créer un compte'])
+	);
+	expect(stops.filter((stop) => !stop.ring)).toEqual([]);
 });
