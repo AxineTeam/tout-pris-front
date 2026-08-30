@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { address, signInShared } from './account';
+import { address, openAsShared } from './account';
 import { createShared, deleteShared, name, openPersonal, sheet } from './households';
 import { forget } from './mailpit';
 
 test('inviter une adresse, la voir en attente, puis annuler', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('invitations'));
 	const guest = address('guest');
 
@@ -26,7 +26,7 @@ test('inviter une adresse, la voir en attente, puis annuler', async ({ page }) =
 });
 
 test('le foyer personnel n’a pas d’invitations', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await openPersonal(page);
 
 	await expect(page.getByTestId('household-switcher')).toHaveText('Personnel');

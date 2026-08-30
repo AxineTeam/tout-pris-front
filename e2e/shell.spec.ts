@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signInShared } from './account';
+import { openAsShared } from './account';
 
 const NARROW = [320, 390, 430];
 
@@ -10,7 +10,7 @@ function bar(page: Page) {
 test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survit au rechargement', async ({
 	page
 }) => {
-	const email = await signInShared(page);
+	const email = await openAsShared(page);
 	const household = new URL(page.url()).pathname.replace(/\/trips$/, '');
 
 	await expect(bar(page).getByRole('link', { name: 'Voyages' })).toHaveAttribute(
@@ -45,7 +45,7 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 });
 
 test('le sélecteur de foyer ne suit pas jusqu’au profil', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 
 	await expect(page.getByTestId('household-switcher')).toBeVisible();
 
@@ -56,7 +56,7 @@ test('le sélecteur de foyer ne suit pas jusqu’au profil', async ({ page }) =>
 });
 
 test('la barre reste sous le pouce, sans rien pousser hors de l’écran', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 
 	for (const width of NARROW) {
 		await page.setViewportSize({ width, height: 640 });
@@ -82,7 +82,7 @@ test('la barre reste sous le pouce, sans rien pousser hors de l’écran', async
 });
 
 test('la largeur du contenu reste bornée sur un grand écran', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto('/me');
 

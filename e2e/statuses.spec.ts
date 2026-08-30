@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signInShared } from './account';
+import { openAsShared } from './account';
 import { createShared, deleteShared, name, sheet } from './households';
 
 async function addStatus(page: Page, group: string, wanted: string) {
@@ -40,7 +40,7 @@ function paintOf(page: Page, group: string) {
 test('un foyer neuf porte ses trois statuts, qu’on complète, redésigne et retire', async ({
 	page
 }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('statuts'));
 
 	await page.getByTestId('statuses').click();

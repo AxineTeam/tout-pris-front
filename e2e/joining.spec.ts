@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { BASE_URL } from '../playwright.config';
-import { address, expectRefusalShown, register, signInShared } from './account';
+import { address, expectRefusalShown, openAsShared, register } from './account';
 import {
 	addPerson,
 	closeMenu,
@@ -25,7 +25,7 @@ test('un invité rejoint le foyer, s’y désigne, y est promu puis en est retir
 	const sacha = await his.newPage();
 	const guest = address('sacha');
 
-	const hersEmail = await signInShared(camille);
+	const hersEmail = await openAsShared(camille);
 	const shared = await createShared(camille, name('famille'));
 
 	await expect(personRow(camille, 'propriétaire')).toHaveCount(1);

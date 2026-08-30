@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { address, expectRefusalShown, logOut, register, signInShared } from './account';
+import { address, expectRefusalShown, logOut, openAsShared, register } from './account';
 import {
 	addPerson,
 	closeMenu,
@@ -16,7 +16,7 @@ import {
 import { forget } from './mailpit';
 
 test('l’accueil mène aux voyages du foyer personnel, nommé « Personnel »', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto('/');
 
 	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
@@ -35,7 +35,7 @@ test('le foyer d’un autre compte répond 404', async ({ page }) => {
 	const [theirs] = await (await page.request.get('/api/households/')).json();
 	await logOut(page);
 
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto(`/households/${theirs.id}`);
 
 	await expect(page.getByText('Ce foyer n’existe pas.')).toBeVisible();
@@ -44,7 +44,7 @@ test('le foyer d’un autre compte répond 404', async ({ page }) => {
 });
 
 test('le dernier foyer visité est celui où l’on revient', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto('/');
 	const home = new URL(page.url()).pathname;
 
@@ -61,7 +61,7 @@ test('le dernier foyer visité est celui où l’on revient', async ({ page }) =
 });
 
 test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('famille'));
 
 	await addPerson(page, 'Léo');
@@ -88,7 +88,7 @@ test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page 
 });
 
 test('le dernier membre se voit offrir la suppression, jamais le départ', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('seul'));
 	const email = page.getByTestId('persons').getByRole('listitem').first();
 
@@ -101,7 +101,7 @@ test('le dernier membre se voit offrir la suppression, jamais le départ', async
 });
 
 test('le retrait d’une personne rappelle le sort des lignes de voyage', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('mamie'));
 
 	await addPerson(page, 'Mamie');
@@ -117,7 +117,7 @@ test('le retrait d’une personne rappelle le sort des lignes de voyage', async 
 });
 
 test('le foyer personnel n’a que ses statuts', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await openPersonal(page);
 
 	await expect(page.getByTestId('household-switcher')).toHaveText('Personnel');
@@ -131,7 +131,7 @@ test('le foyer personnel n’a que ses statuts', async ({ page }) => {
 });
 
 test('un nom trop long est refusé en le disant, pas en parlant de panne', async ({ page }) => {
-	await signInShared(page);
+	await openAsShared(page);
 	await page.goto('/');
 
 	await openSwitcher(page);
@@ -145,7 +145,7 @@ test('un nom trop long est refusé en le disant, pas en parlant de panne', async
 
 test('une longue adresse ne pousse rien hors de l’écran d’un téléphone', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
-	await signInShared(page);
+	await openAsShared(page);
 	const shared = await createShared(page, name('debordement'));
 	const guest = `une-adresse-vraiment-tres-longue-qui-ne-tient-pas-sur-une-ligne-${Date.now()}@example.com`;
 
