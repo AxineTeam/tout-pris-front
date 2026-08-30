@@ -19,10 +19,10 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 - SvelteKit 2, Svelte 5 en mode runes uniquement (`$state`, `$derived`, `$effect`, `$props` — forcé dans `vite.config.ts`), TypeScript strict
 - SPA statique : `@sveltejs/adapter-static` avec `fallback: 'index.html'`, SSR désactivé globalement dans `src/routes/+layout.ts`
 - Tailwind CSS v4 CSS-first (thème dans `src/app.css`, plugin `@tailwindcss/vite`), shadcn-svelte vendoré dans `src/lib/components/ui/`
-- Node 22 LTS partout (`.nvmrc`, `engines` strict), dépendances npm (`package-lock.json`)
+- Node 24 LTS partout (`.nvmrc`, `engines` strict), dépendances npm (`package-lock.json`)
 - Vitest + @testing-library/svelte en unitaire, Playwright en E2E contre la vraie API, svelte-check + ESLint + Prettier en qualité
 - API : [tout-pris-api](https://github.com/AxineTeam/tout-pris-api) (Django + DRF + django-allauth headless), même origine via le reverse proxy nginx — le client API utilise le chemin relatif `/api`, proxy Vite vers `API_URL` en dev/preview sans réécriture de chemin, pas de CORS
-- Docker + docker compose (front + API), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 22 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
+- Docker + docker compose (front + API), devcontainer basé sur le service `front` ; `Dockerfile` prod multistage Node 24 → nginx:alpine, `Dockerfile.dev` avec Playwright/Chromium préinstallés dans `/opt/pw-browsers`
 
 ## Skills
 
