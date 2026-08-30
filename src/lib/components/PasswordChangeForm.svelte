@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { AuthError } from '$lib/api.js';
+	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import PasswordInput from '$lib/components/PasswordInput.svelte';
 	import * as m from '$lib/paraglide/messages.js';
@@ -39,7 +39,9 @@
 	{/if}
 
 	<div class="grid gap-2">
-		<Label for="current-password">{m.password_current_label()}</Label>
+		<Label for="current-password" class="text-muted-foreground text-xs">
+			{m.password_current_label()}
+		</Label>
 		<PasswordInput
 			id="current-password"
 			autocomplete="current-password"
@@ -49,7 +51,9 @@
 	</div>
 
 	<div class="grid gap-2">
-		<Label for="new-password">{m.password_new_label()}</Label>
+		<Label for="new-password" class="text-muted-foreground text-xs">
+			{m.password_new_label()}
+		</Label>
 		<PasswordInput
 			id="new-password"
 			autocomplete="new-password"
@@ -58,5 +62,10 @@
 		/>
 	</div>
 
-	<Button type="submit" disabled={!canSubmit}>{m.password_change_submit()}</Button>
+	<ActionButton
+		type="submit"
+		label={m.password_change_submit()}
+		busy={submission.busy}
+		disabled={!canSubmit}
+	/>
 </form>

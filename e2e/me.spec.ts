@@ -72,3 +72,33 @@ test('ajouter puis supprimer une adresse secondaire', async ({ page }) => {
 
 	await forget(second);
 });
+
+test('choisir sa langue retourne l’application, et le rechargement la garde', async ({ page }) => {
+	const email = address('me-language');
+
+	await register(page, email);
+	await page.goto('/me');
+	await expect(page.getByRole('heading', { name: 'Mon compte', level: 1 })).toBeVisible();
+
+	await page.getByRole('button', { name: 'English' }).click();
+
+	await expect(page.getByRole('heading', { name: 'My account', level: 1 })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'English' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(page.getByTestId('account-display')).toHaveText(email.split('@')[0]);
+	await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
+
+	await page.reload();
+
+	await expect(page.getByRole('heading', { name: 'My account', level: 1 })).toBeVisible();
+	await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Français' }).click();
+
+	await expect(page.getByRole('heading', { name: 'Mon compte', level: 1 })).toBeVisible();
+	await expect(page.getByLabel('Mot de passe actuel', { exact: true })).toBeVisible();
+
+	await forget(email);
+});

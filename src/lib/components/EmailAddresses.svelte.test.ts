@@ -3,7 +3,14 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EmailAddresses from './EmailAddresses.svelte';
-import { addEmail, listEmails, resendEmailVerification } from '$lib/api.js';
+import {
+	addEmail,
+	listEmails,
+	removeEmail,
+	resendEmailVerification,
+	type AuthResponse,
+	type EmailAddress
+} from '$lib/api.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -71,6 +78,22 @@ describe('EmailAddresses', () => {
 
 		expect(addEmail).toHaveBeenCalledWith('camille+autre@example.com');
 		expect(field).toHaveValue('');
+	});
+
+	it('laisse le bouton d’ajout au repos pendant une action de ligne', async () => {
+		const user = userEvent.setup();
+		let answer!: (response: AuthResponse<EmailAddress[]>) => void;
+		vi.mocked(removeEmail).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+		render(EmailAddresses);
+		await screen.findAllByRole('listitem');
+
+		const remove = screen.getByRole('button', { name: 'Supprimer' });
+		await user.click(remove);
+
+		expect(screen.getByRole('button', { name: 'Ajouter' })).toHaveAttribute('aria-busy', 'false');
+		expect(remove).toBeDisabled();
+
+		answer({ status: 200, data: [primary] });
 	});
 
 	it('explique un refus sans corps d’erreur', async () => {
