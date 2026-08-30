@@ -1,104 +1,115 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import {
-		deleteHousehold,
-		removeMember,
-		renameHousehold,
-		type Household,
-		type Member
-	} from '$lib/api.js';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import { deleteHousehold, renameHousehold, type Household } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Modal from '$lib/components/Modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { households, isOwner } from '$lib/households.svelte.js';
+	import { households, leaveBehind } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
 		household,
-		members,
+		owner,
 		onchanged
-	}: { household: Household; members: Member[]; onchanged: () => void } = $props();
+	}: { household: Household; owner: boolean; onchanged: () => void } = $props();
 
 	const submission = new Submission();
-	let renamed = $derived(household.name);
+	let opened = $state.raw<'rename' | 'dissolve' | null>(null);
+	let typed = $state('');
 
-	let me = $derived(session.user?.id);
-	let mine = $derived(members.find((member) => member.user === me));
-	let iAmOwner = $derived(isOwner(members, me));
-	let owners = $derived(members.filter((member) => member.role === 'owner').length);
-	let alone = $derived(members.length === 1);
-	let lastOwner = $derived(iAmOwner && owners === 1 && !alone);
-	let canRename = $derived(renamed.trim().length > 0 && renamed.trim() !== household.name);
-
-	function leave() {
-		if (!mine) return;
-		const membership = mine.id;
-		submission.run(async () => {
-			await removeMember(household.id, membership);
-			return away();
-		});
-	}
-
-	function remove() {
-		submission.run(async () => {
-			await deleteHousehold(household.id);
-			return away();
-		});
-	}
-
-	async function away() {
-		households.drop(household.id);
-		const landing = households.landing;
-		if (landing) await goto(resolve('/(app)/households/[id]', { id: String(landing.id) }));
-		return [];
+	function open(next: 'rename' | 'dissolve') {
+		submission.errors = [];
+		typed = household.name;
+		opened = next;
 	}
 
 	function rename(event: SubmitEvent) {
 		event.preventDefault();
-		if (!canRename) return;
-		const name = renamed.trim();
+		const name = typed.trim();
+		if (!name) return;
 		submission.run(async () => {
 			households.replace(await renameHousehold(household.id, name));
+			opened = null;
 			onchanged();
+			return [];
+		});
+	}
+
+	function dissolve() {
+		submission.run(async () => {
+			await deleteHousehold(household.id);
+			opened = null;
+			await leaveBehind(household.id);
 			return [];
 		});
 	}
 </script>
 
-<div class="grid gap-4">
-	<FormErrors errors={submission.errors} />
+<section class="grid gap-3">
+	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
+		{m.household_settings()}
+	</h2>
 
-	{#if iAmOwner}
-		<form class="flex items-end gap-3" onsubmit={rename}>
-			<div class="grid flex-1 gap-2">
+	<ul class="grid gap-2">
+		<li>
+			<button
+				type="button"
+				disabled
+				data-testid="statuses"
+				class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
+			>
+				<span class="min-w-0 flex-1">
+					<span class="block truncate text-sm font-semibold">{m.statuses_title()}</span>
+					<span class="text-muted-foreground block truncate text-xs">{m.statuses_soon()}</span>
+				</span>
+				<ChevronRightIcon size={16} aria-hidden="true" class="text-muted-foreground flex-none" />
+			</button>
+		</li>
+		{#if owner}
+			<li>
+				<button
+					type="button"
+					onclick={() => open('rename')}
+					class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold"
+				>
+					{m.household_rename()}
+				</button>
+			</li>
+			<li>
+				<button
+					type="button"
+					onclick={() => open('dissolve')}
+					class="border-destructive/40 bg-card text-destructive flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold"
+				>
+					{m.household_delete()}
+				</button>
+			</li>
+		{/if}
+	</ul>
+</section>
+
+{#if opened === 'rename'}
+	<Modal title={m.household_rename()} onclose={() => (opened = null)}>
+		<FormErrors errors={submission.errors} />
+		<form class="grid gap-4" onsubmit={rename}>
+			<div class="grid gap-2">
 				<Label for="household-name">{m.household_name_label()}</Label>
-				<Input id="household-name" bind:value={renamed} />
+				<Input id="household-name" bind:value={typed} />
 			</div>
-			<Button type="submit" disabled={!canRename || submission.busy}>{m.rename()}</Button>
+			<Button type="submit" disabled={submission.busy || typed.trim().length === 0}>
+				{m.rename()}
+			</Button>
 		</form>
-	{/if}
-
-	<div class="flex flex-wrap gap-2">
-		{#if alone}
-			<p class="text-muted-foreground text-sm" data-testid="alone">{m.household_alone()}</p>
-		{:else}
-			<Button variant="outline" onclick={leave} disabled={submission.busy || lastOwner}>
-				{m.household_leave()}
-			</Button>
-			{#if lastOwner}
-				<p class="text-muted-foreground text-sm" data-testid="last-owner">
-					{m.household_last_owner()}
-				</p>
-			{/if}
-		{/if}
-		{#if iAmOwner}
-			<Button variant="destructive" onclick={remove} disabled={submission.busy}>
-				{m.household_delete()}
-			</Button>
-		{/if}
-	</div>
-</div>
+	</Modal>
+{:else if opened === 'dissolve'}
+	<Modal title={m.household_delete_title({ name: household.name })} onclose={() => (opened = null)}>
+		<FormErrors errors={submission.errors} />
+		<p class="text-muted-foreground text-sm">{m.household_delete_explains()}</p>
+		<Button variant="destructive" disabled={submission.busy} onclick={dissolve}>
+			{m.household_delete()}
+		</Button>
+	</Modal>
+{/if}

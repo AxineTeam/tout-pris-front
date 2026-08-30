@@ -33,7 +33,7 @@
 		</a>
 	{/if}
 	<div class="min-w-0 flex-1">
-		<h1 class="truncate text-xl leading-tight font-bold">{title}</h1>
+		<h1 data-testid="screen-title" class="truncate text-xl leading-tight font-bold">{title}</h1>
 		{#if subtitle}
 			<p class="text-muted-foreground mt-0.5 truncate text-xs">{subtitle}</p>
 		{/if}
