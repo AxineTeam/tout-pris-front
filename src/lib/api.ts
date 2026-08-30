@@ -361,3 +361,45 @@ export function readInvitation(token: string): Promise<InvitationPreview> {
 export function acceptInvitation(token: string): Promise<Household> {
 	return request('/invitations/accept/', { method: 'POST', body: JSON.stringify({ token }) });
 }
+
+export type ProgressCategory = 'not_started' | 'in_progress' | 'done';
+
+export interface ItemStatus {
+	id: number;
+	name: string;
+	color: string;
+	progress: ProgressCategory;
+	position: number;
+	is_default: boolean;
+}
+
+export function listItemStatuses(household: number): Promise<ItemStatus[]> {
+	return request(`/households/${household}/item-statuses/`);
+}
+
+export function createItemStatus(
+	household: number,
+	name: string,
+	color: string,
+	progress: ProgressCategory
+): Promise<ItemStatus> {
+	return request(`/households/${household}/item-statuses/`, {
+		method: 'POST',
+		body: JSON.stringify({ name, color, progress })
+	});
+}
+
+export function updateItemStatus(
+	household: number,
+	id: number,
+	changes: { name?: string; color?: string; is_default?: true }
+): Promise<ItemStatus> {
+	return request(`/households/${household}/item-statuses/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
+}
+
+export function deleteItemStatus(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/item-statuses/${id}/`, { method: 'DELETE' });
+}
