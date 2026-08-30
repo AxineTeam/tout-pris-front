@@ -79,7 +79,7 @@ avec l'image de l'API en service : tag `dev` sur les branches et PRs, tag
 image avec le même tag que l'API, plus un tag `dev` à chaque merge sur `main`.
 
 Un devcontainer est fourni (`.devcontainer/`), basé sur le service compose
-`front` (`Dockerfile.dev`) : Node 22 et Playwright avec Chromium y sont
+`front` (`Dockerfile.dev`) : Node 24 et Playwright avec Chromium y sont
 préinstallés (navigateurs dans `/opt/pw-browsers`, hors du bind mount), donc
 `npm run test:e2e` fonctionne directement dans le conteneur — l'API du compose
 est joignable via `API_URL=http://api:8000`.
@@ -136,7 +136,7 @@ où le ref reste `main` pendant des semaines.
 
 ## Image de production
 
-`Dockerfile` : build Node 22 → `nginx:alpine` qui sert `build/` avec fallback
+`Dockerfile` : build Node 24 → `nginx:alpine` qui sert `build/` avec fallback
 SPA (`nginx/toutpris.conf`). L'image n'a aucune configuration au runtime : le
 routage `/api` est du ressort du reverse proxy commun avec l'API.
 
