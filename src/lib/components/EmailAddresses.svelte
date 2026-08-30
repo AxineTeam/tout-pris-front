@@ -24,7 +24,7 @@
 	const submission = new Submission();
 	let addresses = $state.raw<EmailAddress[]>([]);
 	let added = $state('');
-	let acting = $state('');
+	let adding = $state(false);
 	let canAdd = $derived(added.trim().length > 0 && !submission.busy);
 
 	function apply(response: AuthResponse<EmailAddress[]>): AuthError[] {
@@ -36,8 +36,8 @@
 		submission.run(async () => apply(await listEmails()));
 	}
 
-	function act(email: string, call: () => Promise<AuthResponse<EmailAddress[]>>) {
-		acting = email;
+	function act(call: () => Promise<AuthResponse<EmailAddress[]>>) {
+		adding = false;
 		submission.run(async () => apply(await call()));
 	}
 
@@ -45,7 +45,7 @@
 		event.preventDefault();
 		if (!canAdd) return;
 		const email = added.trim();
-		acting = '';
+		adding = true;
 		submission.run(async () => {
 			const errors = apply(await addEmail(email));
 			if (errors.length === 0) added = '';
@@ -80,7 +80,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(address.email, () => resendEmailVerification(address.email))}
+							onclick={() => act(() => resendEmailVerification(address.email))}
 						>
 							{m.email_resend_verification()}
 						</Button>
@@ -90,7 +90,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(address.email, () => makeEmailPrimary(address.email))}
+							onclick={() => act(() => makeEmailPrimary(address.email))}
 						>
 							{m.email_make_primary()}
 						</Button>
@@ -100,7 +100,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(address.email, () => removeEmail(address.email))}
+							onclick={() => act(() => removeEmail(address.email))}
 						>
 							{m.delete()}
 						</Button>
@@ -125,7 +125,7 @@
 		<ActionButton
 			type="submit"
 			label={m.add()}
-			busy={submission.busy && acting === ''}
+			busy={submission.busy && adding}
 			disabled={!canAdd}
 		/>
 	</form>
