@@ -8,6 +8,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let {
@@ -27,18 +28,24 @@
 	let creating = $state(false);
 	let typed = $state('');
 
+	let me = $derived(session.user?.id);
 	let free = $derived(persons.filter((person) => person.user === null));
 	let taken = $derived(persons.filter((person) => person.user !== null));
 	let accounts = $derived(new Map(members.map((member) => [member.user, member])));
 	let newcomers = $derived(
-		members.filter((member) => !persons.some((person) => person.user === member.user))
+		members.filter(
+			(member) => member.user !== me && !persons.some((person) => person.user === member.user)
+		)
 	);
 
 	function act(submission: Submission, call: () => Promise<unknown>) {
 		submission.run(async () => {
-			await call();
-			creating = false;
-			onchanged();
+			try {
+				await call();
+				creating = false;
+			} finally {
+				onchanged();
+			}
 			return [];
 		});
 	}
