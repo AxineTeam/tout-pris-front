@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdSettings from './HouseholdSettings.svelte';
-import { deleteHousehold, renameHousehold } from '$lib/api.js';
+import { deleteHousehold, renameHousehold, type ItemStatus } from '$lib/api.js';
 import { households } from '$lib/households.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
@@ -16,8 +16,19 @@ vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
 
 const household = { id: 7, name: 'Famille Martin', personal: false };
 
+const statuses: ItemStatus[] = [
+	{
+		id: 1,
+		name: 'Pas préparé',
+		color: '#7b8189',
+		progress: 'not_started',
+		position: 0,
+		is_default: true
+	}
+];
+
 function mount(owner = true, onchanged = vi.fn()) {
-	render(HouseholdSettings, { props: { household, owner, onchanged } });
+	render(HouseholdSettings, { props: { household, statuses, owner, onchanged } });
 	return onchanged;
 }
 
@@ -31,10 +42,10 @@ describe('HouseholdSettings', () => {
 		households.all = [household];
 	});
 
-	it('annonce les statuts sans prétendre y mener', () => {
+	it('mène aux statuts du foyer', () => {
 		mount();
 
-		expect(screen.getByTestId('statuses')).toBeDisabled();
+		expect(screen.getByTestId('statuses')).toHaveAttribute('href', '/households/7/statuses');
 	});
 
 	it('réserve le renommage et la suppression aux propriétaires', () => {

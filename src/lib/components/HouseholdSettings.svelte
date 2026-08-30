@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import { deleteHousehold, renameHousehold, type Household } from '$lib/api.js';
+	import { resolve } from '$app/paths';
+	import { deleteHousehold, renameHousehold, type Household, type ItemStatus } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -12,9 +13,15 @@
 
 	let {
 		household,
+		statuses,
 		owner,
 		onchanged
-	}: { household: Household; owner: boolean; onchanged: () => void } = $props();
+	}: {
+		household: Household;
+		statuses: ItemStatus[];
+		owner: boolean;
+		onchanged: () => void;
+	} = $props();
 
 	const submission = new Submission();
 	let opened = $state.raw<'rename' | 'dissolve' | null>(null);
@@ -55,18 +62,22 @@
 
 	<ul class="grid gap-2">
 		<li>
-			<button
-				type="button"
-				disabled
+			<a
+				href={resolve('/(app)/households/[id]/statuses', { id: String(household.id) })}
 				data-testid="statuses"
 				class="border-border bg-card flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
 			>
+				<span aria-hidden="true" class="flex flex-none gap-[3px]">
+					{#each statuses.slice(0, 3) as status (status.id)}
+						<span class="size-[9px] rounded-full" style:background-color={status.color}></span>
+					{/each}
+				</span>
 				<span class="min-w-0 flex-1">
 					<span class="block truncate text-sm font-semibold">{m.statuses_title()}</span>
-					<span class="text-muted-foreground block truncate text-xs">{m.statuses_soon()}</span>
+					<span class="text-muted-foreground block truncate text-xs">{m.statuses_manage()}</span>
 				</span>
 				<ChevronRightIcon size={16} aria-hidden="true" class="text-muted-foreground flex-none" />
-			</button>
+			</a>
 		</li>
 		{#if owner}
 			<li>
