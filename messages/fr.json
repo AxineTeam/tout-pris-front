@@ -144,6 +144,7 @@
 	"status_edit_title": "Modifier « {name} »",
 	"status_make_default": "Utiliser par défaut",
 	"status_name_label": "Nom du statut",
+	"status_section_label": "Section",
 	"statuses_intro": "Les trois sections sont fixes : elles pilotent la jauge des voyages. À l’intérieur, ajoute et renomme autant de statuts que nécessaire.",
 	"statuses_manage": "Ajouter, renommer et colorer les statuts",
 	"statuses_title": "Statuts",

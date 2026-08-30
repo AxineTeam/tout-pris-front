@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,8 +47,55 @@ const done: ItemStatus = {
 	is_default: false
 };
 
+const loaded: ItemStatus = {
+	id: 4,
+	name: 'Chargé dans la voiture',
+	color: '#5c8a66',
+	progress: 'done',
+	position: 3,
+	is_default: false
+};
+
 function sheet() {
 	return screen.getByRole('dialog');
+}
+
+const BANDS: Record<string, number> = { not_started: 0, in_progress: 300, done: 600 };
+const HEADER = 20;
+const ROW = 40;
+
+function box(top: number, height: number): DOMRect {
+	return {
+		top,
+		bottom: top + height,
+		height,
+		left: 0,
+		right: 0,
+		width: 0,
+		x: 0,
+		y: top
+	} as DOMRect;
+}
+
+function keyOf(element: Element | null) {
+	return element?.getAttribute('data-testid')?.replace('status-group-', '');
+}
+
+function laidOut() {
+	vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+		const group = keyOf(this);
+		if (group && group in BANDS) return box(BANDS[group], 300);
+		if (!this.hasAttribute('data-status')) return box(0, 0);
+		const section = this.closest('[data-testid^="status-group-"]');
+		const rank = [...(section?.querySelectorAll('[data-status]') ?? [])].indexOf(this);
+		return box(BANDS[keyOf(section) ?? 'not_started'] + HEADER + rank * ROW, ROW);
+	});
+}
+
+async function dragTo(status: ItemStatus, y: number | undefined = undefined) {
+	await fireEvent.pointerDown(screen.getByTestId(`status-handle-${status.id}`), { pointerId: 1 });
+	if (y !== undefined) await fireEvent.pointerMove(window, { pointerId: 1, clientY: y });
+	await fireEvent.pointerUp(window, { pointerId: 1 });
 }
 
 function mount(statuses = [notStarted, inProgress, done], onchanged = vi.fn()) {
@@ -66,7 +113,10 @@ async function addIn(user: UserEvent, group: string) {
 
 describe('HouseholdStatuses', () => {
 	beforeEach(() => vi.clearAllMocks());
-	afterEach(() => (session.user = null));
+	afterEach(() => {
+		session.user = null;
+		vi.restoreAllMocks();
+	});
 
 	it('range chaque statut sous la section qui compte pour lui', () => {
 		mount();
@@ -174,6 +224,53 @@ describe('HouseholdStatuses', () => {
 		expect(screen.getByTestId('status-group-not_started')).toHaveTextContent('Not ready');
 		expect(screen.getByTestId('status-group-in_progress')).toHaveTextContent('In progress');
 		expect(screen.getByTestId('status-group-done')).toHaveTextContent('Ready');
+	});
+
+	it('compte le rang d’une dépose sur la liste du foyer, pas sur la section', async () => {
+		vi.mocked(updateItemStatus).mockResolvedValue({ ...done, progress: 'in_progress' });
+		const onchanged = mount();
+		laidOut();
+
+		await dragTo(done, BANDS.in_progress + HEADER + ROW);
+
+		expect(updateItemStatus).toHaveBeenCalledWith(7, 3, { progress: 'in_progress', position: 2 });
+		expect(onchanged).toHaveBeenCalled();
+	});
+
+	it('remonte un statut au-dessus de son voisin de section', async () => {
+		vi.mocked(updateItemStatus).mockResolvedValue(loaded);
+		mount([notStarted, inProgress, done, loaded]);
+		laidOut();
+
+		await dragTo(loaded, BANDS.done + HEADER + ROW / 2);
+
+		expect(updateItemStatus).toHaveBeenCalledWith(7, 4, { progress: 'done', position: 2 });
+	});
+
+	it('ne demande rien quand la poignée est lâchée où elle a été prise', async () => {
+		mount();
+		laidOut();
+
+		await dragTo(inProgress);
+
+		expect(updateItemStatus).not.toHaveBeenCalled();
+	});
+
+	it('change aussi de section depuis la feuille d’édition', async () => {
+		const user = userEvent.setup();
+		vi.mocked(updateItemStatus).mockResolvedValue({ ...done, progress: 'in_progress' });
+		const onchanged = mount();
+
+		await user.click(screen.getByRole('button', { name: 'Modifier Dans les sacs' }));
+		await user.selectOptions(within(sheet()).getByLabelText('Section'), 'in_progress');
+		await user.click(within(sheet()).getByRole('button', { name: 'Enregistrer' }));
+
+		expect(updateItemStatus).toHaveBeenCalledWith(7, 3, {
+			name: 'Dans les sacs',
+			color: '#5c8a66',
+			progress: 'in_progress'
+		});
+		expect(onchanged).toHaveBeenCalled();
 	});
 
 	it('relaie le refus de l’API plutôt que d’annoncer une panne', async () => {

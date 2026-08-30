@@ -6,6 +6,11 @@ import { afterAll, afterEach } from 'vitest';
 
 Object.defineProperty(navigator, 'languages', { value: ['fr-FR'] });
 
+// jsdom 30 dispatches PointerEvent without implementing pointer capture: the
+// component that drags a row would otherwise throw on the first grab.
+Element.prototype.setPointerCapture ??= function () {};
+Element.prototype.releasePointerCapture ??= function () {};
+
 // bits-ui keeps the body locked for 24ms after a dialog unmounts, to absorb a
 // close immediately followed by a reopen. That timer outlives the unmount
 // Testing Library performs between tests, and does damage at both ends: the

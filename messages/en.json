@@ -144,6 +144,7 @@
 	"status_edit_title": "Edit “{name}”",
 	"status_make_default": "Use as default",
 	"status_name_label": "Status name",
+	"status_section_label": "Section",
 	"statuses_intro": "The three sections are fixed: they drive the progress bar of a trip. Inside them, add and rename as many statuses as you need.",
 	"statuses_manage": "Add, rename and colour the statuses",
 	"statuses_title": "Statuses",
