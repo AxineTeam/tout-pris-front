@@ -146,11 +146,11 @@
 		<FormErrors errors={submission.errors} />
 	{/if}
 
-	<ul class="grid gap-2" data-testid="persons">
+	<ul class="grid min-w-0 gap-2" data-testid="persons">
 		{#each persons as person (person.id)}
 			{@const account = accountOf(person)}
 			<li
-				class="border-border bg-card flex min-h-11 items-center gap-3 rounded-xl border px-3 py-2.5"
+				class="border-border bg-card flex min-h-11 min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5"
 			>
 				<PersonAvatar id={person.id} name={person.name} />
 				<span class="min-w-0 flex-1">
@@ -246,7 +246,7 @@
 		{#each newcomers as newcomer (newcomer.id)}
 			<li
 				data-testid="newcomer"
-				class="border-border text-muted-foreground flex min-h-11 items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
+				class="border-border text-muted-foreground flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-dashed px-3 py-2.5"
 			>
 				<span aria-hidden="true" class="bg-muted size-9 flex-none rounded-full"></span>
 				<span class="min-w-0 flex-1">

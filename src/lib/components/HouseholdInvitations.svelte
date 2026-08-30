@@ -67,10 +67,12 @@
 		</p>
 	{/if}
 
-	<ul class="grid gap-2" data-testid="invitations">
+	<ul class="grid min-w-0 gap-2" data-testid="invitations">
 		{#each invitations as invitation (invitation.id)}
 			{@const expired = new Date(invitation.expires_at).getTime() <= Date.now()}
-			<li class="bg-pending text-pending-foreground flex items-start gap-3 rounded-xl px-3 py-2.5">
+			<li
+				class="bg-pending text-pending-foreground flex min-w-0 items-start gap-3 rounded-xl px-3 py-2.5"
+			>
 				<MailIcon size={18} aria-hidden="true" class="mt-0.5 flex-none" />
 				<span class="min-w-0 flex-1">
 					<span class="block text-sm font-semibold wrap-anywhere">{invitation.email}</span>
