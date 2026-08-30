@@ -73,7 +73,7 @@
 					<a
 						href={tab.href}
 						aria-current={tab.name === active ? 'page' : undefined}
-						class="text-muted-foreground aria-[current=page]:text-primary flex h-16 min-h-11 flex-col items-center justify-center gap-1 px-1 text-xs font-medium"
+						class="text-muted-foreground aria-[current=page]:text-primary hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex h-16 min-h-11 flex-col items-center justify-center gap-1 px-1 text-xs font-medium transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
 					>
 						{@render face(tab)}
 					</a>

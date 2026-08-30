@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { cn } from '$lib/utils.js';
 
 	let {
 		label,
@@ -44,7 +45,10 @@
 		aria-haspopup="menu"
 		aria-expanded={open}
 		onclick={() => (open = !open)}
-		class={triggerClass}
+		class={cn(
+			'hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 rounded-lg transition-colors outline-none focus-visible:ring-[3px]',
+			triggerClass
+		)}
 	>
 		{@render trigger()}
 	</button>

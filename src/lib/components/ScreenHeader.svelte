@@ -35,7 +35,7 @@
 			<a
 				href={back}
 				aria-label={m.back()}
-				class="text-primary -ml-2 flex size-11 flex-none items-center justify-center"
+				class="text-primary hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 -ml-2 flex size-11 flex-none items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px]"
 			>
 				<ChevronLeftIcon size={22} aria-hidden="true" />
 			</a>
@@ -60,7 +60,7 @@
 						type="button"
 						aria-label={action.label}
 						onclick={action.onclick}
-						class="border-border bg-card text-primary relative flex size-[34px] items-center justify-center rounded-md border after:absolute after:-inset-[5px] after:content-['']"
+						class="border-border bg-card text-primary hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 active:bg-primary/25 relative flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none after:absolute after:-inset-[5px] after:content-[''] focus-visible:ring-[3px]"
 					>
 						<action.icon size={16} aria-hidden="true" />
 					</button>

@@ -278,7 +278,7 @@
 					<button
 						type="button"
 						onclick={() => open({ kind: 'add', progress: group.progress })}
-						class="text-primary flex min-h-11 w-full items-center gap-2 text-left text-[13px] font-semibold"
+						class="text-primary hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex min-h-11 w-full items-center gap-2 rounded-lg text-left text-[13px] font-semibold transition-colors outline-none focus-visible:ring-[3px]"
 					>
 						<PlusIcon size={15} aria-hidden="true" />
 						{m.status_add()}
