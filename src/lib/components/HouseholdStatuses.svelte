@@ -1,4 +1,5 @@
 <script lang="ts">
+	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
@@ -33,6 +34,13 @@
 	let opened = $state.raw<Opened | null>(null);
 	let typed = $state('');
 	let tinted = $state('');
+	let sectioned = $state<ProgressCategory>('not_started');
+
+	const dropping = new Submission();
+	let container = $state.raw<HTMLElement>();
+	let grabbed = $state.raw<ItemStatus | null>(null);
+	let arrangement = $state.raw<ItemStatus[] | null>(null);
+	let arrangedFrom = $state.raw<ItemStatus[] | null>(null);
 
 	let groups = $derived<{ progress: ProgressCategory; title: string; counts: string }[]>([
 		{
@@ -48,14 +56,17 @@
 		{ progress: 'done', title: m.progress_done(), counts: m.progress_done_counts() }
 	]);
 
+	let rows = $derived(arrangement && statuses === arrangedFrom ? arrangement : statuses);
+
 	function of(progress: ProgressCategory): ItemStatus[] {
-		return statuses.filter((status) => status.progress === progress);
+		return rows.filter((status) => status.progress === progress);
 	}
 
 	function open(next: Opened) {
 		submission.errors = [];
 		typed = next.kind === 'edit' ? next.status.name : '';
 		tinted = next.kind === 'add' ? suggestedColor(next.progress) : next.status.color;
+		sectioned = next.kind === 'add' ? next.progress : next.status.progress;
 		opened = next;
 	}
 
@@ -79,7 +90,93 @@
 		event.preventDefault();
 		const name = typed.trim();
 		if (!name) return;
-		act(() => updateItemStatus(household, status.id, { name, color: tinted }));
+		const moved = sectioned === status.progress ? {} : { progress: sectioned };
+		act(() => updateItemStatus(household, status.id, { name, color: tinted, ...moved }));
+	}
+
+	function held(node: HTMLElement) {
+		container = node;
+	}
+
+	function boxOf(selector: string): DOMRect | undefined {
+		return container?.querySelector(selector)?.getBoundingClientRect();
+	}
+
+	function sectionUnder(y: number): ProgressCategory {
+		let nearest = groups[0].progress;
+		let shortest = Infinity;
+		for (const group of groups) {
+			const box = boxOf(`[data-testid="status-group-${group.progress}"]`);
+			if (!box) continue;
+			if (y >= box.top && y <= box.bottom) return group.progress;
+			const gap = y < box.top ? box.top - y : y - box.bottom;
+			if (gap < shortest) {
+				shortest = gap;
+				nearest = group.progress;
+			}
+		}
+		return nearest;
+	}
+
+	function passed(status: ItemStatus, y: number): boolean {
+		const box = boxOf(`[data-status="${status.id}"]`);
+		return box !== undefined && box.top + box.height / 2 < y;
+	}
+
+	function landing(moved: ItemStatus, y: number): ItemStatus[] {
+		const progress = sectionUnder(y);
+		const rest = rows.filter((status) => status.id !== moved.id);
+		const section = rest.filter((status) => status.progress === progress);
+		const above = section.filter((status) => passed(status, y)).length;
+		const at =
+			above < section.length
+				? rest.indexOf(section[above])
+				: section.length > 0
+					? rest.indexOf(section[above - 1]) + 1
+					: rest.length;
+		return [...rest.slice(0, at), { ...moved, progress }, ...rest.slice(at)];
+	}
+
+	function grab(event: PointerEvent, status: ItemStatus) {
+		if (!container || rows.length < 2) return;
+		const start = [...rows];
+		container.setPointerCapture(event.pointerId);
+		grabbed = status;
+		arrangedFrom = statuses;
+		arrangement = start;
+	}
+
+	function drag(event: PointerEvent) {
+		if (grabbed) arrangement = landing(grabbed, event.clientY);
+	}
+
+	function letGo() {
+		grabbed = null;
+		arrangement = null;
+	}
+
+	function drop() {
+		const moved = grabbed;
+		const next = arrangement;
+		grabbed = null;
+		if (!moved || !next) return;
+		const position = next.findIndex((status) => status.id === moved.id);
+		const progress = next[position].progress;
+		const before = statuses.findIndex((status) => status.id === moved.id);
+		if (progress === moved.progress && position === before) {
+			arrangement = null;
+			return;
+		}
+		dropping.run(async () => {
+			try {
+				await updateItemStatus(household, moved.id, { progress, position });
+			} catch (refusal) {
+				arrangement = null;
+				throw refusal;
+			}
+			onchanged();
+			return [];
+		});
 	}
 </script>
 
@@ -92,10 +189,29 @@
 	</span>
 {/snippet}
 
-<div class="grid gap-4">
+{#snippet section()}
+	<div class="grid gap-2">
+		<Label for="status-section">{m.status_section_label()}</Label>
+		<select
+			id="status-section"
+			bind:value={sectioned}
+			class="border-input h-11 w-full rounded-md border bg-transparent px-3 text-sm"
+		>
+			{#each groups as group (group.progress)}
+				<option value={group.progress}>{group.title}</option>
+			{/each}
+		</select>
+	</div>
+{/snippet}
+
+<svelte:window onpointermove={drag} onpointerup={drop} onpointercancel={letGo} />
+
+<div {@attach held} class="grid gap-4">
 	<p class="bg-muted text-muted-foreground rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed">
 		{m.statuses_intro()}
 	</p>
+
+	<FormErrors errors={dropping.errors} />
 
 	{#each groups as group (group.progress)}
 		<section
@@ -109,7 +225,21 @@
 
 			<ul class="grid min-w-0">
 				{#each of(group.progress) as status (status.id)}
-					<li class="border-border/60 flex min-h-11 min-w-0 items-center gap-2.5 border-t">
+					<li
+						data-status={status.id}
+						class={[
+							'border-border/60 flex min-h-11 min-w-0 items-center gap-1.5 border-t',
+							grabbed?.id === status.id && 'bg-accent'
+						]}
+					>
+						<span
+							aria-hidden="true"
+							data-testid="status-handle-{status.id}"
+							onpointerdown={(event) => grab(event, status)}
+							class="text-muted-foreground -ml-3 flex size-11 flex-none touch-none items-center justify-center"
+						>
+							<GripHorizontalIcon size={16} />
+						</span>
 						{@render swatch(status.color)}
 						<span class="min-w-0 flex-1 truncate text-sm font-medium">{status.name}</span>
 						{#if status.is_default}
@@ -198,6 +328,7 @@
 					class="border-input h-11 w-20 rounded-md border bg-transparent p-1"
 				/>
 			</div>
+			{@render section()}
 			<Button type="submit" disabled={submission.busy || typed.trim().length === 0}>
 				{m.save()}
 			</Button>

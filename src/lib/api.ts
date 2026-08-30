@@ -392,7 +392,13 @@ export function createItemStatus(
 export function updateItemStatus(
 	household: number,
 	id: number,
-	changes: { name?: string; color?: string; is_default?: true }
+	changes: {
+		name?: string;
+		color?: string;
+		progress?: ProgressCategory;
+		position?: number;
+		is_default?: true;
+	}
 ): Promise<ItemStatus> {
 	return request(`/households/${household}/item-statuses/${id}/`, {
 		method: 'PATCH',
