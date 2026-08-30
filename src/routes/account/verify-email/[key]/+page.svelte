@@ -5,6 +5,7 @@
 	import AccountScreen from '$lib/components/AccountScreen.svelte';
 	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import TextLink from '$lib/components/TextLink.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -44,24 +45,24 @@
 		{#if session.authenticated}
 			<p class="text-sm" data-testid="verified-signed-in">
 				{m.verify_done_signed_in()}
-				<a class="text-primary font-semibold" href={resolve('/')}>{m.go_home()}</a>
+				<TextLink href={resolve('/')}>{m.go_home()}</TextLink>
 			</p>
 		{:else}
 			<p class="text-sm" data-testid="verified-signed-out">
 				{m.verify_done()}
-				<a class="text-primary font-semibold" href={resolve('/account/login')}>{m.log_in()}</a>
+				<TextLink href={resolve('/account/login')}>{m.log_in()}</TextLink>
 			</p>
 		{/if}
 	{:else if keyErrors.length > 0}
 		<FormErrors errors={keyErrors} title={m.link_unusable()} />
 		<p class="text-muted-foreground text-sm">
 			{m.verify_dead_before()}
-			<a class="text-primary font-semibold" href={resolve('/account/signup')}>
+			<TextLink href={resolve('/account/signup')}>
 				{m.verify_dead_signup()}
-			</a>{m.verify_dead_between()}
-			<a class="text-primary font-semibold" href={resolve('/account/login')}>
+			</TextLink>{m.verify_dead_between()}
+			<TextLink href={resolve('/account/login')}>
 				{m.verify_dead_login()}
-			</a>
+			</TextLink>
 			{m.verify_dead_after()}
 		</p>
 	{:else}
