@@ -17,7 +17,7 @@
 
 <svelte:head><title>{m.title_login()}</title></svelte:head>
 
-<AccountScreen title={m.login_title()} intro={m.login_intro()}>
+<AccountScreen title={m.login_title()}>
 	<CredentialsForm
 		submitLabel={m.log_in()}
 		passwordAutocomplete="current-password"

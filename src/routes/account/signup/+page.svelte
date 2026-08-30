@@ -18,7 +18,7 @@
 
 <svelte:head><title>{m.title_signup()}</title></svelte:head>
 
-<AccountScreen title={m.signup_title()} intro={m.signup_intro()}>
+<AccountScreen title={m.signup_title()}>
 	{#if pending}
 		<p class="text-sm" data-testid="verification-pending">{m.signup_pending()}</p>
 	{:else}

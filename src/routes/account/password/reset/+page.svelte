@@ -16,7 +16,7 @@
 
 <svelte:head><title>{m.title_reset()}</title></svelte:head>
 
-<AccountScreen title={m.reset_title()} intro={m.reset_intro()}>
+<AccountScreen title={m.reset_title()}>
 	{#if sent}
 		<p class="text-sm" data-testid="reset-requested">{m.reset_sent()}</p>
 	{:else}
