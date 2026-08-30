@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { address, expectRefusalShown, logOut, register, signInShared } from './account';
-import { createShared, deleteShared, name, openPersonal } from './households';
+import {
+	addPerson,
+	closeSheet,
+	createShared,
+	deleteShared,
+	name,
+	openPerson,
+	openPersonal,
+	personRow,
+	sheet
+} from './households';
 import { forget } from './mailpit';
 
 test('l’accueil mène aux voyages du foyer personnel, nommé « Personnel »', async ({ page }) => {
@@ -51,59 +61,70 @@ test('le dernier foyer visité est celui où l’on revient', async ({ page }) =
 	await deleteShared(page, shared);
 });
 
-test('créer un foyer partagé, y ajouter une personne, la renommer puis la supprimer', async ({
-	page
-}) => {
+test('ajouter une personne, la renommer, puis renommer le foyer', async ({ page }) => {
 	await signInShared(page);
 	const shared = await createShared(page, name('famille'));
 
-	await expect(page.getByTestId('household-name')).toHaveText(shared.name);
+	await addPerson(page, 'Léo');
+	await expect(personRow(page, 'Léo')).toContainText('sans compte');
 
-	await page.getByLabel('Ajouter une personne').fill('Léo');
-	await page.getByRole('button', { name: 'Ajouter' }).click();
-	await expect(page.getByTestId('persons')).toContainText('Léo');
-
-	await page.getByRole('button', { name: 'Renommer Léo' }).click();
-	await page.getByLabel('Nouveau nom de Léo').fill('Léa');
-	await page.getByRole('button', { name: 'Enregistrer' }).click();
+	await openPerson(page, 'Léo');
+	await sheet(page).getByRole('button', { name: 'Renommer' }).click();
+	await sheet(page).getByLabel('Nouveau nom de Léo').fill('Léa');
+	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
 	await expect(page.getByTestId('persons')).toContainText('Léa');
 
-	await page.getByRole('button', { name: 'Supprimer Léa' }).click();
-	await expect(page.getByTestId('persons')).not.toContainText('Léa');
-
 	const renamed = name('chez-nous');
-	await page.getByLabel('Nom du foyer').fill(renamed);
-	await page.getByRole('button', { name: 'Renommer', exact: true }).click();
-	await expect(page.getByTestId('household-name')).toHaveText(renamed);
+	await page.getByRole('button', { name: 'Renommer le foyer' }).click();
+	await sheet(page).getByLabel('Nom du foyer').fill(renamed);
+	await sheet(page).getByRole('button', { name: 'Renommer' }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText(renamed);
 	await expect(page.getByRole('link', { name: renamed })).toBeVisible();
 
 	await deleteShared(page, { ...shared, name: renamed });
 });
 
-test('la personne qui porte le compte du dernier membre ne se supprime pas', async ({ page }) => {
+test('le dernier membre se voit offrir la suppression, jamais le départ', async ({ page }) => {
 	await signInShared(page);
 	const shared = await createShared(page, name('seul'));
+	const email = page.getByTestId('persons').getByRole('listitem').first();
 
-	await expect(page.getByTestId('alone')).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Quitter ce foyer' })).toHaveCount(0);
-
-	const me = page.getByTestId('persons').getByRole('listitem').first();
-	await me.getByRole('button', { name: /^Supprimer / }).click();
-
-	await expectRefusalShown(page);
-	await expect(page.getByTestId('persons').getByRole('listitem')).toHaveCount(1);
+	await email.getByRole('button').click();
+	await expect(sheet(page).getByRole('button', { name: 'Quitter ce foyer' })).toHaveCount(0);
+	await expect(sheet(page).getByRole('button', { name: 'Supprimer ce foyer' })).toBeVisible();
+	await closeSheet(page);
 
 	await deleteShared(page, shared);
 });
 
-test('le foyer personnel n’a rien à partager', async ({ page }) => {
+test('le retrait d’une personne rappelle le sort des lignes de voyage', async ({ page }) => {
+	await signInShared(page);
+	const shared = await createShared(page, name('mamie'));
+
+	await addPerson(page, 'Mamie');
+	await openPerson(page, 'Mamie');
+	await sheet(page).getByRole('button', { name: 'Retirer du foyer' }).click();
+
+	await expect(sheet(page)).toContainText('deviennent communes au voyage');
+	await sheet(page).getByRole('button', { name: 'Retirer du foyer' }).click();
+
+	await expect(page.getByTestId('persons')).not.toContainText('Mamie');
+
+	await deleteShared(page, shared);
+});
+
+test('le foyer personnel n’a que ses statuts', async ({ page }) => {
 	await signInShared(page);
 	await openPersonal(page);
 
-	await expect(page.getByTestId('household-name')).toHaveText('Personnel');
-	await expect(page.getByLabel('Nom du foyer')).toHaveCount(0);
+	await expect(page.getByTestId('screen-title')).toHaveText('Personnel');
+	await expect(page.getByTestId('statuses')).toBeVisible();
+	await expect(page.getByTestId('persons')).toHaveCount(0);
+	await expect(page.getByTestId('invitations')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Ajouter une personne' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Quitter ce foyer' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Renommer le foyer' })).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'Supprimer ce foyer' })).toHaveCount(0);
-	await expect(page.getByLabel('Ajouter une personne')).toBeVisible();
 });
 
 test('un nom trop long est refusé en le disant, pas en parlant de panne', async ({ page }) => {
