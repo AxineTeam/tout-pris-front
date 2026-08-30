@@ -16,10 +16,21 @@
 		onclose: () => void;
 		children: Snippet;
 	} = $props();
+
+	let content = $state.raw<HTMLElement | null>(null);
+
+	function focusFirstField(event: Event) {
+		const field = content?.querySelector<HTMLElement>('input, textarea, select');
+		if (!field) return;
+		event.preventDefault();
+		field.focus();
+	}
 </script>
 
 <Dialog.Root open onOpenChange={(open) => !open && onclose()}>
 	<Dialog.Content
+		bind:ref={content}
+		onOpenAutoFocus={focusFirstField}
 		showCloseButton={false}
 		class="bg-card text-card-foreground top-auto bottom-0 max-h-[85dvh] max-w-none translate-y-0 overflow-y-auto rounded-t-xl rounded-b-none p-5 sm:top-1/2 sm:bottom-auto sm:max-w-md sm:-translate-y-1/2 sm:rounded-xl"
 	>
