@@ -18,7 +18,7 @@ function firstOf(page: Page, group: string) {
 
 async function dragToEndOf(page: Page, wanted: string, group: string) {
 	const handle = page
-		.locator('[data-status]', { hasText: wanted })
+		.locator('[data-row]', { hasText: wanted })
 		.locator('[data-testid^="status-handle-"]');
 	const grip = await handle.boundingBox();
 	const section = await page.getByTestId(`status-group-${group}`).boundingBox();

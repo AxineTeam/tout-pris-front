@@ -1,5 +1,40 @@
-import { createItemStatus, type ProgressCategory } from '$lib/api.js';
+import { createItemStatus, type ItemStatus, type ProgressCategory } from '$lib/api.js';
 import * as m from '$lib/paraglide/messages.js';
+import { Reordering } from '$lib/reorder.svelte.js';
+
+export const PROGRESS_ORDER: ProgressCategory[] = ['not_started', 'in_progress', 'done'];
+
+export class SectionedReordering extends Reordering<ItemStatus> {
+	#sectionUnder(y: number): ProgressCategory {
+		let nearest = PROGRESS_ORDER[0];
+		let shortest = Infinity;
+		for (const progress of PROGRESS_ORDER) {
+			const box = this.boxOf(`[data-section="${progress}"]`);
+			if (!box) continue;
+			if (y >= box.top && y <= box.bottom) return progress;
+			const gap = y < box.top ? box.top - y : y - box.bottom;
+			if (gap < shortest) {
+				shortest = gap;
+				nearest = progress;
+			}
+		}
+		return nearest;
+	}
+
+	protected override landing(moved: ItemStatus, y: number): ItemStatus[] {
+		const progress = this.#sectionUnder(y);
+		const rest = this.rows.filter((status) => status.id !== moved.id);
+		const section = rest.filter((status) => status.progress === progress);
+		const above = section.filter((status) => this.passed(status, y)).length;
+		const at =
+			above < section.length
+				? rest.indexOf(section[above])
+				: section.length > 0
+					? rest.indexOf(section[above - 1]) + 1
+					: rest.length;
+		return [...rest.slice(0, at), { ...moved, progress }, ...rest.slice(at)];
+	}
+}
 
 const tokens: Record<ProgressCategory, string> = {
 	not_started: '--status-not-started',

@@ -87,9 +87,9 @@ function laidOut() {
 	vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
 		const group = keyOf(this);
 		if (group && group in BANDS) return box(BANDS[group], 300);
-		if (!this.hasAttribute('data-status')) return box(0, 0);
+		if (!this.hasAttribute('data-row')) return box(0, 0);
 		const section = this.closest('[data-testid^="status-group-"]');
-		const rank = [...(section?.querySelectorAll('[data-status]') ?? [])].indexOf(this);
+		const rank = [...(section?.querySelectorAll('[data-row]') ?? [])].indexOf(this);
 		return box(BANDS[keyOf(section) ?? 'not_started'] + HEADER + rank * ROW, ROW);
 	});
 }

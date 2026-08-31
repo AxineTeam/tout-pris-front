@@ -33,7 +33,7 @@
 
 	function drop() {
 		const move = dragging.drop();
-		if (!move) return;
+		if (!move || move.to === move.from) return;
 		dropping.run(async () => {
 			try {
 				await updateKit(household, move.row.id, { position: move.to });
@@ -72,9 +72,18 @@
 
 <FormErrors errors={dropping.errors} />
 
-<ul {@attach dragging.anchored} class="grid min-w-0 gap-2">
+<ul {@attach dragging.anchored} class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}>
 	{#each dragging.rows as kit (kit.id)}
-		<li data-row={kit.id} class="flex min-w-0 items-center">
+		<li
+			data-row={kit.id}
+			style:transform={dragging.grabbed?.id === kit.id
+				? `translateY(${dragging.offset}px)`
+				: undefined}
+			class={[
+				'flex min-w-0 items-center',
+				dragging.grabbed?.id === kit.id && 'relative z-10 drop-shadow-lg'
+			]}
+		>
 			<span
 				aria-hidden="true"
 				data-testid="kit-handle-{kit.id}"
