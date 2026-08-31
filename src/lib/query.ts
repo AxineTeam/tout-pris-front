@@ -8,7 +8,8 @@ import {
 	listMembers,
 	listPersons,
 	listTrips,
-	readKit
+	readKit,
+	readTrip
 } from '$lib/api.js';
 
 export const queryClient = new QueryClient({
@@ -95,6 +96,14 @@ export const tripsQuery = (household: number, archived = false) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), archived ? 'archived' : 'active'],
 		queryFn: () => listTrips(household, archived)
+	});
+
+// Le détail prolonge la clé des listes : archiver un voyage change les trois,
+// et une seule invalidation sur `tripsKey` les emporte.
+export const tripQuery = (household: number, trip: number) =>
+	queryOptions({
+		queryKey: [...tripsKey(household), trip],
+		queryFn: () => readTrip(household, trip)
 	});
 
 export const itemsQuery = (household: number) =>

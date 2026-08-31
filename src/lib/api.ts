@@ -551,10 +551,61 @@ export function listTrips(household: number, archived = false): Promise<Trip[]> 
 	return request(`/households/${household}/trips/?archived=${archived}`);
 }
 
-export function createTrip(household: number, name: string, date: string): Promise<Trip> {
+export interface TripParticipant {
+	id: number;
+	person: Person;
+}
+
+export interface TripItem {
+	id: number;
+	item_type: ItemType;
+	person: Person | null;
+	quantity: number;
+	status: ItemStatus;
+	position: number;
+	kits: Kit[];
+}
+
+export interface TripDetail extends Trip {
+	participants: TripParticipant[];
+	items: TripItem[];
+}
+
+export function readTrip(household: number, id: number): Promise<TripDetail> {
+	return request(`/households/${household}/trips/${id}/`);
+}
+
+export function createTrip(
+	household: number,
+	trip: { name: string; date: string; participants?: number[]; kits?: number[] }
+): Promise<TripDetail> {
 	return request(`/households/${household}/trips/`, {
 		method: 'POST',
-		body: JSON.stringify({ name, date })
+		body: JSON.stringify(trip)
+	});
+}
+
+export function addParticipant(
+	household: number,
+	trip: number,
+	person: number
+): Promise<TripParticipant> {
+	return request(`/households/${household}/trips/${trip}/participants/`, {
+		method: 'POST',
+		body: JSON.stringify({ person })
+	});
+}
+
+export function removeParticipant(household: number, trip: number, id: number): Promise<void> {
+	return request(`/households/${household}/trips/${trip}/participants/${id}/`, {
+		method: 'DELETE'
+	});
+}
+
+export function embarkKit(household: number, trip: number, kit: number): Promise<TripItem[]> {
+	return request(`/households/${household}/trips/${trip}/kits/`, {
+		method: 'POST',
+		body: JSON.stringify({ kit })
 	});
 }
 

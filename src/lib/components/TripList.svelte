@@ -6,9 +6,9 @@
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import {
-		createTrip,
 		deleteTrip,
 		duplicateTrip,
 		fieldErrors,
@@ -29,8 +29,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
-	type Opened =
-		{ kind: 'add' } | { kind: 'duplicate'; trip: Trip } | { kind: 'remove'; trip: Trip };
+	type Opened = { kind: 'duplicate'; trip: Trip } | { kind: 'remove'; trip: Trip };
 
 	let {
 		household,
@@ -63,11 +62,6 @@
 			onchanged();
 			return [];
 		});
-	}
-
-	function add(event: SubmitEvent) {
-		event.preventDefault();
-		if (ready) act(() => createTrip(household, named.trim(), dated));
 	}
 
 	function copy(event: SubmitEvent, trip: Trip) {
@@ -197,7 +191,10 @@
 			{@render row(trip, false)}
 		{/each}
 		<li>
-			<AddCard label={m.trip_new()} onclick={() => open({ kind: 'add' })} />
+			<AddCard
+				label={m.trip_new()}
+				onclick={() => goto(resolve('/(app)/households/[id]/trips/new', { id: String(household) }))}
+			/>
 		</li>
 	</ul>
 
@@ -215,14 +212,7 @@
 	{/if}
 </div>
 
-{#if opened?.kind === 'add'}
-	<Modal title={m.trip_new()} onclose={() => (opened = null)}>
-		<form class="grid gap-4" onsubmit={add} novalidate>
-			{@render fields()}
-			<Button type="submit" disabled={!ready}>{m.create()}</Button>
-		</form>
-	</Modal>
-{:else if opened?.kind === 'duplicate'}
+{#if opened?.kind === 'duplicate'}
 	{@const trip = opened.trip}
 	<Modal title={m.trip_duplicate_title({ name: trip.name })} onclose={() => (opened = null)}>
 		<p class="text-muted-foreground text-sm">{m.trip_duplicate_explains()}</p>
