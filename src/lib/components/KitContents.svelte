@@ -17,12 +17,14 @@
 		household,
 		kit,
 		persons,
-		onchanged
+		onchanged,
+		onremoved
 	}: {
 		household: number;
 		kit: KitDetail;
 		persons: Person[];
 		onchanged: () => Promise<void>;
+		onremoved: () => void;
 	} = $props();
 
 	const submission = new Submission();
@@ -54,6 +56,7 @@
 	function remove() {
 		submission.run(async () => {
 			await deleteKit(household, kit.id);
+			onremoved();
 			await goto(resolve('/(app)/households/[id]/kits', { id: String(household) }));
 			return [];
 		});
