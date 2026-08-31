@@ -2,8 +2,9 @@
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { deleteKit, updateKit, type KitDetail } from '$lib/api.js';
+	import { deleteKit, updateKit, type KitDetail, type Person } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import KitLines from '$lib/components/KitLines.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -12,8 +13,17 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
-	let { household, kit, onchanged }: { household: number; kit: KitDetail; onchanged: () => void } =
-		$props();
+	let {
+		household,
+		kit,
+		persons,
+		onchanged
+	}: {
+		household: number;
+		kit: KitDetail;
+		persons: Person[];
+		onchanged: () => Promise<void>;
+	} = $props();
 
 	const submission = new Submission();
 	let opened = $state.raw<'edit' | 'remove' | null>(null);
@@ -36,7 +46,7 @@
 		submission.run(async () => {
 			await updateKit(household, kit.id, { name, description: described.trim() });
 			opened = null;
-			onchanged();
+			await onchanged();
 			return [];
 		});
 	}
@@ -56,6 +66,8 @@
 	{back}
 	actions={[{ label: m.kit_edit(), icon: PencilIcon, onclick: () => open('edit') }]}
 />
+
+<KitLines {household} {kit} {persons} {onchanged} />
 
 {#if opened === 'edit'}
 	<Modal title={m.kit_edit_title({ name: kit.name })} onclose={() => (opened = null)}>

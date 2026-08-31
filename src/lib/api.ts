@@ -445,16 +445,23 @@ export function listItemTypes(household: number): Promise<ItemType[]> {
 	return request(`/households/${household}/item-types/`);
 }
 
-export async function createItemType(
-	household: number,
-	name: string,
-	description = ''
-): Promise<ItemTypeOutcome> {
+export async function createItemType(household: number, name: string): Promise<ItemTypeOutcome> {
 	const response = await call(`/households/${household}/item-types/`, {
 		method: 'POST',
-		body: JSON.stringify({ name, description })
+		body: JSON.stringify({ name })
 	});
 	return { item: await response.json(), created: response.status === 201 };
+}
+
+export function updateItemType(
+	household: number,
+	id: number,
+	changes: { name?: string; description?: string }
+): Promise<ItemType> {
+	return request(`/households/${household}/item-types/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
 }
 
 export interface Kit {
@@ -469,7 +476,6 @@ export interface KitItem {
 	item_type: ItemType;
 	person: Person | null;
 	quantity: number;
-	note: string;
 	position: number;
 }
 
@@ -510,7 +516,7 @@ export function deleteKit(household: number, id: number): Promise<void> {
 export function createKitItem(
 	household: number,
 	kit: number,
-	line: { item_type: number; person?: number | null; quantity?: number; note?: string }
+	line: { item_type: number; person?: number | null; quantity?: number }
 ): Promise<KitItem> {
 	return request(`/households/${household}/kits/${kit}/items/`, {
 		method: 'POST',
@@ -522,7 +528,7 @@ export function updateKitItem(
 	household: number,
 	kit: number,
 	id: number,
-	changes: { person?: number | null; quantity?: number; note?: string; position?: number }
+	changes: { person?: number | null; quantity?: number; position?: number }
 ): Promise<KitItem> {
 	return request(`/households/${household}/kits/${kit}/items/${id}/`, {
 		method: 'PATCH',

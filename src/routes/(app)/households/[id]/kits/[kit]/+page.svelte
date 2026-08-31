@@ -9,4 +9,9 @@
 
 <svelte:head><title>{m.title_kit({ name: data.kit.name })}</title></svelte:head>
 
-<KitContents household={data.household.id} kit={data.kit} onchanged={invalidateAll} />
+<KitContents
+	household={data.household.id}
+	kit={data.kit}
+	persons={data.persons}
+	onchanged={invalidateAll}
+/>

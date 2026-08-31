@@ -1,7 +1,8 @@
 <script lang="ts">
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import { resolve } from '$app/paths';
-	import { createKit, type Kit } from '$lib/api.js';
+	import { createKit, updateKit, type Kit } from '$lib/api.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -10,12 +11,15 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	let { household, kits, onchanged }: { household: number; kits: Kit[]; onchanged: () => void } =
 		$props();
 
 	const submission = new Submission();
+	const dropping = new Submission();
+	const dragging = new Reordering(() => kits);
 	let adding = $state(false);
 	let named = $state('');
 	let described = $state('');
@@ -27,6 +31,22 @@
 		adding = true;
 	}
 
+	function drop() {
+		const move = dragging.drop();
+		if (!move) return;
+		dropping.run(async () => {
+			try {
+				await updateKit(household, move.row.id, { position: move.to });
+			} catch (refusal) {
+				dragging.forget();
+				await onchanged();
+				throw refusal;
+			}
+			await onchanged();
+			return [];
+		});
+	}
+
 	function add(event: SubmitEvent) {
 		event.preventDefault();
 		const name = named.trim();
@@ -34,25 +54,42 @@
 		submission.run(async () => {
 			await createKit(household, name, described.trim());
 			adding = false;
-			onchanged();
+			await onchanged();
 			return [];
 		});
 	}
 </script>
 
+<svelte:window
+	onpointermove={(event) => dragging.drag(event)}
+	onpointerup={drop}
+	onpointercancel={() => dragging.cancel()}
+/>
+
 {#if kits.length === 0}
 	<p class="text-muted-foreground text-sm" data-testid="kits-empty">{m.kits_empty()}</p>
 {/if}
 
-<ul class="grid min-w-0 gap-2">
-	{#each kits as kit (kit.id)}
-		<li>
+<FormErrors errors={dropping.errors} />
+
+<ul {@attach dragging.anchored} class="grid min-w-0 gap-2">
+	{#each dragging.rows as kit (kit.id)}
+		<li data-row={kit.id} class="flex min-w-0 items-center">
+			<span
+				aria-hidden="true"
+				data-testid="kit-handle-{kit.id}"
+				onpointerdown={(event) => dragging.grab(event, kit)}
+				class="text-muted-foreground -ml-2.5 flex size-11 flex-none touch-none items-center justify-center"
+			>
+				<GripHorizontalIcon size={16} />
+			</span>
 			<RowCard
 				href={resolve('/(app)/households/[id]/kits/[kit]', {
 					id: String(household),
 					kit: String(kit.id)
 				})}
 				data-testid="kit-{kit.id}"
+				class={dragging.grabbed?.id === kit.id ? 'bg-accent' : undefined}
 			>
 				<span class="min-w-0 flex-1">
 					<span class="block truncate text-sm font-semibold">{kit.name}</span>
@@ -64,7 +101,7 @@
 			</RowCard>
 		</li>
 	{/each}
-	<li>
+	<li class="pl-8.5">
 		<AddCard label={m.kit_new()} onclick={open} />
 	</li>
 </ul>

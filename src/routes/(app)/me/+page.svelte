@@ -10,6 +10,7 @@
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import TextLink from '$lib/components/TextLink.svelte';
 	import ThemeChoice from '$lib/components/ThemeChoice.svelte';
+	import { catalog } from '$lib/catalog.svelte.js';
 	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
@@ -23,6 +24,7 @@
 	async function disconnect() {
 		await session.logOut();
 		households.reset();
+		catalog.reset();
 		await goto(resolve('/account/login'));
 	}
 </script>
