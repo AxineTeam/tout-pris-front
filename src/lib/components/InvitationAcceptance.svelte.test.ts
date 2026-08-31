@@ -14,7 +14,7 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	readInvitation: vi.fn()
 }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 const me = { id: 1, display: 'camille', email: 'camille@example.com', has_usable_password: true };
 const joined = { id: 9, name: 'Famille Martin', personal: false };
