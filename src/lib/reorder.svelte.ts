@@ -1,10 +1,14 @@
+import { tick } from 'svelte';
+
 export class Reordering<T extends { id: number }> {
 	#source: () => T[];
 	#anchor: HTMLElement | undefined;
 	#from = $state.raw<T[] | null>(null);
 	#started: T[] | null = null;
+	#hold = 0;
 	#arrangement = $state.raw<T[] | null>(null);
 	grabbed = $state.raw<T | null>(null);
+	offset = $state(0);
 
 	constructor(source: () => T[]) {
 		this.#source = source;
@@ -19,14 +23,23 @@ export class Reordering<T extends { id: number }> {
 		return this.#arrangement && source === this.#from ? this.#arrangement : source;
 	}
 
-	#passed(row: T, y: number): boolean {
-		const box = this.#anchor?.querySelector(`[data-row="${row.id}"]`)?.getBoundingClientRect();
-		return box !== undefined && box.top + box.height / 2 < y;
+	protected boxOf(selector: string): DOMRect | undefined {
+		return this.#anchor?.querySelector(selector)?.getBoundingClientRect();
 	}
 
-	#landing(moved: T, y: number): T[] {
+	protected middleOf(row: T): number | undefined {
+		const box = this.boxOf(`[data-row="${row.id}"]`);
+		return box && box.top + box.height / 2;
+	}
+
+	protected passed(row: T, y: number): boolean {
+		const middle = this.middleOf(row);
+		return middle !== undefined && middle < y;
+	}
+
+	protected landing(moved: T, y: number): T[] {
 		const rest = this.rows.filter((row) => row.id !== moved.id);
-		const above = rest.filter((row) => this.#passed(row, y)).length;
+		const above = rest.filter((row) => this.passed(row, y)).length;
 		return [...rest.slice(0, above), moved, ...rest.slice(above)];
 	}
 
@@ -37,14 +50,24 @@ export class Reordering<T extends { id: number }> {
 		this.#from = this.#source();
 		this.#started = [...this.rows];
 		this.#arrangement = [...this.rows];
+		this.offset = 0;
+		this.#hold = event.clientY - (this.middleOf(row) ?? event.clientY);
 	}
 
-	drag(event: PointerEvent): void {
-		if (this.grabbed) this.#arrangement = this.#landing(this.grabbed, event.clientY);
+	async drag(event: PointerEvent): Promise<void> {
+		const moved = this.grabbed;
+		if (!moved) return;
+		const y = event.clientY;
+		this.#arrangement = this.landing(moved, y);
+		await tick();
+		if (this.grabbed !== moved) return;
+		const middle = this.middleOf(moved);
+		if (middle !== undefined) this.offset += y - this.#hold - middle;
 	}
 
 	cancel(): void {
 		this.grabbed = null;
+		this.offset = 0;
 		this.#arrangement = null;
 	}
 
@@ -52,13 +75,17 @@ export class Reordering<T extends { id: number }> {
 		this.#arrangement = null;
 	}
 
-	drop(): { row: T; to: number } | null {
+	// A rank alone does not say whether the gesture changed anything: the
+	// statuses screen also moves a row between sections, which can leave the
+	// rank where it was. Both ends of the move are handed back, and the caller
+	// says what counts as a move.
+	drop(): { row: T; from: number; to: number } | null {
 		const moved = this.grabbed;
 		const next = this.#arrangement;
 		this.grabbed = null;
+		this.offset = 0;
 		if (!moved || !next) return null;
-		const to = next.findIndex((row) => row.id === moved.id);
-		if (to === (this.#started ?? []).findIndex((row) => row.id === moved.id)) return null;
-		return { row: moved, to };
+		const at = (rows: T[]) => rows.findIndex((row) => row.id === moved.id);
+		return { row: moved, from: at(this.#started ?? []), to: at(next) };
 	}
 }

@@ -173,7 +173,8 @@
 	}
 
 	function drop() {
-		if (!dragging.drop()) return;
+		const move = dragging.drop();
+		if (!move || move.to === move.from) return;
 		const wanted = dragging.rows.flatMap((group) => group.lines);
 		stepping.run(async () => {
 			const current = [...kit.items];
@@ -242,15 +243,22 @@
 			<p class="text-muted-foreground text-sm" data-testid="kit-empty">{m.kit_empty()}</p>
 		{/if}
 
-		<ul {@attach dragging.anchored} class="grid min-w-0 gap-2">
+		<ul
+			{@attach dragging.anchored}
+			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
+		>
 			{#each dragging.rows as group (group.id)}
 				{@const absent = missing(group)}
 				<li
 					data-row={group.id}
+					style:transform={dragging.grabbed?.id === group.id
+						? `translateY(${dragging.offset}px)`
+						: undefined}
 					class={[
 						'border-border bg-card grid min-w-0 gap-1 rounded-xl border py-1 pr-3 pl-1 transition-colors',
 						(highlighted === group.id || dragging.grabbed?.id === group.id) &&
-							'border-primary bg-accent'
+							'border-primary bg-accent',
+						dragging.grabbed?.id === group.id && 'relative z-10 shadow-lg'
 					]}
 				>
 					<div class="flex min-w-0 items-center gap-1">
