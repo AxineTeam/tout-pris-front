@@ -24,7 +24,7 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	deleteHousehold: vi.fn()
 }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 const household = { id: 7, name: 'Famille Martin', personal: false };
 const me = { id: 1, display: 'camille', email: 'camille@example.com', has_usable_password: true };

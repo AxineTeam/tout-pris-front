@@ -1,4 +1,3 @@
-import { invalidateAll } from '$app/navigation';
 import {
 	logIn,
 	logOut,
@@ -56,7 +55,6 @@ class Session {
 
 	expire(): void {
 		this.user = null;
-		invalidateAll();
 	}
 
 	#apply(response: AuthResponse): AuthResponse {

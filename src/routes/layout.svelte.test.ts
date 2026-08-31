@@ -9,7 +9,7 @@ class SystemPreference extends EventTarget {
 const systemPreference = new SystemPreference();
 let cleanupLayout: () => void = () => {};
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 function switchSystemTo(dark: boolean) {
 	systemPreference.matches = dark;

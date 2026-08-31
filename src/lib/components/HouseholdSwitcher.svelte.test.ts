@@ -11,7 +11,7 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	createHousehold: vi.fn()
 }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 const personal = { id: 1, name: 'camille', personal: true };
 const shared = { id: 2, name: 'Famille Martin', personal: false };
