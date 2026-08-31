@@ -5,7 +5,7 @@
 	import HouseholdPeople from '$lib/components/HouseholdPeople.svelte';
 	import HouseholdSettings from '$lib/components/HouseholdSettings.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
-	import { householdLabel, isOwner } from '$lib/households.svelte.js';
+	import { householdLabel, isOwner } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import type { PageProps } from './$types';

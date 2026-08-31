@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InvitationAcceptance from './InvitationAcceptance.svelte';
 import { goto } from '$app/navigation';
 import { ApiError, acceptInvitation, readInvitation } from '$lib/api.js';
-import { households } from '$lib/households.svelte.js';
+import { householdsQuery, queryClient } from '$lib/query.js';
 import { session } from '$lib/session.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
@@ -31,7 +31,7 @@ describe('InvitationAcceptance', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		session.user = null;
-		households.all = [];
+		queryClient.clear();
 		vi.mocked(readInvitation).mockResolvedValue(preview);
 	});
 
@@ -137,13 +137,13 @@ describe('InvitationAcceptance', () => {
 		const user = userEvent.setup();
 		const logOut = vi.spyOn(session, 'logOut').mockResolvedValue(undefined);
 		session.user = me;
-		households.all = [joined];
+		queryClient.setQueryData(householdsQuery().queryKey, [joined]);
 		render(InvitationAcceptance, { props: { token: 'abc' } });
 
 		await user.click(await screen.findByRole('button', { name: 'Utiliser un autre compte' }));
 
 		expect(logOut).toHaveBeenCalled();
-		expect(households.all).toEqual([]);
+		expect(queryClient.getQueryData(householdsQuery().queryKey)).toBeUndefined();
 		expect(goto).toHaveBeenCalledWith('/account/login?next=%2Finvitations%2Fabc');
 	});
 });

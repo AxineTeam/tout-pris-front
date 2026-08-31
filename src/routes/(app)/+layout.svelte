@@ -1,17 +1,22 @@
 <script lang="ts">
+	import { createQuery } from '@tanstack/svelte-query';
 	import type { Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import BottomNav from '$lib/components/BottomNav.svelte';
-	import { households } from '$lib/households.svelte.js';
+	import { landing, remember } from '$lib/households.js';
+	import { householdsQuery } from '$lib/query.js';
 
 	let { children }: { children: Snippet } = $props();
 
-	let current = $derived(households.find(Number(page.params.id)));
-	let household = $derived(current ?? households.landing);
+	const all = createQuery(() => householdsQuery());
+
+	let known = $derived(all.data ?? []);
+	let current = $derived(known.find((household) => household.id === Number(page.params.id)));
+	let household = $derived(current ?? landing(known));
 
 	afterNavigate(() => {
-		if (current) households.remember(current.id);
+		if (current) remember(current.id);
 	});
 </script>
 

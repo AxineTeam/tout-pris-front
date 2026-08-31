@@ -4,7 +4,7 @@ import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdSwitcher from './HouseholdSwitcher.svelte';
 import { createHousehold } from '$lib/api.js';
-import { households } from '$lib/households.svelte.js';
+import { householdsQuery, queryClient } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -33,7 +33,8 @@ async function sheet() {
 describe('HouseholdSwitcher', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		households.all = [personal];
+		queryClient.clear();
+		queryClient.setQueryData(householdsQuery().queryKey, [personal]);
 	});
 
 	it('porte le foyer courant sur sa pastille, replié', () => {
@@ -92,7 +93,9 @@ describe('HouseholdSwitcher', () => {
 		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
 
 		expect(createHousehold).toHaveBeenCalledWith('Famille Martin');
-		expect(households.all).toContain(shared);
+		await waitFor(() =>
+			expect(queryClient.getQueryData(householdsQuery().queryKey)).toContain(shared)
+		);
 	});
 
 	it('se replie quand on clique ailleurs', async () => {
