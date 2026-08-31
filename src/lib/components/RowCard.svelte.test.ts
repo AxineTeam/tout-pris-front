@@ -27,6 +27,19 @@ describe('RowCard', () => {
 		expect(onclick).toHaveBeenCalled();
 	});
 
+	it('range les actions à côté du lien, dans la même carte', () => {
+		const actions = createRawSnippet(() => ({
+			render: () => '<button type="button">Actions</button>'
+		}));
+		render(RowCard, { props: { href: '/households/7/statuses', actions, children } });
+
+		const link = screen.getByRole('link', { name: 'Les statuts' });
+		const action = screen.getByRole('button', { name: 'Actions' });
+
+		expect(link).not.toContainElement(action);
+		expect(link.parentElement).toContainElement(action);
+	});
+
 	it('ignore le clic pendant que la demande précédente est en vol', async () => {
 		const user = userEvent.setup();
 		const onclick = vi.fn();
