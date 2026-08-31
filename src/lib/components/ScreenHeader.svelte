@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { LucideIcon } from '@lucide/svelte';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import { createQuery } from '@tanstack/svelte-query';
 	import { page } from '$app/state';
 	import HouseholdSwitcher from '$lib/components/HouseholdSwitcher.svelte';
-	import { households } from '$lib/households.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { householdsQuery } from '$lib/query.js';
 
 	interface Action {
 		label: string;
@@ -26,7 +27,10 @@
 		actions?: Action[];
 	} = $props();
 
-	let current = $derived(households.find(Number(page.params.id)));
+	const all = createQuery(() => householdsQuery());
+
+	let known = $derived(all.data ?? []);
+	let current = $derived(known.find((household) => household.id === Number(page.params.id)));
 </script>
 
 <header class="grid gap-1.5">
@@ -70,6 +74,6 @@
 	</div>
 
 	{#if switcher && current}
-		<HouseholdSwitcher all={households.all} {current} />
+		<HouseholdSwitcher all={known} {current} />
 	{/if}
 </header>

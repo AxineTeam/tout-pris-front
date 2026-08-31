@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import HouseholdStatuses from '$lib/components/HouseholdStatuses.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
-	import { householdLabel } from '$lib/households.svelte.js';
+	import { householdLabel } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 

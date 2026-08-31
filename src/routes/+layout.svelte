@@ -7,7 +7,7 @@
 	import { onSessionExpired } from '$lib/api.js';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
 	import { catalog } from '$lib/catalog.svelte.js';
-	import { households } from '$lib/households.svelte.js';
+	import { forgetVisited } from '$lib/households.js';
 	import { locale } from '$lib/locale.svelte.js';
 	import { queryClient } from '$lib/query.js';
 	import { session } from '$lib/session.svelte.js';
@@ -19,7 +19,8 @@
 
 	onSessionExpired(() => {
 		session.expire();
-		households.reset();
+		queryClient.clear();
+		forgetVisited();
 		catalog.reset();
 	});
 

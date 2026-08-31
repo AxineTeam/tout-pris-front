@@ -12,10 +12,11 @@
 	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import { catalog } from '$lib/catalog.svelte.js';
-	import { households } from '$lib/households.svelte.js';
+	import { forgetVisited } from '$lib/households.js';
 	import { locale } from '$lib/locale.svelte.js';
 	import { goToLogin, loginPath } from '$lib/navigation.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { queryClient } from '$lib/query.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -52,7 +53,8 @@
 				dead = true;
 				return [];
 			}
-			households.reset();
+			queryClient.clear();
+			forgetVisited();
 			catalog.reset();
 			await goto(resolve('/(app)/households/[id]', { id: String(joined.id) }));
 			return [];
@@ -61,7 +63,8 @@
 
 	async function change() {
 		await session.logOut();
-		households.reset();
+		queryClient.clear();
+		forgetVisited();
 		catalog.reset();
 		await goToLogin(here);
 	}

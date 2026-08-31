@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { households } from '$lib/households.svelte.js';
+	import { rewriteHouseholds } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { installBaseStatuses } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -24,7 +24,7 @@
 		submission.run(async () => {
 			const created = await createHousehold(wanted);
 			await installBaseStatuses(created.id).catch(leaveTheHouseholdWithoutStatuses);
-			households.add(created);
+			rewriteHouseholds((all) => [...all, created]);
 			name = '';
 			oncreated?.();
 			await goto(resolve('/(app)/households/[id]', { id: String(created.id) }));

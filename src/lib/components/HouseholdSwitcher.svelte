@@ -8,7 +8,7 @@
 	import HouseholdCreation from '$lib/components/HouseholdCreation.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import { householdLabel } from '$lib/households.svelte.js';
+	import { householdLabel } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 
 	let { all, current }: { all: Household[]; current: Household } = $props();

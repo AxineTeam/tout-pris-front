@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HouseholdSettings from './HouseholdSettings.svelte';
 import { deleteHousehold, renameHousehold, type ItemStatus } from '$lib/api.js';
-import { households } from '$lib/households.svelte.js';
+import { householdsQuery, queryClient } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -41,7 +41,8 @@ async function sheet() {
 describe('HouseholdSettings', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		households.all = [household];
+		queryClient.clear();
+		queryClient.setQueryData(householdsQuery().queryKey, [household]);
 	});
 
 	it('mène aux statuts du foyer', () => {
@@ -70,7 +71,9 @@ describe('HouseholdSettings', () => {
 		await user.click(within(await sheet()).getByRole('button', { name: 'Renommer' }));
 
 		expect(renameHousehold).toHaveBeenCalledWith(7, 'Chez nous');
-		expect(households.all[0].name).toBe('Chez nous');
+		await waitFor(() =>
+			expect(queryClient.getQueryData(householdsQuery().queryKey)?.[0].name).toBe('Chez nous')
+		);
 		expect(onchanged).toHaveBeenCalled();
 	});
 

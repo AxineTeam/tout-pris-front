@@ -8,7 +8,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { households, leaveBehind } from '$lib/households.svelte.js';
+	import { leaveBehind, rewriteHouseholds } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -39,7 +39,8 @@
 		const name = typed.trim();
 		if (!name) return;
 		submission.run(async () => {
-			households.replace(await renameHousehold(household.id, name));
+			const renamed = await renameHousehold(household.id, name);
+			rewriteHouseholds((all) => all.map((known) => (known.id === renamed.id ? renamed : known)));
 			opened = null;
 			onchanged();
 			return [];

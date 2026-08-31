@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { createQuery } from '@tanstack/svelte-query';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { authErrors, changePassword } from '$lib/api.js';
@@ -11,11 +12,14 @@
 	import TextLink from '$lib/components/TextLink.svelte';
 	import ThemeChoice from '$lib/components/ThemeChoice.svelte';
 	import { catalog } from '$lib/catalog.svelte.js';
-	import { households } from '$lib/households.svelte.js';
+	import { forgetVisited, landing } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { householdsQuery, queryClient } from '$lib/query.js';
 	import { session } from '$lib/session.svelte.js';
 
-	let landing = $derived(households.landing);
+	const all = createQuery(() => householdsQuery());
+
+	let home = $derived(landing(all.data ?? []));
 
 	async function change(current: string, renewed: string) {
 		return authErrors(await changePassword(current, renewed));
@@ -23,7 +27,8 @@
 
 	async function disconnect() {
 		await session.logOut();
-		households.reset();
+		queryClient.clear();
+		forgetVisited();
 		catalog.reset();
 		await goto(resolve('/account/login'));
 	}
@@ -50,8 +55,8 @@
 		</p>
 		<p class="text-muted-foreground text-sm">
 			{m.me_name_intro()}
-			{#if landing}
-				<TextLink href={resolve('/(app)/households/[id]', { id: String(landing.id) })}>
+			{#if home}
+				<TextLink href={resolve('/(app)/households/[id]', { id: String(home.id) })}>
 					{m.me_name_link()}
 				</TextLink>
 			{:else}
