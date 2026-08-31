@@ -6,7 +6,6 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
-	import { catalog } from '$lib/catalog.svelte.js';
 	import { forgetVisited } from '$lib/households.js';
 	import { locale } from '$lib/locale.svelte.js';
 	import { queryClient } from '$lib/query.js';
@@ -21,7 +20,6 @@
 		session.expire();
 		queryClient.clear();
 		forgetVisited();
-		catalog.reset();
 	});
 
 	$effect(() => {

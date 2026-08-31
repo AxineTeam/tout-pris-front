@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Command } from 'bits-ui';
 	import { createItemType, type ItemType } from '$lib/api.js';
-	import { catalog, search } from '$lib/catalog.svelte.js';
+	import { remember, rewriteItems, search } from '$lib/catalog.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
@@ -11,11 +11,13 @@
 
 	let {
 		household,
+		items,
 		held,
 		typed = $bindable(''),
 		onchosen
 	}: {
 		household: number;
+		items: ItemType[];
 		held: number[];
 		typed?: string;
 		onchosen: (item: ItemType) => void;
@@ -25,7 +27,7 @@
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
 
 	let wanted = $derived(typed.trim());
-	let results = $derived(wanted ? search(catalog.all, wanted) : []);
+	let results = $derived(wanted ? search(items, wanted) : []);
 
 	function forget(event: KeyboardEvent) {
 		if (event.key !== 'Escape' || !wanted) return;
@@ -45,7 +47,7 @@
 		if (!asked || submission.busy) return;
 		submission.run(async () => {
 			const { item, created } = await createItemType(household, asked);
-			catalog.remember(item);
+			rewriteItems(household, (all) => remember(all, item));
 			reused = created ? null : { asked, name: item.name };
 			if (typed.trim() === asked) typed = '';
 			onchosen(item);
