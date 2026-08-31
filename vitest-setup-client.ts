@@ -11,6 +11,16 @@ Object.defineProperty(navigator, 'languages', { value: ['fr-FR'] });
 Element.prototype.setPointerCapture ??= function () {};
 Element.prototype.releasePointerCapture ??= function () {};
 
+// jsdom lays nothing out, so it implements neither of the two APIs bits-ui
+// uses to keep the highlighted command item in view. Without both stubs the
+// item picker throws on mount, then again on every keystroke.
+globalThis.ResizeObserver ??= class {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+};
+Element.prototype.scrollIntoView ??= function () {};
+
 // bits-ui keeps the body locked for 24ms after a dialog unmounts, to absorb a
 // close immediately followed by a reopen. That timer outlives the unmount
 // Testing Library performs between tests, and does damage at both ends: the

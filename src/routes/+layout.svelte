@@ -5,6 +5,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { onSessionExpired } from '$lib/api.js';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
+	import { catalog } from '$lib/catalog.svelte.js';
 	import { households } from '$lib/households.svelte.js';
 	import { locale } from '$lib/locale.svelte.js';
 	import { session } from '$lib/session.svelte.js';
@@ -17,6 +18,7 @@
 	onSessionExpired(() => {
 		session.expire();
 		households.reset();
+		catalog.reset();
 	});
 
 	$effect(() => {
