@@ -1,8 +1,9 @@
-import { QueryClient, queryOptions } from '@tanstack/svelte-query';
+import { QueryClient, queryOptions, type QueryKey } from '@tanstack/svelte-query';
 import {
 	listHouseholds,
 	listInvitations,
 	listItemStatuses,
+	listItemTypes,
 	listKits,
 	listMembers,
 	listPersons,
@@ -16,6 +17,22 @@ export const queryClient = new QueryClient({
 
 export const householdsQuery = () =>
 	queryOptions({ queryKey: ['households'], queryFn: listHouseholds });
+
+// L'écriture vient de rendre la représentation qui fait autorité : on la pose
+// dans le cache au lieu de la redemander. Redemander serait à la fois faillible
+// — un GET qui échoue après un POST réussi bloquerait la navigation, et le
+// second essai créerait un doublon — et incertain : `Query.fetch` rend la
+// promesse déjà en vol quand on ne lui passe pas `cancelRefetch`, donc la
+// réponse pourrait dater d'avant l'écriture. Les `load` lisent en
+// `staleTime: 'static'`, ils y trouveraient l'ancienne liste. L'invalidation
+// qui suit laisse le serveur réconcilier en arrière-plan, sans que le chemin de
+// succès dépende d'elle.
+export function rewrite<T>(key: QueryKey, change: (all: T[]) => T[]): T[] {
+	const next = change(queryClient.getQueryData<T[]>(key) ?? []);
+	queryClient.setQueryData(key, next);
+	void queryClient.invalidateQueries({ queryKey: key });
+	return next;
+}
 
 // Toutes les clés d'un foyer prolongent la sienne : une écriture dont on ne sait
 // pas ce qu'elle a touché s'invalide en une fois, sans réveiller les autres.
@@ -78,4 +95,10 @@ export const tripsQuery = (household: number, archived = false) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), archived ? 'archived' : 'active'],
 		queryFn: () => listTrips(household, archived)
+	});
+
+export const itemsQuery = (household: number) =>
+	queryOptions({
+		queryKey: [...householdKey(household), 'items'],
+		queryFn: () => listItemTypes(household)
 	});

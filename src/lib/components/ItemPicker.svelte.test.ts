@@ -1,23 +1,18 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import ItemPicker from './ItemPicker.svelte';
 import * as api from '$lib/api.js';
-import { catalog } from '$lib/catalog.svelte.js';
 
 const createItemType = vi.spyOn(api, 'createItemType');
 
 const chapeau = { id: 1, name: 'Chapeau', description: '' };
 const echarpe = { id: 2, name: 'Écharpe', description: 'la rouge que Tom perd' };
 
-beforeEach(() => {
-	catalog.all = [chapeau, echarpe];
-});
-
 function show(held: number[] = []) {
 	const onchosen = vi.fn();
-	render(ItemPicker, { props: { household: 7, held, onchosen } });
+	render(ItemPicker, { props: { household: 7, items: [chapeau, echarpe], held, onchosen } });
 	return onchosen;
 }
 

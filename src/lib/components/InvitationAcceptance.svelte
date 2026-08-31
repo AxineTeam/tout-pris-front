@@ -11,7 +11,6 @@
 	} from '$lib/api.js';
 	import ActionButton from '$lib/components/ActionButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
-	import { catalog } from '$lib/catalog.svelte.js';
 	import { forgetVisited } from '$lib/households.js';
 	import { locale } from '$lib/locale.svelte.js';
 	import { goToLogin, loginPath } from '$lib/navigation.js';
@@ -55,7 +54,6 @@
 			}
 			queryClient.clear();
 			forgetVisited();
-			catalog.reset();
 			await goto(resolve('/(app)/households/[id]', { id: String(joined.id) }));
 			return [];
 		});
@@ -65,7 +63,6 @@
 		await session.logOut();
 		queryClient.clear();
 		forgetVisited();
-		catalog.reset();
 		await goToLogin(here);
 	}
 

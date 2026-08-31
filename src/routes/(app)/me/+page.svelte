@@ -11,7 +11,6 @@
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import TextLink from '$lib/components/TextLink.svelte';
 	import ThemeChoice from '$lib/components/ThemeChoice.svelte';
-	import { catalog } from '$lib/catalog.svelte.js';
 	import { forgetVisited, landing } from '$lib/households.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { householdsQuery, queryClient } from '$lib/query.js';
@@ -29,7 +28,6 @@
 		await session.logOut();
 		queryClient.clear();
 		forgetVisited();
-		catalog.reset();
 		await goto(resolve('/account/login'));
 	}
 </script>

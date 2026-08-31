@@ -1,7 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { catalog } from '$lib/catalog.svelte.js';
 import * as m from '$lib/paraglide/messages.js';
-import { householdsQuery, kitQuery, personsQuery, queryClient } from '$lib/query.js';
+import { householdsQuery, itemsQuery, kitQuery, personsQuery, queryClient } from '$lib/query.js';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {
@@ -12,7 +11,7 @@ export const load: PageLoad = async ({ params }) => {
 	await Promise.all([
 		queryClient.query(kitQuery(household.id, kit)),
 		queryClient.query(personsQuery(household.id)),
-		catalog.ensureLoaded(household.id)
+		queryClient.query(itemsQuery(household.id))
 	]);
 	return { household, kit };
 };

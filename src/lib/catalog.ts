@@ -1,45 +1,15 @@
-import { listItemTypes, type ItemType } from '$lib/api.js';
+import type { ItemType } from '$lib/api.js';
+import { itemsQuery, rewrite } from '$lib/query.js';
 
-class Catalog {
-	all = $state.raw<ItemType[]>([]);
-	#household: number | null = null;
-	#loading: Promise<void> | null = null;
-
-	ensureLoaded(household: number): Promise<void> {
-		if (this.#household !== household) {
-			this.#household = household;
-			this.#loading = null;
-			this.all = [];
-		}
-		this.#loading ??= listItemTypes(household)
-			.then((items) => {
-				if (this.#household === household) this.all = items;
-			})
-			.catch((refusal) => {
-				if (this.#household === household) this.#loading = null;
-				throw refusal;
-			});
-		return this.#loading;
-	}
-
-	remember(item: ItemType): void {
-		this.all = this.all.some((known) => known.id === item.id)
-			? this.all.map((known) => (known.id === item.id ? item : known))
-			: [...this.all, item];
-	}
-
-	forget(id: number): void {
-		this.all = this.all.filter((known) => known.id !== id);
-	}
-
-	reset(): void {
-		this.all = [];
-		this.#household = null;
-		this.#loading = null;
-	}
+export function rewriteItems(household: number, change: (all: ItemType[]) => ItemType[]): void {
+	rewrite(itemsQuery(household).queryKey, change);
 }
 
-export const catalog = new Catalog();
+export function remember(all: ItemType[], item: ItemType): ItemType[] {
+	return all.some((known) => known.id === item.id)
+		? all.map((known) => (known.id === item.id ? item : known))
+		: [...all, item];
+}
 
 function fold(text: string): string {
 	return text

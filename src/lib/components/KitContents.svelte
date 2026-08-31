@@ -2,7 +2,7 @@
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { deleteKit, updateKit, type KitDetail, type Person } from '$lib/api.js';
+	import { deleteKit, updateKit, type ItemType, type KitDetail, type Person } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import KitLines from '$lib/components/KitLines.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -17,12 +17,14 @@
 		household,
 		kit,
 		persons,
+		items,
 		onchanged,
 		onremoved
 	}: {
 		household: number;
 		kit: KitDetail;
 		persons: Person[];
+		items: ItemType[];
 		onchanged: () => Promise<void>;
 		onremoved: () => void;
 	} = $props();
@@ -70,7 +72,7 @@
 	actions={[{ label: m.kit_edit(), icon: PencilIcon, onclick: () => open('edit') }]}
 />
 
-<KitLines {household} {kit} {persons} {onchanged} />
+<KitLines {household} {kit} {persons} {items} {onchanged} />
 
 {#if opened === 'edit'}
 	<Modal title={m.kit_edit_title({ name: kit.name })} onclose={() => (opened = null)}>

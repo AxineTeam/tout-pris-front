@@ -13,7 +13,7 @@
 		type KitItem,
 		type Person
 	} from '$lib/api.js';
-	import { catalog } from '$lib/catalog.svelte.js';
+	import { remember, rewriteItems } from '$lib/catalog.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
@@ -41,11 +41,13 @@
 		household,
 		kit,
 		persons,
+		items,
 		onchanged
 	}: {
 		household: number;
 		kit: KitDetail;
 		persons: Person[];
+		items: ItemType[];
 		onchanged: () => Promise<void>;
 	} = $props();
 
@@ -116,7 +118,8 @@
 	async function describe(item: ItemType) {
 		const description = described.trim();
 		if (description === item.description) return;
-		catalog.remember(await updateItemType(household, item.id, { description }));
+		const noted = await updateItemType(household, item.id, { description });
+		rewriteItems(household, (all) => remember(all, noted));
 	}
 
 	async function rename(item: ItemType) {
@@ -128,13 +131,14 @@
 		const description = described.trim();
 		const rewritten = description === item.description ? {} : { description };
 		const survivor = await updateItemType(household, item.id, { name, ...rewritten });
-		catalog.remember(survivor);
+		rewriteItems(household, (all) => remember(all, survivor));
 		if (survivor.id === item.id) return;
-		catalog.forget(item.id);
+		rewriteItems(household, (all) => all.filter((known) => known.id !== item.id));
 		merged = { asked: name, name: survivor.name };
 		// A merge answers with the survivor before the description is applied.
 		if (rewritten.description !== undefined) {
-			catalog.remember(await updateItemType(household, survivor.id, rewritten));
+			const applied = await updateItemType(household, survivor.id, rewritten);
+			rewriteItems(household, (all) => remember(all, applied));
 		}
 	}
 
@@ -230,7 +234,7 @@
 />
 
 <div {@attach anchored} class="grid gap-4">
-	<ItemPicker {household} {held} bind:typed onchosen={chosen} />
+	<ItemPicker {household} {items} {held} bind:typed onchosen={chosen} />
 
 	<FormErrors errors={stepping.errors} />
 
