@@ -3,18 +3,13 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TripList from './TripList.svelte';
-import {
-	ApiError,
-	createTrip,
-	deleteTrip,
-	duplicateTrip,
-	updateTrip,
-	type Trip
-} from '$lib/api.js';
+import { goto } from '$app/navigation';
+import { deleteTrip, duplicateTrip, updateTrip, type Trip } from '$lib/api.js';
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
-	createTrip: vi.fn(),
 	updateTrip: vi.fn(),
 	duplicateTrip: vi.fn(),
 	deleteTrip: vi.fn()
@@ -65,7 +60,6 @@ async function fill(user: UserEvent, name: string, date: string) {
 
 describe('TripList', () => {
 	beforeEach(() => {
-		vi.mocked(createTrip).mockResolvedValue(corse);
 		vi.mocked(updateTrip).mockResolvedValue(corse);
 		vi.mocked(duplicateTrip).mockResolvedValue(corse);
 		vi.mocked(deleteTrip).mockResolvedValue(undefined);
@@ -131,51 +125,13 @@ describe('TripList', () => {
 		expect(screen.queryByTestId('trips-empty')).not.toBeInTheDocument();
 	});
 
-	it('crée un voyage vide avec un nom et une date', async () => {
-		const user = userEvent.setup();
-		show([], []);
-
-		await user.click(screen.getByRole('button', { name: 'Nouveau voyage' }));
-		await fill(user, 'Corse', '2026-08-12');
-		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
-
-		expect(createTrip).toHaveBeenCalledWith(7, 'Corse', '2026-08-12');
-		expect(onchanged).toHaveBeenCalled();
-	});
-
-	it('refuse de créer un voyage dont la date a été effacée', async () => {
-		const user = userEvent.setup();
-		show([], []);
-
-		await user.click(screen.getByRole('button', { name: 'Nouveau voyage' }));
-		await user.type(within(await sheet()).getByLabelText('Nom du voyage'), 'Corse');
-		await fireEvent.input(within(await sheet()).getByLabelText('Date de départ'), {
-			target: { value: '' }
-		});
-
-		expect(within(await sheet()).getByRole('button', { name: 'Créer' })).toBeDisabled();
-	});
-
-	it('propose la date du jour à la création', async () => {
+	it('mène au formulaire depuis la carte de création', async () => {
 		const user = userEvent.setup();
 		show();
 
 		await user.click(screen.getByRole('button', { name: 'Nouveau voyage' }));
 
-		expect(within(await sheet()).getByLabelText('Date de départ')).toHaveValue(inDays(0));
-	});
-
-	it('montre sur le champ ce que l’API reproche au nom', async () => {
-		vi.mocked(createTrip).mockRejectedValue(new ApiError(400, { name: ['Déjà pris.'] }, 'refus'));
-		const user = userEvent.setup();
-		show([], []);
-
-		await user.click(screen.getByRole('button', { name: 'Nouveau voyage' }));
-		await fill(user, 'Corse', '2026-08-12');
-		await user.click(within(await sheet()).getByRole('button', { name: 'Créer' }));
-
-		expect(await screen.findByText('Déjà pris.')).toBeInTheDocument();
-		expect(onchanged).not.toHaveBeenCalled();
+		expect(goto).toHaveBeenCalledWith('/households/7/trips/new');
 	});
 
 	it('archive un voyage depuis sa ligne', async () => {
