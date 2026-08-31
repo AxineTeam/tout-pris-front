@@ -539,3 +539,48 @@ export function updateKitItem(
 export function deleteKitItem(household: number, kit: number, id: number): Promise<void> {
 	return request(`/households/${household}/kits/${kit}/items/${id}/`, { method: 'DELETE' });
 }
+
+export interface Trip {
+	id: number;
+	name: string;
+	date: string;
+	archived_at: string | null;
+}
+
+export function listTrips(household: number, archived = false): Promise<Trip[]> {
+	return request(`/households/${household}/trips/?archived=${archived}`);
+}
+
+export function createTrip(household: number, name: string, date: string): Promise<Trip> {
+	return request(`/households/${household}/trips/`, {
+		method: 'POST',
+		body: JSON.stringify({ name, date })
+	});
+}
+
+export function updateTrip(
+	household: number,
+	id: number,
+	changes: { name?: string; date?: string; archived?: boolean }
+): Promise<Trip> {
+	return request(`/households/${household}/trips/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
+}
+
+export function duplicateTrip(
+	household: number,
+	id: number,
+	name: string,
+	date: string
+): Promise<Trip> {
+	return request(`/households/${household}/trips/${id}/duplicate/`, {
+		method: 'POST',
+		body: JSON.stringify({ name, date })
+	});
+}
+
+export function deleteTrip(household: number, id: number): Promise<void> {
+	return request(`/households/${household}/trips/${id}/`, { method: 'DELETE' });
+}
