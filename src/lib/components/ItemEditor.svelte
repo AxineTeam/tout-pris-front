@@ -32,19 +32,21 @@
 	let named = $state(untrack(() => item.name));
 	let described = $state(untrack(() => item.description));
 
-	async function describe() {
+	async function describe(): Promise<ItemType> {
 		const description = described.trim();
-		if (description === item.description) return;
+		if (description === item.description) return item;
 		const noted = await updateItemType(household, item.id, { description });
 		rewriteItems(household, (all) => remember(all, noted));
+		return noted;
 	}
 
+	// Every branch answers with the object as the server now holds it, never with
+	// the one this form opened on: the caller puts it straight into the screens
+	// that show it, and a copy that predates the write would put the old text
+	// back on the very save that changed it.
 	async function rename(): Promise<ItemType> {
 		const name = named.trim();
-		if (name === item.name) {
-			await describe();
-			return item;
-		}
+		if (name === item.name) return describe();
 		const description = described.trim();
 		const rewritten = description === item.description ? {} : { description };
 		const survivor = await updateItemType(household, item.id, { name, ...rewritten });
