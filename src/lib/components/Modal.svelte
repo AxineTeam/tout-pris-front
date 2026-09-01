@@ -8,11 +8,13 @@
 	let {
 		title,
 		description,
+		action,
 		onclose,
 		children
 	}: {
 		title: string;
 		description?: string;
+		action?: Snippet;
 		onclose: () => void;
 		children: Snippet;
 	} = $props();
@@ -41,6 +43,7 @@
 					<Dialog.Description class="mt-1 wrap-anywhere">{description}</Dialog.Description>
 				{/if}
 			</div>
+			{@render action?.()}
 			<Dialog.Close aria-label={m.close()}>
 				{#snippet child({ props })}
 					<Button

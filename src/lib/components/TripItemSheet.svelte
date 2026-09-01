@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 	import UsersIcon from '@lucide/svelte/icons/users';
@@ -20,7 +21,8 @@
 		onadvance,
 		onstep,
 		onremove,
-		onadd
+		onadd,
+		onedit
 	}: {
 		item: ItemType;
 		kits: Kit[];
@@ -33,6 +35,7 @@
 		onstep: (line: TripItem, by: number) => void;
 		onremove: (line: TripItem) => void;
 		onadd: (person: Person | null) => void;
+		onedit: () => void;
 	} = $props();
 
 	let named = $derived(absent.filter((person) => person !== null));
@@ -43,6 +46,17 @@
 </script>
 
 <Modal title={item.name} description={item.description || undefined} {onclose}>
+	{#snippet action()}
+		<button
+			type="button"
+			aria-label={m.item_edit({ name: item.name })}
+			onclick={onedit}
+			class="text-muted-foreground hover:bg-accent focus-visible:ring-ring/50 -my-2 flex size-11 flex-none items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-[3px]"
+		>
+			<PencilIcon class="size-[17px]" aria-hidden="true" />
+		</button>
+	{/snippet}
+
 	{#if kits.length > 0}
 		<div class="flex flex-wrap gap-1">
 			{#each kits as kit (kit.id)}
