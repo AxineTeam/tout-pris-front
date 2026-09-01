@@ -4,6 +4,18 @@ import { Reordering } from '$lib/reorder.svelte.js';
 
 export const PROGRESS_ORDER: ProgressCategory[] = ['not_started', 'in_progress', 'done'];
 
+// The hierarchy a reader sees is the three sections, not the household's raw
+// ranks: a status added to an early section takes the last position of the
+// whole household, so `position` alone puts it behind sections it comes before.
+// It only settles ties inside one section.
+export function inHierarchy(statuses: ItemStatus[]): ItemStatus[] {
+	return [...statuses].sort(
+		(one, other) =>
+			PROGRESS_ORDER.indexOf(one.progress) - PROGRESS_ORDER.indexOf(other.progress) ||
+			one.position - other.position
+	);
+}
+
 export class SectionedReordering extends Reordering<ItemStatus> {
 	#sectionUnder(y: number): ProgressCategory {
 		let nearest = PROGRESS_ORDER[0];

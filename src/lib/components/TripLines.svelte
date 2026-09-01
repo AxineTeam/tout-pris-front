@@ -30,6 +30,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { queryClient, tripLinesQuery } from '$lib/query.js';
 	import { Reordering } from '$lib/reorder.svelte.js';
+	import { inHierarchy } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	type Opened =
@@ -110,13 +111,13 @@
 	);
 
 	// Same reading as the kits: the statuses a trip shows are the ones its lines
-	// wear, in the household's own order.
+	// wear, in the order the statuses screen lays them out.
 	let worn = $derived.by(() => {
 		const found: ItemStatus[] = [];
 		for (const line of lines) {
 			if (!found.some((known) => known.id === line.status.id)) found.push(line.status);
 		}
-		return found.sort((one, other) => one.position - other.position);
+		return inHierarchy(found);
 	});
 
 	let groups = $derived.by(() => {
@@ -209,11 +210,15 @@
 		act(() => updateTripItem(household, trip, line.id, { quantity: line.quantity + by }));
 	}
 
-	// Tapping walks the household's own order and wraps at the end, so a status
-	// set by mistake is undone by tapping on rather than by hunting for a picker.
+	let ranked = $derived(inHierarchy(statuses));
+
+	// Tapping climbs the hierarchy the statuses screen shows and wraps at the
+	// end, so a status set by mistake is undone by tapping on rather than by
+	// hunting for a picker. A line whose status the household deleted while the
+	// screen was open has no rank to climb from, and starts the cycle over.
 	function advance(line: TripItem) {
-		const at = statuses.findIndex((one) => one.id === line.status.id);
-		const next = statuses[(at + 1) % statuses.length];
+		const at = ranked.findIndex((one) => one.id === line.status.id);
+		const next = at === -1 ? ranked[0] : ranked[(at + 1) % ranked.length];
 		if (!next || next.id === line.status.id) return;
 		act(() => updateTripItem(household, trip, line.id, { status: next.id }));
 	}
