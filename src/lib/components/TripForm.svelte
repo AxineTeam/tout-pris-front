@@ -26,6 +26,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { queryClient, tripQuery, tripsKey, tripsQuery } from '$lib/query.js';
 	import { Submission } from '$lib/submission.svelte.js';
+	import { toggle } from '$lib/utils.js';
 
 	let {
 		household,
@@ -48,10 +49,6 @@
 	let dateErrors = $derived(fieldErrors(submission.errors, 'date'));
 	let otherErrors = $derived(formErrors(submission.errors, 'name', 'date'));
 	let ready = $derived(named.trim().length > 0 && dated.length > 0 && !submission.busy);
-
-	function toggle(all: number[], id: number): number[] {
-		return all.includes(id) ? all.filter((known) => known !== id) : [...all, id];
-	}
 
 	// Participants before kits: instantiate_kit drops a line aimed at someone who
 	// is not a participant yet, silently and with a 201.

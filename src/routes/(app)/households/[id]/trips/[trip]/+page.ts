@@ -3,6 +3,7 @@ import * as m from '$lib/paraglide/messages.js';
 import {
 	householdsQuery,
 	itemsQuery,
+	kitsQuery,
 	queryClient,
 	statusesQuery,
 	tripLinesQuery,
@@ -19,6 +20,7 @@ export const load: PageLoad = async ({ params }) => {
 		queryClient.query(tripQuery(household.id, trip)),
 		queryClient.query(tripLinesQuery(household.id, trip)),
 		queryClient.query(itemsQuery(household.id)),
+		queryClient.query(kitsQuery(household.id)),
 		queryClient.query(statusesQuery(household.id))
 	]);
 	return { household, trip };

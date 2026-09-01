@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TripLines, { type Direction, type Sorting } from './TripLines.svelte';
 import {
+	createKitItem,
 	createTripItem,
 	deleteTripItem,
 	updateItemType,
@@ -11,6 +12,7 @@ import {
 	type ItemStatus,
 	type ItemType,
 	type Kit,
+	type KitItem,
 	type Person,
 	type ProgressCategory,
 	type TripItem
@@ -19,6 +21,7 @@ import { queryClient, tripLinesQuery } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
+	createKitItem: vi.fn(),
 	createTripItem: vi.fn(),
 	updateTripItem: vi.fn(),
 	deleteTripItem: vi.fn(),
@@ -41,6 +44,8 @@ const socks = itemType(2, 'Chaussettes');
 const map = itemType(3, 'Carte');
 
 const camping: Kit = { id: 5, name: 'Camping', description: '', position: 1 };
+const holiday: Kit = { id: 6, name: 'Vacances', description: 'Le sac de plage', position: 2 };
+const seaside: Kit = { id: 7, name: 'Bord de mer', description: '', position: 3 };
 
 const alice: Person = { id: 1, name: 'Alice', user: null };
 const bob: Person = { id: 2, name: 'Bob', user: null };
@@ -96,6 +101,7 @@ function show(
 			lines,
 			participants,
 			items: [tent, socks, map],
+			kits: [camping, holiday, seaside],
 			statuses,
 			sorted,
 			onchanged
@@ -238,6 +244,7 @@ describe('TripLines', () => {
 			lines: [line(tent, todo), line(socks, todo), line(map, todo)],
 			participants: [alice],
 			items: [],
+			kits: [],
 			statuses: catalogue,
 			sorted: 'order' as Sorting,
 			direction: 'up' as Direction,
@@ -368,6 +375,7 @@ describe('TripLines', () => {
 				lines: [only],
 				participants: [],
 				items: [tent],
+				kits: [],
 				statuses: jumbled,
 				onchanged
 			}
@@ -436,7 +444,7 @@ describe('TripLines', () => {
 		expect(screen.getByLabelText('Nom de l’objet')).toHaveValue('Chaussettes');
 
 		await user.click(screen.getByRole('button', { name: 'Fermer' }));
-		expect(screen.getByTestId('sheet-add-common')).toBeInTheDocument();
+		expect(screen.getByTestId('sheet-kits')).toBeInTheDocument();
 	});
 
 	it('suit l’objet qui reste après une fusion', async () => {
@@ -522,6 +530,7 @@ describe('TripLines', () => {
 				lines: served,
 				participants: [alice],
 				items: [tent, socks],
+				kits: [],
 				statuses: catalogue,
 				onchanged: reload
 			}
@@ -547,6 +556,105 @@ describe('TripLines', () => {
 
 		expect(screen.getAllByRole('dialog')).toHaveLength(1);
 		expect(screen.getByRole('button', { name: 'Retirer la ligne' })).toBeInTheDocument();
+	});
+
+	it('coche un kit qui porte déjà l’objet, et interdit de l’en retirer', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice, kits: [camping] })]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByTestId('sheet-kits'));
+
+		expect(screen.getAllByRole('dialog')).toHaveLength(1);
+		const serving = screen.getByRole('button', { name: '« Camping » contient déjà cet objet' });
+		expect(serving).toBeDisabled();
+		expect(serving).toHaveAttribute('aria-pressed', 'true');
+		expect(serving).toHaveTextContent('déjà dans ce kit');
+		expect(screen.getByRole('button', { name: 'Ajouter à Vacances' })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		expect(screen.getByRole('button', { name: 'Ajouter' })).toBeDisabled();
+	});
+
+	it('sert un kit entier avant le suivant, avec les personnes et les quantités du voyage', async () => {
+		const user = userEvent.setup();
+		const held = [
+			line(socks, todo, { person: alice, kits: [seaside] }),
+			line(socks, todo, { quantity: 3, kits: [seaside] })
+		];
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, held);
+		show(held);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByTestId('sheet-kits'));
+		await user.click(screen.getByRole('button', { name: 'Ajouter à Vacances' }));
+		await user.click(screen.getByRole('button', { name: 'Ajouter à Camping' }));
+		await user.click(screen.getByRole('button', { name: 'Ajouter' }));
+
+		expect(vi.mocked(createKitItem).mock.calls).toEqual([
+			[7, camping.id, { item_type: socks.id, person: alice.id, quantity: 1 }],
+			[7, camping.id, { item_type: socks.id, person: null, quantity: 3 }],
+			[7, holiday.id, { item_type: socks.id, person: alice.id, quantity: 1 }],
+			[7, holiday.id, { item_type: socks.id, person: null, quantity: 3 }]
+		]);
+		const cached = queryClient.getQueryData<TripItem[]>(tripLinesQuery(7, 3).queryKey);
+		expect(cached?.map((one) => one.kits.map((kit) => kit.name))).toEqual([
+			['Camping', 'Vacances', 'Bord de mer'],
+			['Camping', 'Vacances', 'Bord de mer']
+		]);
+		// No trip line moved, so the lines route stands on the same fingerprint:
+		// asking again would hand back an object that belongs to no new kit.
+		expect(onchanged).not.toHaveBeenCalled();
+		expect(screen.getByTestId('sheet-kits')).toBeInTheDocument();
+	});
+
+	it('garde le sélecteur, son erreur et les kits déjà servis quand un kit refuse', async () => {
+		const user = userEvent.setup();
+		const held = [line(socks, todo, { person: alice })];
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, held);
+		vi.mocked(createKitItem)
+			.mockResolvedValueOnce({} as KitItem)
+			.mockRejectedValueOnce(new Error('refus'));
+		show(held);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByTestId('sheet-kits'));
+		await user.click(screen.getByRole('button', { name: 'Ajouter à Camping' }));
+		await user.click(screen.getByRole('button', { name: 'Ajouter à Bord de mer' }));
+		await user.click(screen.getByRole('button', { name: 'Ajouter' }));
+
+		expect(vi.mocked(createKitItem).mock.calls).toEqual([
+			[7, camping.id, { item_type: socks.id, person: alice.id, quantity: 1 }],
+			[7, seaside.id, { item_type: socks.id, person: alice.id, quantity: 1 }]
+		]);
+		const cached = queryClient.getQueryData<TripItem[]>(tripLinesQuery(7, 3).queryKey);
+		expect(cached?.[0].kits.map((kit) => kit.name)).toEqual(['Camping']);
+		const picker = screen.getByRole('dialog');
+		expect(within(picker).getByText('L’API est injoignable.')).toBeInTheDocument();
+		expect(within(picker).getByRole('button', { name: 'Ajouter' })).toBeInTheDocument();
+	});
+
+	it('annonce un foyer sans kit plutôt qu’une liste vide', async () => {
+		const user = userEvent.setup();
+		render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines: [line(socks, todo, { person: alice })],
+				participants: [alice],
+				items: [socks],
+				kits: [],
+				statuses: catalogue,
+				onchanged
+			}
+		});
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByTestId('sheet-kits'));
+
+		expect(screen.getByText('Ce foyer n’a encore aucun kit.')).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'Ajouter' })).not.toBeInTheDocument();
 	});
 
 	it('annonce un voyage sans ligne', () => {
