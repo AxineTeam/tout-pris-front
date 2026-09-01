@@ -65,7 +65,30 @@ const onchanged = vi.fn().mockResolvedValue(undefined);
 
 const catalogue = [todo, packed];
 
-function show(lines: TripItem[], sorted: Sorting = 'order', participants = [alice, bob]) {
+function ranked(
+	id: number,
+	name: string,
+	progress: ProgressCategory,
+	position: number
+): ItemStatus {
+	return { id, name, color: '#123456', progress, position, is_default: false };
+}
+
+// Ce que devient un foyer neuf quand on ajoute « À sortir » dans la section
+// « Pas prêt » : l'API pose le nouveau statut au dernier rang du foyer, toutes
+// sections confondues, donc les rangs contredisent la hiérarchie affichée.
+const unprepared = ranked(11, 'Pas préparé', 'not_started', 0);
+const out = ranked(12, 'Sorti du placard', 'in_progress', 1);
+const bagged = ranked(13, 'Dans les sacs', 'done', 2);
+const pulled = ranked(14, 'À sortir', 'not_started', 3);
+const jumbled = [unprepared, out, bagged, pulled];
+
+function show(
+	lines: TripItem[],
+	sorted: Sorting = 'order',
+	participants = [alice, bob],
+	statuses = catalogue
+) {
 	render(TripLines, {
 		props: {
 			household: 7,
@@ -73,7 +96,7 @@ function show(lines: TripItem[], sorted: Sorting = 'order', participants = [alic
 			lines,
 			participants,
 			items: [tent, socks, map],
-			statuses: catalogue,
+			statuses,
 			sorted,
 			onchanged
 		}
@@ -333,6 +356,49 @@ describe('TripLines', () => {
 
 		await user.click(screen.getByRole('button', { name: /Tente pour Tout le monde/ }));
 		expect(updateTripItem).toHaveBeenLastCalledWith(7, 3, last.id, { status: todo.id });
+	});
+
+	it('avance dans l’ordre des sections quand les rangs du foyer les contredisent', async () => {
+		const user = userEvent.setup();
+		const only = line(tent, unprepared);
+		const { rerender } = render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines: [only],
+				participants: [],
+				items: [tent],
+				statuses: jumbled,
+				onchanged
+			}
+		});
+
+		for (const next of [pulled, out, bagged, unprepared]) {
+			await user.click(screen.getByRole('button', { name: /Tente pour Tout le monde/ }));
+			expect(updateTripItem).toHaveBeenLastCalledWith(7, 3, only.id, { status: next.id });
+			await rerender({ lines: [{ ...only, status: next }] });
+		}
+	});
+
+	it('repart du premier statut quand celui de la ligne a quitté le foyer', async () => {
+		const user = userEvent.setup();
+		const only = line(tent, ranked(99, 'Supprimé', 'done', 9));
+		show([only], 'order', [], jumbled);
+
+		await user.click(screen.getByRole('button', { name: /Tente pour Tout le monde/ }));
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: unprepared.id });
+	});
+
+	it('range les filtres par statut dans l’ordre des sections', () => {
+		show([line(tent, bagged), line(socks, pulled), line(map, unprepared)], 'order', [], jumbled);
+
+		const row = screen.getByRole('group', { name: 'Filtrer par statut' });
+		expect(
+			within(row)
+				.getAllByRole('button')
+				.map((one) => one.textContent?.trim())
+		).toEqual(['Tous', 'Pas préparé', 'À sortir', 'Dans les sacs']);
 	});
 
 	it('ouvre la feuille de l’objet sur le chevron, avec toutes ses lignes', async () => {
