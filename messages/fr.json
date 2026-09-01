@@ -223,6 +223,7 @@
 	"trip_filter_statuses": "Filtrer par statut",
 	"trip_filtered_empty": "Aucun objet ne passe ce filtre.",
 	"trip_going": "Fait partir {name}",
+	"trip_going_explains": "Retirer quelqu’un le sort des filtres du voyage, mais ses lignes y restent : elles se retirent une par une depuis l’objet.",
 	"trip_item_open": "Ouvrir « {name} »",
 	"trip_kits_explains": "Un kit pose ses lignes dans le voyage à l’enregistrement. Les en retirer ensuite se fait ligne par ligne.",
 	"trip_kits_label": "Kits à embarquer",
