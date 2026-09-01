@@ -60,6 +60,8 @@ function line(item: ItemType, state: ItemStatus, over: Partial<TripItem> = {}): 
 
 const onchanged = vi.fn().mockResolvedValue(undefined);
 
+const catalogue = [todo, packed];
+
 function show(lines: TripItem[], sorted: Sorting = 'order', participants = [alice, bob]) {
 	render(TripLines, {
 		props: {
@@ -68,6 +70,7 @@ function show(lines: TripItem[], sorted: Sorting = 'order', participants = [alic
 			lines,
 			participants,
 			items: [tent, socks, map],
+			statuses: catalogue,
 			sorted,
 			onchanged
 		}
@@ -180,6 +183,7 @@ describe('TripLines', () => {
 			lines: [line(tent, todo), line(socks, todo), line(map, todo)],
 			participants: [alice],
 			items: [],
+			statuses: catalogue,
 			sorted: 'order' as Sorting,
 			direction: 'up' as Direction,
 			onchanged
@@ -284,6 +288,43 @@ describe('TripLines', () => {
 		show([line(socks, todo), line(tent, todo)], 'name');
 
 		expect(screen.queryByTestId(`trip-item-handle-${socks.id}`)).not.toBeInTheDocument();
+	});
+
+	it('avance le statut d’une ligne d’une tape, et boucle au bout', async () => {
+		const user = userEvent.setup();
+		const first = line(socks, todo, { person: alice });
+		const last = line(tent, packed);
+		show([first, last]);
+
+		await user.click(screen.getByRole('button', { name: /Chaussettes pour Alice/ }));
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, first.id, { status: packed.id });
+
+		await user.click(screen.getByRole('button', { name: /Tente pour Tout le monde/ }));
+		expect(updateTripItem).toHaveBeenLastCalledWith(7, 3, last.id, { status: todo.id });
+	});
+
+	it('ouvre la feuille de l’objet sur le chevron, avec toutes ses lignes', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(socks, packed, { person: bob })]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).getByText('Alice')).toBeInTheDocument();
+		expect(within(sheet).getByText('Bob')).toBeInTheDocument();
+		expect(within(sheet).getByTestId('sheet-add-common')).toBeInTheDocument();
+	});
+
+	it('avance un statut depuis la feuille', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		show([only]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		const sheet = screen.getByRole('dialog');
+		await user.click(within(sheet).getByRole('button', { name: /Chaussettes pour Alice/ }));
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: packed.id });
 	});
 
 	it('annonce un voyage sans ligne', () => {

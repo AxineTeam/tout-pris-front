@@ -22,6 +22,8 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
+	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -41,20 +43,20 @@
 		lines,
 		participants,
 		items,
+		statuses,
 		sorted = 'order',
 		direction = 'up',
-		onchanged,
-		onopen
+		onchanged
 	}: {
 		household: number;
 		trip: number;
 		lines: TripItem[];
 		participants: Person[];
 		items: ItemType[];
+		statuses: ItemStatus[];
 		sorted?: Sorting;
 		direction?: Direction;
 		onchanged: () => Promise<void>;
-		onopen?: (item: ItemType) => void;
 	} = $props();
 
 	const stepping = new Submission();
@@ -64,6 +66,7 @@
 	let aimed = $state.raw<number | null>(null);
 	let staged = $state.raw<number | null>(null);
 	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
+	let opened = $state.raw<number | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let container = $state.raw<HTMLElement>();
 
@@ -178,6 +181,19 @@
 		act(() => updateTripItem(household, trip, line.id, { quantity: line.quantity + by }));
 	}
 
+	// Tapping walks the household's own order and wraps at the end, so a status
+	// set by mistake is undone by tapping on rather than by hunting for a picker.
+	function advance(line: TripItem) {
+		const at = statuses.findIndex((one) => one.id === line.status.id);
+		const next = statuses[(at + 1) % statuses.length];
+		if (!next || next.id === line.status.id) return;
+		act(() => updateTripItem(household, trip, line.id, { status: next.id }));
+	}
+
+	// The sheet reads from the same groups the list shows, so a change made
+	// inside it lands on the screen behind without a second source of truth.
+	let sheet = $derived(groups.find((group) => group.id === opened) ?? null);
+
 	function addFor(group: Grouped, person: Person | null) {
 		act(() =>
 			createTripItem(household, trip, { item_type: group.item.id, person: person?.id ?? null })
@@ -288,7 +304,7 @@
 						<button
 							type="button"
 							aria-label={m.trip_item_open({ name: group.item.name })}
-							onclick={() => onopen?.(group.item)}
+							onclick={() => (opened = group.id)}
 							class="focus-visible:ring-ring/50 grid min-w-0 flex-1 content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
 						>
 							<span class="flex min-w-0 items-center gap-0.5">
@@ -333,14 +349,16 @@
 									onless={() => (line.quantity > 1 ? step(line, -1) : (removed = { group, line }))}
 									onmore={() => step(line, 1)}
 								/>
-								<span class="flex w-[104px] flex-none items-center gap-1.5">
-									<span
-										aria-hidden="true"
-										class="size-[9px] flex-none rounded-full"
-										style:background-color={line.status.color}
-									></span>
-									<span class="text-muted-foreground truncate text-xs">{line.status.name}</span>
-								</span>
+								<StatusPill
+									status={line.status}
+									label={m.trip_status_advance({
+										name: group.item.name,
+										who: whoever(line.person),
+										status: line.status.name
+									})}
+									busy={stepping.busy}
+									onadvance={() => advance(line)}
+								/>
 							</li>
 						{/each}
 
@@ -371,6 +389,22 @@
 		</ul>
 	{/if}
 </div>
+
+{#if sheet}
+	<TripItemSheet
+		item={sheet.item}
+		kits={sheet.kits}
+		lines={sheet.lines}
+		absent={missing(sheet)}
+		busy={stepping.busy}
+		{whoever}
+		onclose={() => (opened = null)}
+		onadvance={advance}
+		onstep={step}
+		onremove={(line) => (removed = { group: sheet, line })}
+		onadd={(person) => addFor(sheet, person)}
+	/>
+{/if}
 
 {#if removed}
 	{@const { group, line } = removed}

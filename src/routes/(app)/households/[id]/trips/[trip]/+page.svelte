@@ -12,7 +12,7 @@
 	import TripProgress from '$lib/components/TripProgress.svelte';
 	import { locale } from '$lib/locale.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { itemsQuery, tripLinesQuery, tripQuery } from '$lib/query.js';
+	import { itemsQuery, statusesQuery, tripLinesQuery, tripQuery } from '$lib/query.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -21,6 +21,7 @@
 	const trip = createQuery(() => tripQuery(data.household.id, data.trip));
 	const lines = createQuery(() => tripLinesQuery(data.household.id, data.trip));
 	const items = createQuery(() => itemsQuery(data.household.id));
+	const statuses = createQuery(() => statusesQuery(data.household.id));
 
 	let sorted = $state<Sorting>('order');
 	let direction = $state<Direction>('up');
@@ -121,6 +122,7 @@
 	lines={known}
 	participants={going}
 	items={items.data ?? []}
+	statuses={statuses.data ?? []}
 	{sorted}
 	{direction}
 	onchanged={reload}
