@@ -4,6 +4,7 @@
 	import { cancelInvitation, sendInvitation, type Invitation } from '$lib/api.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Section from '$lib/components/Section.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -51,11 +52,7 @@
 	}
 </script>
 
-<section class="grid gap-3">
-	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
-		{m.invitations_title()}
-	</h2>
-
+<Section title={m.invitations_title()}>
 	<FormErrors errors={cancelling.errors} />
 
 	{#if sent}
@@ -115,7 +112,7 @@
 			inviting = true;
 		}}
 	/>
-</section>
+</Section>
 
 {#if inviting}
 	<Modal

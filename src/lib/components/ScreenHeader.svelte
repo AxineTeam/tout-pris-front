@@ -36,7 +36,7 @@
 	let current = $derived(known.find((household) => household.id === Number(page.params.id)));
 </script>
 
-<header class="grid gap-1.5">
+<header class="grid gap-1">
 	<div class="flex items-center gap-2">
 		{#if back}
 			<a
@@ -50,12 +50,12 @@
 		<div class="min-w-0 flex-1">
 			<h1
 				data-testid="screen-title"
-				class={['truncate leading-tight font-bold', back ? 'text-xl' : 'text-[26px]']}
+				class={['truncate leading-tight font-bold', back ? 'text-lg' : 'text-[22px]']}
 			>
 				{title}
 			</h1>
 			{#if subtitle}
-				<p data-testid="subtitle" class="text-muted-foreground mt-0.5 text-[12.5px]">
+				<p data-testid="subtitle" class="text-muted-foreground text-[12.5px]">
 					{subtitle}
 				</p>
 			{/if}

@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import Section from '$lib/components/Section.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { session } from '$lib/session.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -62,7 +63,7 @@
 	}
 </script>
 
-<section class="grid gap-3">
+<Section>
 	<div
 		class="bg-pending text-pending-foreground grid gap-1 rounded-xl px-4 py-3"
 		data-testid="claim"
@@ -100,9 +101,9 @@
 			creating = true;
 		}}
 	/>
-</section>
+</Section>
 
-<section class="grid gap-3 opacity-60" data-testid="claim-rest" inert>
+<Section class="opacity-60" data-testid="claim-rest" inert>
 	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
 		{m.claim_rest()}
 	</h2>
@@ -138,7 +139,7 @@
 			</li>
 		{/each}
 	</ul>
-</section>
+</Section>
 
 {#if creating}
 	<Modal title={m.claim_create()} onclose={() => (creating = false)}>

@@ -59,7 +59,7 @@
 
 <Command.Root shouldFilter={false} label={m.item_field_label()}>
 	{#snippet child({ props })}
-		<div {...props} role="presentation" class="grid gap-2">
+		<div {...props} role="presentation" class="grid gap-1.5">
 			<div class="relative">
 				<SearchIcon
 					size={16}
@@ -75,7 +75,7 @@
 							aria-expanded={wanted.length > 0}
 							aria-label={m.item_field_label()}
 							placeholder={m.item_field_label()}
-							class="bg-muted focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 rounded-[10px] border-transparent pl-9 focus-visible:ring-[3px]"
+							class="bg-muted focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-[10px] border-transparent pl-9 focus-visible:ring-[3px]"
 							data-testid="item-field"
 						/>
 					{/snippet}

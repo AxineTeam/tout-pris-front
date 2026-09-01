@@ -1,7 +1,5 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
-	import MinusIcon from '@lucide/svelte/icons/minus';
-	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { tick } from 'svelte';
 	import {
 		createKitItem,
@@ -18,6 +16,7 @@
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
+	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -233,7 +232,7 @@
 	onpointercancel={() => dragging.cancel()}
 />
 
-<div {@attach anchored} class="grid gap-4">
+<div {@attach anchored} class="grid gap-2.5">
 	<ItemPicker {household} {items} {held} bind:typed onchosen={chosen} />
 
 	<FormErrors errors={stepping.errors} />
@@ -296,32 +295,17 @@
 								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
 									{whoever(line.person)}
 								</span>
-								<span class="border-border flex flex-none items-center rounded-lg border">
-									<Button
-										variant="ghost"
-										size="icon"
-										aria-label={m.kit_quantity_less({ who: whoever(line.person) })}
-										disabled={stepping.busy}
-										onclick={() =>
-											line.quantity > 1
-												? step(line, -1)
-												: (opened = { kind: 'remove-line', group, line })}
-										class="text-primary size-11 rounded-r-none"
-									>
-										<MinusIcon class="size-[15px]" aria-hidden="true" />
-									</Button>
-									<span class="min-w-6 text-center text-[13px] font-semibold">{line.quantity}</span>
-									<Button
-										variant="ghost"
-										size="icon"
-										aria-label={m.kit_quantity_more({ who: whoever(line.person) })}
-										disabled={stepping.busy}
-										onclick={() => step(line, 1)}
-										class="text-primary size-11 rounded-l-none"
-									>
-										<PlusIcon class="size-[15px]" aria-hidden="true" />
-									</Button>
-								</span>
+								<QuantityStepper
+									quantity={line.quantity}
+									less={m.kit_quantity_less({ who: whoever(line.person) })}
+									more={m.kit_quantity_more({ who: whoever(line.person) })}
+									busy={stepping.busy}
+									onless={() =>
+										line.quantity > 1
+											? step(line, -1)
+											: (opened = { kind: 'remove-line', group, line })}
+									onmore={() => step(line, 1)}
+								/>
 							</li>
 						{/each}
 

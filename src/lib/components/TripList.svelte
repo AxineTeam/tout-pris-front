@@ -22,6 +22,7 @@
 	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
+	import Section from '$lib/components/Section.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -199,16 +200,13 @@
 	</ul>
 
 	{#if archived.length > 0}
-		<section class="grid gap-2" data-testid="trips-archived">
-			<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
-				{m.trips_archived()}
-			</h2>
+		<Section title={m.trips_archived()} data-testid="trips-archived">
 			<ul class="grid min-w-0 gap-2">
 				{#each archived as trip (trip.id)}
 					{@render row(trip, true)}
 				{/each}
 			</ul>
-		</section>
+		</Section>
 	{/if}
 </div>
 
