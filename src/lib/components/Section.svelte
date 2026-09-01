@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { cn } from '$lib/utils.js';
 
 	// Every screen stacks a heading over a list or a form. Holding that rhythm
@@ -16,7 +17,7 @@
 		heading?: Snippet;
 		children: Snippet;
 		class?: string;
-	} & Record<string, unknown> = $props();
+	} & HTMLAttributes<HTMLElement> = $props();
 </script>
 
 <section class={cn('grid gap-2.5', extra)} {...rest}>

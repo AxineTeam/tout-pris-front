@@ -106,7 +106,7 @@
 				aria-label={sorting.label}
 				onclick={() => sort(sorting.key)}
 				class={[
-					'focus-visible:border-ring focus-visible:ring-ring/50 flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none focus-visible:ring-[3px]',
+					"focus-visible:border-ring focus-visible:ring-ring/50 relative flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none after:absolute after:-inset-[5px] after:content-[''] focus-visible:ring-[3px]",
 					sorted === sorting.key
 						? 'border-primary bg-primary text-primary-foreground'
 						: 'border-border bg-card text-primary hover:bg-accent active:bg-primary/25'

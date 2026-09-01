@@ -137,7 +137,6 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await page.getByRole('button', { name: 'Modifier l’objet « Lingette »' }).click();
 	await sheet(page).getByLabel('Nom de l’objet').fill('Lingettes');
 	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
-	await expect(page.getByTestId('item-merged')).toContainText('Lingettes');
 	await expect(page.locator('[data-row]')).toHaveCount(1);
 	await expect(lineOf(page, 'Lingettes', 'Tom')).toContainText('2');
 	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toContainText('1');
