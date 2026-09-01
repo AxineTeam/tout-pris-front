@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TripLines, { type Sorting } from './TripLines.svelte';
+import TripLines, { type Direction, type Sorting } from './TripLines.svelte';
 import {
 	createTripItem,
 	deleteTripItem,
@@ -27,7 +27,6 @@ function status(id: number, name: string, progress: ProgressCategory): ItemStatu
 }
 
 const todo = status(1, 'À prendre', 'not_started');
-const packing = status(2, 'En cours', 'in_progress');
 const packed = status(3, 'Rangé', 'done');
 
 function itemType(id: number, name: string, description = ''): ItemType {
@@ -174,30 +173,39 @@ describe('TripLines', () => {
 		expect(createTripItem).not.toHaveBeenCalled();
 	});
 
-	it('trie par nom puis par ce qui reste à faire', async () => {
-		const { rerender } = render(TripLines, {
-			props: {
-				household: 7,
-				trip: 3,
-				lines: [line(tent, packed), line(socks, todo), line(map, packing)],
-				participants: [alice],
-				items: [],
-				sorted: 'order' as Sorting,
-				onchanged
-			}
-		});
+	it('trie alphabétiquement, dans un sens puis dans l’autre', async () => {
+		const props = {
+			household: 7,
+			trip: 3,
+			lines: [line(tent, todo), line(socks, todo), line(map, todo)],
+			participants: [alice],
+			items: [],
+			sorted: 'order' as Sorting,
+			direction: 'up' as Direction,
+			onchanged
+		};
+		const { rerender } = render(TripLines, { props });
 
 		expect(names()).toEqual(['Tente', 'Chaussettes', 'Carte']);
-		await rerender({ sorted: 'name' });
+		await rerender({ direction: 'down' });
 		expect(names()).toEqual(['Carte', 'Chaussettes', 'Tente']);
-		await rerender({ sorted: 'progress' });
-		expect(names()).toEqual(['Chaussettes', 'Carte', 'Tente']);
+		await rerender({ sorted: 'name', direction: 'up' });
+		expect(names()).toEqual(['Carte', 'Chaussettes', 'Tente']);
+		await rerender({ direction: 'down' });
+		expect(names()).toEqual(['Tente', 'Chaussettes', 'Carte']);
 	});
 
-	it('classe un objet sur sa ligne la moins avancée', () => {
-		show([line(tent, packed), line(socks, packed), line(socks, todo)], 'progress');
+	it('ne garde que les lignes du statut choisi', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo), line(tent, packed)]);
 
-		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
+				name: 'Rangé'
+			})
+		);
+
+		expect(names()).toEqual(['Tente']);
 	});
 
 	it('monte la quantité d’une ligne', async () => {

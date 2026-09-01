@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SearchIcon from '@lucide/svelte/icons/search';
 	import { Command } from 'bits-ui';
 	import { createItemType, type ItemType } from '$lib/api.js';
 	import { remember, rewriteItems, search } from '$lib/catalog.js';
@@ -59,20 +60,27 @@
 <Command.Root shouldFilter={false} label={m.item_field_label()}>
 	{#snippet child({ props })}
 		<div {...props} role="presentation" class="grid gap-2">
-			<Command.Input bind:value={typed}>
-				{#snippet child({ props: field })}
-					<Input
-						{...field}
-						bind:value={typed}
-						onkeydown={forget}
-						aria-expanded={wanted.length > 0}
-						aria-label={m.item_field_label()}
-						placeholder={m.item_field_label()}
-						class="min-h-11"
-						data-testid="item-field"
-					/>
-				{/snippet}
-			</Command.Input>
+			<div class="relative">
+				<SearchIcon
+					size={16}
+					aria-hidden="true"
+					class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+				/>
+				<Command.Input bind:value={typed}>
+					{#snippet child({ props: field })}
+						<Input
+							{...field}
+							bind:value={typed}
+							onkeydown={forget}
+							aria-expanded={wanted.length > 0}
+							aria-label={m.item_field_label()}
+							placeholder={m.item_field_label()}
+							class="bg-muted focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 rounded-[10px] border-transparent pl-9 focus-visible:ring-[3px]"
+							data-testid="item-field"
+						/>
+					{/snippet}
+				</Command.Input>
+			</div>
 
 			<FormErrors errors={submission.errors} />
 
