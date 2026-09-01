@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { tick } from 'svelte';
@@ -22,6 +23,7 @@
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	interface Grouped {
@@ -50,6 +52,7 @@
 	} = $props();
 
 	const stepping = new Submission();
+	const dragging = new Reordering(() => groups);
 	let typed = $state('');
 	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
 	let highlighted = $state.raw<number | null>(null);
@@ -79,6 +82,10 @@
 		return Math.min(...group.lines.map((line) => rank[line.status.progress]));
 	}
 
+	// Dragging only makes sense against the stored order: on a computed sort the
+	// gesture would fight the sort, so the anchor is not drawn.
+	let movable = $derived(sorted === 'order');
+
 	let shown = $derived.by(() => {
 		if (sorted === 'name') {
 			return [...groups].sort((one, other) => one.item.name.localeCompare(other.item.name));
@@ -86,7 +93,7 @@
 		if (sorted === 'progress') {
 			return [...groups].sort((one, other) => leastAdvanced(one) - leastAdvanced(other));
 		}
-		return groups;
+		return movable ? dragging.rows : groups;
 	});
 
 	function whoever(person: Person | null): string {
@@ -129,7 +136,42 @@
 			createTripItem(household, trip, { item_type: group.item.id, person: person?.id ?? null })
 		);
 	}
+
+	// A position belongs to a line, not to the object above it, so moving one
+	// card moves every line it holds. Only the lines whose rank actually changes
+	// are sent, and the list is replayed locally to know which those are.
+	function drop() {
+		const move = dragging.drop();
+		if (!move || move.to === move.from) return;
+		const wanted = dragging.rows.flatMap((group) => group.lines);
+		stepping.run(async () => {
+			const current = [...lines];
+			try {
+				for (const [at, line] of wanted.entries()) {
+					if (current[at]?.id === line.id) continue;
+					await updateTripItem(household, trip, line.id, { position: at });
+					current.splice(
+						current.findIndex((known) => known.id === line.id),
+						1
+					);
+					current.splice(at, 0, line);
+				}
+			} catch (refusal) {
+				dragging.forget();
+				await onchanged();
+				throw refusal;
+			}
+			await onchanged();
+			return [];
+		});
+	}
 </script>
+
+<svelte:window
+	onpointermove={(event) => dragging.drag(event)}
+	onpointerup={drop}
+	onpointercancel={() => dragging.cancel()}
+/>
 
 {#snippet face(person: Person | null)}
 	{#if person}
@@ -154,18 +196,37 @@
 			<p class="text-muted-foreground text-sm" data-testid="trip-empty">{m.trip_empty()}</p>
 		{/if}
 
-		<ul class="grid min-w-0 gap-2">
+		<ul
+			{@attach dragging.anchored}
+			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
+		>
 			{#each shown as group (group.id)}
 				{@const absent = missing(group)}
 				<li
 					data-row={group.id}
 					data-trip-item={group.id}
+					style:transform={dragging.grabbed?.id === group.id
+						? `translateY(${dragging.offset}px)`
+						: undefined}
 					class={[
-						'border-border bg-card grid min-w-0 gap-1 rounded-xl border px-3 pt-2.5 pb-1 transition-colors',
-						highlighted === group.id && 'border-primary bg-accent'
+						'border-border bg-card grid min-w-0 gap-1 rounded-xl border pt-2.5 pr-3 pb-1 transition-colors',
+						movable ? 'pl-1' : 'pl-3',
+						(highlighted === group.id || dragging.grabbed?.id === group.id) &&
+							'border-primary bg-accent',
+						dragging.grabbed?.id === group.id && 'relative z-10 shadow-lg'
 					]}
 				>
 					<div class="flex min-w-0 items-start gap-2">
+						{#if movable}
+							<span
+								aria-hidden="true"
+								data-testid="trip-item-handle-{group.id}"
+								onpointerdown={(event) => dragging.grab(event, group)}
+								class="text-muted-foreground -mt-1.5 -ml-1 flex size-11 flex-none touch-none items-center justify-center"
+							>
+								<GripHorizontalIcon size={16} />
+							</span>
+						{/if}
 						<span class="min-w-0 flex-1">
 							<span class="block truncate text-sm font-semibold">{group.item.name}</span>
 							{#if group.item.description}

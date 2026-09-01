@@ -604,7 +604,7 @@ export function updateTripItem(
 	household: number,
 	trip: number,
 	id: number,
-	changes: { person?: number | null; quantity?: number; status?: number }
+	changes: { person?: number | null; quantity?: number; status?: number; position?: number }
 ): Promise<TripItem> {
 	return request(`/households/${household}/trips/${trip}/items/${id}/`, {
 		method: 'PATCH',
