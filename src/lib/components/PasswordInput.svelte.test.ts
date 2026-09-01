@@ -33,6 +33,16 @@ describe('PasswordInput', () => {
 		expect(input).toHaveAttribute('type', 'password');
 	});
 
+	it('reste hors de la capitalisation une fois dévoilé', async () => {
+		const user = userEvent.setup();
+		const input = renderInput();
+
+		await user.click(screen.getByRole('button', { name: 'Afficher le mot de passe' }));
+
+		expect(input).toHaveAttribute('type', 'text');
+		expect(input).toHaveAttribute('autocapitalize', 'none');
+	});
+
 	it('nomme le champ qu’il dévoile', async () => {
 		const user = userEvent.setup();
 		renderInput('le mot de passe actuel');

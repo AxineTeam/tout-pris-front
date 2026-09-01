@@ -44,6 +44,12 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 	await expect(page.getByTestId('account-email')).toHaveText(email);
 });
 
+test('le document demande au clavier une majuscule en début de phrase', async ({ page }) => {
+	await openAsShared(page);
+
+	await expect(page.locator('html')).toHaveAttribute('autocapitalize', 'sentences');
+});
+
 test('le sélecteur de foyer ne suit pas jusqu’au profil', async ({ page }) => {
 	await openAsShared(page);
 
