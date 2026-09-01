@@ -78,16 +78,7 @@
 				style:background-color="color-mix(in oklab, {line.status.color} 9%, transparent)"
 				class="flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2"
 			>
-				{#if line.person}
-					<PersonAvatar id={line.person.id} name={line.person.name} small />
-				{:else}
-					<span
-						aria-hidden="true"
-						class="bg-muted-foreground text-avatar-foreground flex size-7 flex-none items-center justify-center rounded-full text-xs font-semibold"
-					>
-						∗
-					</span>
-				{/if}
+				<PersonAvatar person={line.person} small />
 				<span class="grid min-w-0 flex-1 justify-items-start gap-1">
 					<span class="truncate text-[13.5px] font-semibold">{whoever(line.person)}</span>
 					<StatusPill

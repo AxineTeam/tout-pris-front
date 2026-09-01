@@ -68,7 +68,7 @@
 				class={tap}
 			>
 				<span class={[pill, 'gap-1.5 pr-2.5 pl-1', person === one.id ? on : off]}>
-					<PersonAvatar id={one.id} name={one.name} small />
+					<PersonAvatar person={one} small />
 					{one.name}
 				</span>
 			</button>
