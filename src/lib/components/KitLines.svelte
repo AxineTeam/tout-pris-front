@@ -4,14 +4,12 @@
 	import {
 		createKitItem,
 		deleteKitItem,
-		updateItemType,
 		updateKitItem,
 		type ItemType,
 		type KitDetail,
 		type KitItem,
 		type Person
 	} from '$lib/api.js';
-	import { remember, rewriteItems } from '$lib/catalog.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
@@ -19,8 +17,6 @@
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -32,7 +28,6 @@
 	}
 
 	type Opened =
-		| { kind: 'add'; item: ItemType }
 		| { kind: 'edit'; group: Grouped }
 		| { kind: 'remove-line'; group: Grouped; line: KitItem }
 		| { kind: 'remove-item'; group: Grouped };
@@ -56,9 +51,6 @@
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
 	let opened = $state.raw<Opened | null>(null);
-	let described = $state('');
-	let counted = $state(1);
-	let aimed = $state.raw<number | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let container = $state.raw<HTMLElement>();
 
@@ -105,30 +97,7 @@
 			container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
 			return;
 		}
-		submission.errors = [];
-		described = item.description;
-		counted = 1;
-		aimed = null;
-		opened = { kind: 'add', item };
-	}
-
-	async function describe(item: ItemType) {
-		const description = described.trim();
-		if (description === item.description) return;
-		const noted = await updateItemType(household, item.id, { description });
-		rewriteItems(household, (all) => remember(all, noted));
-	}
-
-	function add(event: SubmitEvent, item: ItemType) {
-		event.preventDefault();
-		act(async () => {
-			await describe(item);
-			await createKitItem(household, kit.id, {
-				item_type: item.id,
-				person: aimed,
-				quantity: counted
-			});
-		});
+		addLine(item.id, null);
 	}
 
 	function editItem(group: Grouped) {
@@ -170,12 +139,9 @@
 		});
 	}
 
-	function addFor(group: Grouped, person: Person | null) {
+	function addLine(item: number, person: number | null) {
 		stepping.run(async () => {
-			await createKitItem(household, kit.id, {
-				item_type: group.item.id,
-				person: person?.id ?? null
-			});
+			await createKitItem(household, kit.id, { item_type: item, person });
 			await onchanged();
 			return [];
 		});
@@ -294,7 +260,7 @@
 										type="button"
 										aria-label={m.kit_line_add_for({ who: whoever(person) })}
 										disabled={stepping.busy}
-										onclick={() => addFor(group, person)}
+										onclick={() => addLine(group.item.id, person?.id ?? null)}
 										class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
 									>
 										{@render face(person)}
@@ -310,50 +276,7 @@
 	{/if}
 </div>
 
-{#snippet quantity()}
-	<div class="grid gap-2">
-		<Label for="kit-quantity">{m.kit_quantity_label()}</Label>
-		<Input id="kit-quantity" type="number" min="1" bind:value={counted} />
-	</div>
-{/snippet}
-
-{#snippet description()}
-	<div class="grid gap-2">
-		<Label for="item-description">{m.item_description_label()}</Label>
-		<Input id="item-description" bind:value={described} aria-describedby="item-description-scope" />
-		<p id="item-description-scope" class="text-muted-foreground text-xs">
-			{m.item_description_hint()}
-		</p>
-	</div>
-{/snippet}
-
-{#if opened?.kind === 'add'}
-	{@const item = opened.item}
-	<Modal title={m.kit_add_title({ name: item.name })} onclose={() => (opened = null)}>
-		<FormErrors errors={submission.errors} />
-		<form class="grid gap-4" onsubmit={(event) => add(event, item)}>
-			<div class="grid gap-2">
-				<span class="text-sm leading-none font-medium">{m.kit_for_whom()}</span>
-				<div role="group" aria-label={m.kit_for_whom()} class="flex flex-wrap gap-1.5">
-					{#each [null, ...persons] as person (person?.id ?? 'everyone')}
-						<button
-							type="button"
-							aria-pressed={aimed === (person?.id ?? null)}
-							onclick={() => (aimed = person?.id ?? null)}
-							class="border-border aria-pressed:border-primary aria-pressed:bg-accent hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 items-center gap-2 rounded-full border px-1.5 py-1 pr-3 text-sm transition-colors outline-none focus-visible:ring-[3px]"
-						>
-							{@render face(person)}
-							{whoever(person)}
-						</button>
-					{/each}
-				</div>
-			</div>
-			{@render description()}
-			{@render quantity()}
-			<Button type="submit" disabled={submission.busy || counted < 1}>{m.add()}</Button>
-		</form>
-	</Modal>
-{:else if opened?.kind === 'edit'}
+{#if opened?.kind === 'edit'}
 	{@const group = opened.group}
 	<ItemEditor {household} item={group.item} onclose={() => (opened = null)} onsaved={onchanged}>
 		{#snippet extra()}

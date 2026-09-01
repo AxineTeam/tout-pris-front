@@ -49,20 +49,27 @@ async function newKit(page: Page, wanted: string, description: string) {
 	await expect(page.getByRole('link', { name: wanted })).toBeVisible();
 }
 
-async function addItem(
-	page: Page,
-	wanted: string,
-	who: string,
-	quantity: number,
-	description: string
-) {
+async function addItem(page: Page, wanted: string) {
 	await page.getByTestId('item-field').fill(wanted);
 	await page.getByTestId('item-create').click();
-	await sheet(page).getByRole('button', { name: who, exact: true }).click();
-	await sheet(page).getByLabel('Description de l’objet').fill(description);
-	await sheet(page).getByLabel('Quantité').fill(String(quantity));
-	await sheet(page).getByRole('button', { name: 'Ajouter', exact: true }).click();
 	await expect(group(page, wanted)).toBeVisible();
+}
+
+async function describeItem(page: Page, item: string, description: string) {
+	await group(page, item)
+		.getByRole('button', { name: `Modifier l’objet « ${item} »` })
+		.click();
+	await sheet(page).getByLabel('Description de l’objet').fill(description);
+	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
+	await expect(group(page, item)).toContainText(description);
+}
+
+async function raise(page: Page, item: string, who: string, times: number) {
+	for (let step = 0; step < times; step += 1) {
+		await lineOf(page, item, who)
+			.getByRole('button', { name: `Un de plus pour ${who}` })
+			.click();
+	}
 }
 
 test('un kit se remplit d’objets, se partage entre les personnes, puis se supprime', async ({
@@ -83,11 +90,16 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await expect(page.getByTestId('screen-title')).toHaveText(kit);
 	await expect(page.getByTestId('kit-empty')).toBeVisible();
 
-	await addItem(page, 'Couches taille 4', 'Tom', 60, 'Compter 6 par jour');
-	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('60');
-	await expect(group(page, 'Couches taille 4')).toContainText('Compter 6 par jour');
+	await addItem(page, 'Couches taille 4');
+	await describeItem(page, 'Couches taille 4', 'Compter 6 par jour');
+	await group(page, 'Couches taille 4')
+		.getByRole('button', { name: 'Ajouter une ligne pour Tom' })
+		.click();
+	await raise(page, 'Couches taille 4', 'Tom', 3);
+	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('4');
 
-	await addItem(page, 'Lingettes', 'Tout le monde', 2, '');
+	await addItem(page, 'Lingettes');
+	await raise(page, 'Lingettes', 'Tout le monde', 1);
 	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toContainText('2');
 
 	await page.getByTestId('item-field').fill('couch');
@@ -111,7 +123,7 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await lineOf(page, 'Couches taille 4', 'Tom')
 		.getByRole('button', { name: 'Un de moins pour Tom' })
 		.click();
-	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('59');
+	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('3');
 
 	await group(page, 'Couches taille 4')
 		.getByRole('button', { name: 'Modifier l’objet « Couches taille 4 »' })
@@ -132,7 +144,7 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toHaveCount(0);
 	await expect(lineOf(page, 'Lingettes', 'Tom')).toContainText('2');
 
-	await addItem(page, 'Lingette', 'Tout le monde', 1, '');
+	await addItem(page, 'Lingette');
 	await expect(page.locator('[data-row]')).toHaveCount(2);
 	await page.getByRole('button', { name: 'Modifier l’objet « Lingette »' }).click();
 	await sheet(page).getByLabel('Nom de l’objet').fill('Lingettes');
@@ -174,8 +186,8 @@ test('les kits et leurs objets se rangent à la main, et l’ordre tient au rech
 	await expect.poll(() => kitNames(page)).toEqual([second, first]);
 
 	await page.getByRole('link', { name: second }).click();
-	await addItem(page, 'Masque', 'Tout le monde', 1, '');
-	await addItem(page, 'Palmes', 'Tout le monde', 2, '');
+	await addItem(page, 'Masque');
+	await addItem(page, 'Palmes');
 	await expect.poll(() => itemNames(page)).toEqual(['Masque', 'Palmes']);
 
 	await dragAbove(
