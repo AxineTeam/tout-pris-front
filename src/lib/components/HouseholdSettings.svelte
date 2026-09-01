@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { deleteHousehold, renameHousehold, type Household, type ItemStatus } from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Section from '$lib/components/Section.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -57,11 +58,7 @@
 	}
 </script>
 
-<section class="grid gap-3">
-	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
-		{m.household_settings()}
-	</h2>
-
+<Section title={m.household_settings()}>
 	<ul class="grid min-w-0 gap-2">
 		<li>
 			<RowCard
@@ -93,7 +90,7 @@
 			</li>
 		{/if}
 	</ul>
-</section>
+</Section>
 
 {#if opened === 'rename'}
 	<Modal title={m.household_rename()} onclose={() => (opened = null)}>

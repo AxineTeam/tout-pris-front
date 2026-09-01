@@ -22,7 +22,7 @@
 
 <div class="flex min-h-0 flex-1 flex-col">
 	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-		<div class="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
+		<div class="mx-auto w-full max-w-3xl space-y-3.5 px-4 py-4">
 			{@render children()}
 		</div>
 	</div>

@@ -6,8 +6,6 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import MinusIcon from '@lucide/svelte/icons/minus';
-	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { tick } from 'svelte';
 	import {
 		createTripItem,
@@ -23,6 +21,7 @@
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
+	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -234,7 +233,7 @@
 	{/if}
 {/snippet}
 
-<div {@attach anchored} class="grid gap-4">
+<div {@attach anchored} class="grid gap-2.5">
 	<ItemPicker {household} {items} {held} bind:typed onchosen={chosen} />
 
 	<FormErrors errors={stepping.errors} />
@@ -268,7 +267,7 @@
 						? `translateY(${dragging.offset}px)`
 						: undefined}
 					class={[
-						'border-border bg-card grid min-w-0 gap-1 rounded-xl border pt-2.5 pr-3 pb-1 transition-colors',
+						'border-border bg-card grid min-w-0 gap-0.5 rounded-xl border pt-2 pr-3 pb-1 transition-colors',
 						movable ? 'pl-1' : 'pl-3',
 						(highlighted === group.id || dragging.grabbed?.id === group.id) &&
 							'border-primary bg-accent',
@@ -326,30 +325,14 @@
 								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
 									{whoever(line.person)}
 								</span>
-								<span class="border-border flex flex-none items-center rounded-lg border">
-									<Button
-										variant="ghost"
-										size="icon"
-										aria-label={m.trip_quantity_less({ who: whoever(line.person) })}
-										disabled={stepping.busy}
-										onclick={() =>
-											line.quantity > 1 ? step(line, -1) : (removed = { group, line })}
-										class="text-primary size-11 rounded-r-none"
-									>
-										<MinusIcon class="size-[15px]" aria-hidden="true" />
-									</Button>
-									<span class="min-w-6 text-center text-[13px] font-semibold">{line.quantity}</span>
-									<Button
-										variant="ghost"
-										size="icon"
-										aria-label={m.trip_quantity_more({ who: whoever(line.person) })}
-										disabled={stepping.busy}
-										onclick={() => step(line, 1)}
-										class="text-primary size-11 rounded-l-none"
-									>
-										<PlusIcon class="size-[15px]" aria-hidden="true" />
-									</Button>
-								</span>
+								<QuantityStepper
+									quantity={line.quantity}
+									less={m.trip_quantity_less({ who: whoever(line.person) })}
+									more={m.trip_quantity_more({ who: whoever(line.person) })}
+									busy={stepping.busy}
+									onless={() => (line.quantity > 1 ? step(line, -1) : (removed = { group, line }))}
+									onmore={() => step(line, 1)}
+								/>
 								<span class="flex w-[104px] flex-none items-center gap-1.5">
 									<span
 										aria-hidden="true"

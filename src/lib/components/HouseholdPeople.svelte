@@ -20,6 +20,7 @@
 	} from '$lib/api.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import Section from '$lib/components/Section.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
@@ -137,11 +138,7 @@
 	</button>
 {/snippet}
 
-<section class="grid gap-3">
-	<h2 class="text-muted-foreground text-xs font-semibold tracking-[0.08em] uppercase">
-		{m.people_title()}
-	</h2>
-
+<Section title={m.people_title()}>
 	{#if opened === null}
 		<FormErrors errors={submission.errors} />
 	{/if}
@@ -280,7 +277,7 @@
 	</ul>
 
 	<AddCard label={m.person_add()} onclick={() => open({ kind: 'add' })} />
-</section>
+</Section>
 
 {#if opened?.kind === 'add'}
 	<Modal title={m.person_add()} onclose={() => (opened = null)}>
