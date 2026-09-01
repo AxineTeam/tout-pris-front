@@ -15,6 +15,7 @@ import {
 	type ProgressCategory,
 	type TripItem
 } from '$lib/api.js';
+import { queryClient, tripLinesQuery } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -149,17 +150,39 @@ describe('TripLines', () => {
 		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
 	});
 
-	it('retire l’ancre tant qu’un filtre est posé', async () => {
-		const user = userEvent.setup();
-		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+	it('ne déplace pas les lignes qu’un filtre cache', async () => {
+		const ROW = 100;
+		// Ordre stocké : Tente, Carte (cachée par le filtre), Chaussettes.
+		const tentOne = line(tent, todo, { kits: [camping] });
+		const hidden = line(map, todo);
+		const socksOne = line(socks, todo, { kits: [camping] });
+		show([tentOne, hidden, socksOne]);
 
-		expect(screen.getByTestId(`trip-item-handle-${tent.id}`)).toBeInTheDocument();
+		const user = userEvent.setup();
 		await user.click(
 			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
 				name: 'Camping'
 			})
 		);
-		expect(screen.queryByTestId(`trip-item-handle-${tent.id}`)).not.toBeInTheDocument();
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+
+		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+			this: Element
+		) {
+			const row = this.getAttribute('data-row');
+			if (!row) return new DOMRect(0, 0, 0, 0);
+			return new DOMRect(0, (row === String(tent.id) ? 0 : 1) * ROW, 300, ROW);
+		});
+
+		// Chaussettes passe au-dessus de Tente : la carte cachée ne bouge pas.
+		await fireEvent.pointerDown(screen.getByTestId(`trip-item-handle-${socks.id}`), {
+			pointerId: 1
+		});
+		await fireEvent.pointerMove(window, { pointerId: 1, clientY: ROW * 0.1 });
+		await fireEvent.pointerUp(window, { pointerId: 1 });
+
+		expect(vi.mocked(updateTripItem).mock.calls).toEqual([[7, 3, socksOne.id, { position: 0 }]]);
+		vi.restoreAllMocks();
 	});
 
 	it('ne propose pas de recréer un objet qu’un filtre cache', async () => {
@@ -358,22 +381,24 @@ describe('TripLines', () => {
 		expect(within(sheet).getByRole('heading', { name: 'Tente' })).toBeInTheDocument();
 	});
 
-	it('lit le nom et la description dans le catalogue, pas dans la copie de la ligne', () => {
-		const stale = { id: socks.id, name: 'Chaussette', description: '' };
-		render(TripLines, {
-			props: {
-				household: 7,
-				trip: 3,
-				lines: [line(stale, todo, { person: alice })],
-				participants: [alice],
-				items: [{ id: socks.id, name: 'Chaussettes', description: 'Une paire par jour' }],
-				statuses: catalogue,
-				onchanged
-			}
-		});
+	it('pose l’objet rendu par l’écriture dans les lignes en cache, sans redemander', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		const noted = { id: socks.id, name: 'Chaussettes', description: 'Une paire par jour' };
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [only]);
+		vi.mocked(updateItemType).mockResolvedValue(noted);
+		show([only]);
 
-		expect(names()).toEqual(['Chaussettes']);
-		expect(screen.getByText('Une paire par jour')).toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Chaussettes »' }));
+		await user.type(screen.getByLabelText('Description de l’objet'), 'Une paire par jour');
+		await user.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+		const cached = queryClient.getQueryData<TripItem[]>(tripLinesQuery(7, 3).queryKey);
+		expect(cached?.[0].item_type.description).toBe('Une paire par jour');
+		// A rename moves no line, so the fingerprint stands still: asking again
+		// would hand back the old text and undo what the write just said.
+		expect(onchanged).not.toHaveBeenCalled();
 	});
 
 	it('annonce un voyage sans ligne', () => {

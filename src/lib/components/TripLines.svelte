@@ -28,6 +28,7 @@
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { queryClient, tripLinesQuery } from '$lib/query.js';
 	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -111,27 +112,13 @@
 		return found.sort((one, other) => one.position - other.position);
 	});
 
-	// A line carries a copy of its object, taken when the line was served. The
-	// catalogue is where the object actually lives, so the name and the
-	// description are read from there when it holds them: renaming an object
-	// leaves every trip line untouched, and the lines route answers 304 on its
-	// own fingerprint — the copy would stay stale until something else moved.
-	function current(item: ItemType): ItemType {
-		return items.find((known) => known.id === item.id) ?? item;
-	}
-
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
 		for (const line of filtered) {
 			const group = found.find((known) => known.id === line.item_type.id);
 			if (group) group.lines.push(line);
 			else
-				found.push({
-					id: line.item_type.id,
-					item: current(line.item_type),
-					kits: line.kits,
-					lines: [line]
-				});
+				found.push({ id: line.item_type.id, item: line.item_type, kits: line.kits, lines: [line] });
 		}
 		return found;
 	});
@@ -141,13 +128,10 @@
 	let held = $derived([...new Set(lines.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
 
-	// Dragging only makes sense against the whole list read the way it is stored:
-	// reversed or sorted by name the gesture would fight the order, and under a
-	// filter the ranks would be counted over the lines that show, moving the
-	// hidden ones.
-	let movable = $derived(
-		sorted === 'order' && direction === 'up' && kept === null && aimed === null && staged === null
-	);
+	// Dragging only makes sense against the stored order read forwards: sorted by
+	// name or reversed, the gesture would fight the order. A filter is no
+	// obstacle — the drop is resolved against every line, not the visible ones.
+	let movable = $derived(sorted === 'order' && direction === 'up');
 
 	let shown = $derived.by(() => {
 		const base =
@@ -212,10 +196,23 @@
 	// inside it lands on the screen behind without a second source of truth.
 	let sheet = $derived(groups.find((group) => group.id === opened) ?? null);
 
-	// A merge hands back the object that remains, and its lines are this trip's
-	// lines: the sheet moves onto it rather than closing on an id that is gone.
+	// The write returned the object as it now stands, so it goes into the lines
+	// that carry it rather than being asked for again. It is put there without
+	// the invalidation `rewrite` would add: a rename touches no line, the lines
+	// route answers on its own fingerprint, and the refetch would hand back a
+	// body where the old name still stands — undoing what was just learnt.
+	//
+	// A merge is the one case the cache cannot settle alone, since lines move
+	// between objects and some are dropped. There the lines do change, so the
+	// fingerprint moves and asking again is both necessary and truthful.
 	async function follow(survivor: ItemType) {
-		await onchanged();
+		const absorbed = survivor.id !== editing?.id;
+		queryClient.setQueryData<TripItem[]>(tripLinesQuery(household, trip).queryKey, (all) =>
+			(all ?? []).map((line) =>
+				line.item_type.id === survivor.id ? { ...line, item_type: survivor } : line
+			)
+		);
+		if (absorbed) await onchanged();
 		opened = survivor.id;
 	}
 
@@ -228,10 +225,28 @@
 	// A position belongs to a line, not to the object above it, so moving one
 	// card moves every line it holds. Only the lines whose rank actually changes
 	// are sent, and the list is replayed locally to know which those are.
+	//
+	// The drop is read against every line, not the ones on screen: under a filter
+	// the visible cards are islands in a longer list, and ranks counted over the
+	// islands would drag the hidden lines between them. What the gesture states
+	// is an order relative to its visible neighbours, so the moved object lands
+	// just before the card that now follows it — or after the one it now trails.
+	function landing(moved: Grouped): TripItem[] {
+		const shownNow = dragging.rows;
+		const at = shownNow.findIndex((group) => group.id === moved.id);
+		const held = lines.filter((line) => line.item_type.id === moved.id);
+		const rest = lines.filter((line) => line.item_type.id !== moved.id);
+		const following = shownNow[at + 1];
+		const index = following
+			? rest.findIndex((line) => line.item_type.id === following.id)
+			: rest.findLastIndex((line) => line.item_type.id === shownNow[at - 1]?.id) + 1;
+		return [...rest.slice(0, index), ...held, ...rest.slice(index)];
+	}
+
 	function drop() {
 		const move = dragging.drop();
 		if (!move || move.to === move.from) return;
-		const wanted = dragging.rows.flatMap((group) => group.lines);
+		const wanted = landing(move.row);
 		stepping.run(async () => {
 			const current = [...lines];
 			try {
