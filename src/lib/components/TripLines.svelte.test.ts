@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TripLines, { type Sorting } from './TripLines.svelte';
@@ -184,6 +184,38 @@ describe('TripLines', () => {
 		await user.click(screen.getAllByRole('option')[0]);
 
 		expect(createTripItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: null });
+	});
+
+	it('déplace toutes les lignes de l’objet attrapé, et seulement les rangs changés', async () => {
+		const ROW = 100;
+		const socksOne = line(socks, todo, { person: alice });
+		const socksTwo = line(socks, todo, { person: bob });
+		const tentOne = line(tent, todo);
+		show([socksOne, socksTwo, tentOne]);
+
+		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+			this: Element
+		) {
+			const row = this.getAttribute('data-row');
+			if (!row) return new DOMRect(0, 0, 0, 0);
+			const rank = row === String(socks.id) ? 0 : 1;
+			return new DOMRect(0, rank * ROW, 300, ROW);
+		});
+
+		await fireEvent.pointerDown(screen.getByTestId(`trip-item-handle-${socks.id}`), {
+			pointerId: 1
+		});
+		await fireEvent.pointerMove(window, { pointerId: 1, clientY: ROW * 1.9 });
+		await fireEvent.pointerUp(window, { pointerId: 1 });
+
+		expect(vi.mocked(updateTripItem).mock.calls).toEqual([[7, 3, tentOne.id, { position: 0 }]]);
+		vi.restoreAllMocks();
+	});
+
+	it('n’offre pas d’ancre sur un tri calculé', () => {
+		show([line(socks, todo), line(tent, todo)], 'name');
+
+		expect(screen.queryByTestId(`trip-item-handle-${socks.id}`)).not.toBeInTheDocument();
 	});
 
 	it('annonce un voyage sans ligne', () => {
