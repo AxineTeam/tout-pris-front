@@ -13,6 +13,7 @@
 	} from '$lib/api.js';
 	import { remember, rewriteItems } from '$lib/catalog.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
@@ -55,9 +56,7 @@
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
 	let opened = $state.raw<Opened | null>(null);
-	let named = $state('');
 	let described = $state('');
-	let merged = $state.raw<{ asked: string; name: string } | null>(null);
 	let counted = $state(1);
 	let aimed = $state.raw<number | null>(null);
 	let highlighted = $state.raw<number | null>(null);
@@ -107,7 +106,6 @@
 			return;
 		}
 		submission.errors = [];
-		named = item.name;
 		described = item.description;
 		counted = 1;
 		aimed = null;
@@ -119,26 +117,6 @@
 		if (description === item.description) return;
 		const noted = await updateItemType(household, item.id, { description });
 		rewriteItems(household, (all) => remember(all, noted));
-	}
-
-	async function rename(item: ItemType) {
-		const name = named.trim();
-		if (name === item.name) {
-			await describe(item);
-			return;
-		}
-		const description = described.trim();
-		const rewritten = description === item.description ? {} : { description };
-		const survivor = await updateItemType(household, item.id, { name, ...rewritten });
-		rewriteItems(household, (all) => remember(all, survivor));
-		if (survivor.id === item.id) return;
-		rewriteItems(household, (all) => all.filter((known) => known.id !== item.id));
-		merged = { asked: name, name: survivor.name };
-		// A merge answers with the survivor before the description is applied.
-		if (rewritten.description !== undefined) {
-			const applied = await updateItemType(household, survivor.id, rewritten);
-			rewriteItems(household, (all) => remember(all, applied));
-		}
 	}
 
 	function add(event: SubmitEvent, item: ItemType) {
@@ -155,16 +133,7 @@
 
 	function editItem(group: Grouped) {
 		submission.errors = [];
-		merged = null;
-		named = group.item.name;
-		described = group.item.description;
 		opened = { kind: 'edit', group };
-	}
-
-	function save(event: SubmitEvent, item: ItemType) {
-		event.preventDefault();
-		if (!named.trim()) return;
-		act(() => rename(item));
 	}
 
 	function step(line: KitItem, by: number) {
@@ -237,10 +206,6 @@
 
 	<FormErrors errors={stepping.errors} />
 
-	{#if merged}
-		<p class="text-muted-foreground text-xs" data-testid="item-merged">{m.item_merged(merged)}</p>
-	{/if}
-
 	{#if !searching}
 		{#if groups.length === 0}
 			<p class="text-muted-foreground text-sm" data-testid="kit-empty">{m.kit_empty()}</p>
@@ -275,7 +240,7 @@
 						</span>
 						<button
 							type="button"
-							aria-label={m.kit_item_edit({ name: group.item.name })}
+							aria-label={m.item_edit({ name: group.item.name })}
 							onclick={() => editItem(group)}
 							class="focus-visible:ring-ring/50 grid min-h-11 min-w-0 flex-1 content-center rounded-md pr-2 text-left outline-none focus-visible:ring-[3px]"
 						>
@@ -382,26 +347,13 @@
 	</Modal>
 {:else if opened?.kind === 'edit'}
 	{@const group = opened.group}
-	<Modal title={group.item.name} onclose={() => (opened = null)}>
-		<FormErrors errors={submission.errors} />
-		<form class="grid gap-4" onsubmit={(event) => save(event, group.item)}>
-			<div class="grid gap-2">
-				<Label for="item-name">{m.item_name_label()}</Label>
-				<Input id="item-name" bind:value={named} />
-			</div>
-			{@render description()}
-			<Button type="submit" disabled={submission.busy || named.trim().length === 0}>
-				{m.save()}
+	<ItemEditor {household} item={group.item} onclose={() => (opened = null)} onsaved={onchanged}>
+		{#snippet extra()}
+			<Button variant="outline" onclick={() => (opened = { kind: 'remove-item', group })}>
+				{m.kit_item_remove()}
 			</Button>
-		</form>
-		<Button
-			variant="outline"
-			disabled={submission.busy}
-			onclick={() => (opened = { kind: 'remove-item', group })}
-		>
-			{m.kit_item_remove()}
-		</Button>
-	</Modal>
+		{/snippet}
+	</ItemEditor>
 {:else if opened?.kind === 'remove-line'}
 	{@const group = opened.group}
 	{@const line = opened.line}

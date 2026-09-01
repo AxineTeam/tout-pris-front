@@ -18,6 +18,7 @@
 		type TripItem
 	} from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
@@ -67,6 +68,9 @@
 	let staged = $state.raw<number | null>(null);
 	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
 	let opened = $state.raw<number | null>(null);
+	// The editor replaces the sheet rather than stacking on it: two dialogs deep
+	// is a trap on a phone, and closing the editor puts the sheet back.
+	let editing = $state.raw<ItemType | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let container = $state.raw<HTMLElement>();
 
@@ -107,13 +111,27 @@
 		return found.sort((one, other) => one.position - other.position);
 	});
 
+	// A line carries a copy of its object, taken when the line was served. The
+	// catalogue is where the object actually lives, so the name and the
+	// description are read from there when it holds them: renaming an object
+	// leaves every trip line untouched, and the lines route answers 304 on its
+	// own fingerprint — the copy would stay stale until something else moved.
+	function current(item: ItemType): ItemType {
+		return items.find((known) => known.id === item.id) ?? item;
+	}
+
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
 		for (const line of filtered) {
 			const group = found.find((known) => known.id === line.item_type.id);
 			if (group) group.lines.push(line);
 			else
-				found.push({ id: line.item_type.id, item: line.item_type, kits: line.kits, lines: [line] });
+				found.push({
+					id: line.item_type.id,
+					item: current(line.item_type),
+					kits: line.kits,
+					lines: [line]
+				});
 		}
 		return found;
 	});
@@ -193,6 +211,13 @@
 	// The sheet reads from the same groups the list shows, so a change made
 	// inside it lands on the screen behind without a second source of truth.
 	let sheet = $derived(groups.find((group) => group.id === opened) ?? null);
+
+	// A merge hands back the object that remains, and its lines are this trip's
+	// lines: the sheet moves onto it rather than closing on an id that is gone.
+	async function follow(survivor: ItemType) {
+		await onchanged();
+		opened = survivor.id;
+	}
 
 	function addFor(group: Grouped, person: Person | null) {
 		act(() =>
@@ -390,7 +415,9 @@
 	{/if}
 </div>
 
-{#if sheet}
+{#if editing}
+	<ItemEditor {household} item={editing} onclose={() => (editing = null)} onsaved={follow} />
+{:else if sheet}
 	<TripItemSheet
 		item={sheet.item}
 		kits={sheet.kits}
@@ -403,6 +430,7 @@
 		onstep={step}
 		onremove={(line) => (removed = { group: sheet, line })}
 		onadd={(person) => addFor(sheet, person)}
+		onedit={() => (editing = sheet.item)}
 	/>
 {/if}
 

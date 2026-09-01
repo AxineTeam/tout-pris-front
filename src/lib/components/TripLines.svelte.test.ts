@@ -6,6 +6,7 @@ import TripLines, { type Direction, type Sorting } from './TripLines.svelte';
 import {
 	createTripItem,
 	deleteTripItem,
+	updateItemType,
 	updateTripItem,
 	type ItemStatus,
 	type ItemType,
@@ -19,7 +20,8 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
 	createTripItem: vi.fn(),
 	updateTripItem: vi.fn(),
-	deleteTripItem: vi.fn()
+	deleteTripItem: vi.fn(),
+	updateItemType: vi.fn()
 }));
 
 function status(id: number, name: string, progress: ProgressCategory): ItemStatus {
@@ -325,6 +327,53 @@ describe('TripLines', () => {
 		await user.click(within(sheet).getByRole('button', { name: /Chaussettes pour Alice/ }));
 
 		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: packed.id });
+	});
+
+	it('remplace la feuille par l’éditeur, et la remet en fermant', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Chaussettes »' }));
+
+		expect(screen.getAllByRole('dialog')).toHaveLength(1);
+		expect(screen.getByLabelText('Nom de l’objet')).toHaveValue('Chaussettes');
+
+		await user.click(screen.getByRole('button', { name: 'Fermer' }));
+		expect(screen.getByTestId('sheet-add-common')).toBeInTheDocument();
+	});
+
+	it('suit l’objet qui reste après une fusion', async () => {
+		const user = userEvent.setup();
+		vi.mocked(updateItemType).mockResolvedValue(tent);
+		show([line(socks, todo, { person: alice }), line(tent, todo)]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Chaussettes »' }));
+		await user.clear(screen.getByLabelText('Nom de l’objet'));
+		await user.type(screen.getByLabelText('Nom de l’objet'), 'Tente');
+		await user.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).getByRole('heading', { name: 'Tente' })).toBeInTheDocument();
+	});
+
+	it('lit le nom et la description dans le catalogue, pas dans la copie de la ligne', () => {
+		const stale = { id: socks.id, name: 'Chaussette', description: '' };
+		render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines: [line(stale, todo, { person: alice })],
+				participants: [alice],
+				items: [{ id: socks.id, name: 'Chaussettes', description: 'Une paire par jour' }],
+				statuses: catalogue,
+				onchanged
+			}
+		});
+
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.getByText('Une paire par jour')).toBeInTheDocument();
 	});
 
 	it('annonce un voyage sans ligne', () => {
