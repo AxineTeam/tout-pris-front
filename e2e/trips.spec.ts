@@ -224,3 +224,93 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	await deleteShared(page, shared);
 });
+
+function openKits(page: Page) {
+	return page
+		.getByRole('navigation', { name: 'Navigation principale' })
+		.getByRole('link', { name: 'Kits' })
+		.click();
+}
+
+function kitLineOf(page: Page, item: string, who: string) {
+	return page
+		.locator('[data-row]')
+		.filter({ hasText: item })
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
+}
+
+test('un objet d’un voyage rejoint un kit avec ses personnes et ses quantités', async ({
+	page
+}) => {
+	await openAsShared(page);
+	const shared = await createShared(page, name('rangement'));
+	await addPerson(page, 'Léa');
+	await addPerson(page, 'Paul');
+
+	await openKits(page);
+	const sac = name('sac');
+	await page.getByRole('button', { name: 'Nouveau kit' }).click();
+	await sheet(page).getByLabel('Nom du kit').fill(sac);
+	await sheet(page).getByRole('button', { name: 'Créer' }).click();
+	await expect(page.getByRole('link', { name: sac })).toBeVisible();
+
+	await openTrips(page);
+	const corse = name('corse');
+	await newTrip(page, corse, inDays(5), ['Léa', 'Paul']);
+	await trip(page, corse).getByRole('link').click();
+
+	const lampe = name('lampe');
+	await page.getByRole('combobox').click();
+	await page.keyboard.type(lampe);
+	await page.getByTestId('item-create').click();
+	await expect(lineOf(page, lampe, 'Tout le monde')).toBeVisible();
+
+	await page.getByRole('button', { name: `Ouvrir « ${lampe} »` }).click();
+	for (const who of ['Léa', 'Paul']) {
+		await sheet(page)
+			.getByRole('button', { name: `Ajouter une ligne pour ${who}` })
+			.click();
+	}
+	await page.getByRole('button', { name: 'Fermer' }).click();
+	await lineOf(page, lampe, 'Paul').getByRole('button', { name: 'Un de plus pour Paul' }).click();
+	await expect(lineOf(page, lampe, 'Paul')).toContainText('2');
+
+	await page.getByRole('button', { name: `Ouvrir « ${lampe} »` }).click();
+	await sheet(page).getByTestId('sheet-kits').click();
+	await sheet(page)
+		.getByRole('button', { name: `Ajouter à ${sac}` })
+		.click();
+	await sheet(page).getByRole('button', { name: 'Ajouter', exact: true }).click();
+
+	// La fiche revient, et sa pastille dit que c'est fait.
+	await expect(sheet(page).getByTestId('sheet-kits')).toBeVisible();
+	await expect(sheet(page)).toContainText(sac);
+
+	// Le kit sert désormais l'objet : sa case reste cochée et verrouillée, donc
+	// un second passage ne peut plus doubler ses lignes.
+	await sheet(page).getByTestId('sheet-kits').click();
+	const served = sheet(page).getByRole('button', { name: `« ${sac} » contient déjà cet objet` });
+	await expect(served).toContainText('déjà dans ce kit');
+	await expect(served).toBeDisabled();
+	await expect(sheet(page).getByRole('button', { name: 'Ajouter', exact: true })).toBeDisabled();
+
+	await page.getByRole('button', { name: 'Fermer' }).click();
+	await page.getByRole('button', { name: 'Fermer' }).click();
+
+	await openKits(page);
+	await page.getByRole('link', { name: sac }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText(sac);
+	await expect(kitLineOf(page, lampe, 'Tout le monde')).toContainText('1');
+	await expect(kitLineOf(page, lampe, 'Léa')).toContainText('1');
+	await expect(kitLineOf(page, lampe, 'Paul')).toContainText('2');
+
+	// Le voyage part avant le foyer : le retrait d'une personne dont l'objet est
+	// aussi pris en commun casse encore côté API (AxineTeam/tout-pris-api#101).
+	await openTrips(page);
+	await act(page, corse, 'Supprimer');
+	await sheet(page).getByRole('button', { name: 'Supprimer' }).click();
+	await expect(trip(page, corse)).toHaveCount(0);
+
+	await deleteShared(page, shared);
+});

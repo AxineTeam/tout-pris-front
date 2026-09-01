@@ -8,6 +8,7 @@
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { tick } from 'svelte';
 	import {
+		createKitItem,
 		createTripItem,
 		deleteTripItem,
 		updateTripItem,
@@ -28,7 +29,7 @@
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { queryClient, tripLinesQuery } from '$lib/query.js';
+	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
 	import { Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { inHierarchy } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -51,6 +52,7 @@
 		lines,
 		participants,
 		items,
+		kits,
 		statuses,
 		sorted = 'order',
 		direction = 'up',
@@ -61,6 +63,7 @@
 		lines: TripItem[];
 		participants: Person[];
 		items: ItemType[];
+		kits: Kit[];
 		statuses: ItemStatus[];
 		sorted?: Sorting;
 		direction?: Direction;
@@ -253,6 +256,52 @@
 		);
 		if (absorbed) await onchanged();
 		opened = { kind: 'sheet', item: survivor };
+	}
+
+	// The kits served go into the lines that carry the object rather than being
+	// asked for again: no trip line moved, so the lines route answers on the
+	// same fingerprint, and the refetch would hand back a body where the object
+	// belongs to no new kit — undoing what was just learnt and offering the same
+	// kit a second time. They are written even when a refusal cuts the run
+	// short, so that retrying resumes at the kit it stopped on.
+	function addToKits(group: Grouped, wanted: Kit[]): Promise<boolean> {
+		return stepping
+			.run(async () => {
+				const served: Kit[] = [];
+				try {
+					for (const kit of wanted) {
+						for (const line of group.lines) {
+							await createKitItem(household, kit.id, {
+								item_type: group.item.id,
+								person: line.person?.id ?? null,
+								quantity: line.quantity
+							});
+						}
+						served.push(kit);
+					}
+				} finally {
+					if (served.length > 0) {
+						queryClient.setQueryData<TripItem[]>(tripLinesQuery(household, trip).queryKey, (all) =>
+							(all ?? []).map((line) =>
+								line.item_type.id === group.item.id
+									? {
+											...line,
+											kits: [...line.kits, ...served].sort(
+												(one, other) => one.position - other.position
+											)
+										}
+									: line
+							)
+						);
+						// The kit screens read their own queries, where the kit would still
+						// be the one that holds nothing. Waiting on that refetch would hold
+						// the whole trip screen busy for a list this write did not change.
+						void queryClient.invalidateQueries({ queryKey: kitsQuery(household).queryKey });
+					}
+				}
+				return [];
+			})
+			.then(() => stepping.errors.length === 0);
 	}
 
 	function addFor(group: Grouped, person: Person | null) {
@@ -494,8 +543,10 @@
 	<TripItemSheet
 		item={shownSheet.item}
 		kits={shownSheet.kits}
+		offered={kits}
 		lines={shownSheet.lines}
 		absent={missing(shownSheet)}
+		errors={stepping.errors}
 		busy={stepping.busy}
 		{whoever}
 		onclose={() => (opened = null)}
@@ -504,5 +555,7 @@
 		onremove={(line) => (opened = { kind: 'remove', item: shownSheet.item, line, back: opened })}
 		onadd={(person) => addFor(shownSheet, person)}
 		onedit={() => (opened = { kind: 'edit', item: shownSheet.item })}
+		onpicking={() => (stepping.errors = [])}
+		onaddtokits={(wanted) => addToKits(shownSheet, wanted)}
 	/>
 {/if}
