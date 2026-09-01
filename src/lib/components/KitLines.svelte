@@ -18,7 +18,7 @@
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { Reordering } from '$lib/reorder.svelte.js';
+	import { Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	interface Grouped {
@@ -52,6 +52,7 @@
 	let typed = $state('');
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
+	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
 	function anchored(node: HTMLElement) {
@@ -72,7 +73,7 @@
 	let searching = $derived(typed.trim().length > 0);
 
 	function whoever(person: Person | null): string {
-		return person ? person.name : m.kit_everyone();
+		return person ? person.name : m.everyone();
 	}
 
 	function missing(group: Grouped): (Person | null)[] {
@@ -91,8 +92,9 @@
 
 	async function chosen(item: ItemType) {
 		if (held.includes(item.id)) {
+			clearTimeout(fading);
 			highlighted = item.id;
-			setTimeout(() => (highlighted = null), 2500);
+			fading = setTimeout(() => (highlighted = null), 2500);
 			await tick();
 			container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
 			return;
@@ -118,17 +120,10 @@
 		if (!move || move.to === move.from) return;
 		const wanted = dragging.rows.flatMap((group) => group.lines);
 		stepping.run(async () => {
-			const current = [...kit.items];
 			try {
-				for (const [at, line] of wanted.entries()) {
-					if (current[at]?.id === line.id) continue;
-					await updateKitItem(household, kit.id, line.id, { position: at });
-					current.splice(
-						current.findIndex((known) => known.id === line.id),
-						1
-					);
-					current.splice(at, 0, line);
-				}
+				await rerank(wanted, kit.items, (line, at) =>
+					updateKitItem(household, kit.id, line.id, { position: at })
+				);
 			} catch (refusal) {
 				dragging.forget();
 				await onchanged();
@@ -147,19 +142,6 @@
 		});
 	}
 </script>
-
-{#snippet face(person: Person | null)}
-	{#if person}
-		<PersonAvatar id={person.id} name={person.name} small />
-	{:else}
-		<span
-			aria-hidden="true"
-			class="bg-muted-foreground text-avatar-foreground flex size-7 flex-none items-center justify-center rounded-full text-xs font-semibold"
-		>
-			∗
-		</span>
-	{/if}
-{/snippet}
 
 <svelte:window
 	onpointermove={(event) => dragging.drag(event)}
@@ -230,7 +212,7 @@
 					<ul class="ml-10 grid min-w-0">
 						{#each group.lines as line (line.id)}
 							<li class="border-border/60 flex min-h-11 min-w-0 items-center gap-2 border-t">
-								{@render face(line.person)}
+								<PersonAvatar person={line.person} small />
 								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
 									{whoever(line.person)}
 								</span>
@@ -263,7 +245,7 @@
 										onclick={() => addLine(group.item.id, person?.id ?? null)}
 										class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
 									>
-										{@render face(person)}
+										<PersonAvatar {person} small />
 										<span class="truncate text-xs font-medium">{whoever(person)}</span>
 									</button>
 								{/each}
