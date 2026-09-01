@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { LucideIcon } from '@lucide/svelte';
+	import type { Snippet } from 'svelte';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { page } from '$app/state';
@@ -18,13 +19,15 @@
 		subtitle,
 		back,
 		switcher = false,
-		actions = []
+		actions = [],
+		extra
 	}: {
 		title: string;
 		subtitle?: string;
 		back?: string;
 		switcher?: boolean;
 		actions?: Action[];
+		extra?: Snippet;
 	} = $props();
 
 	const all = createQuery(() => householdsQuery());
@@ -57,8 +60,9 @@
 				</p>
 			{/if}
 		</div>
-		{#if actions.length > 0}
+		{#if actions.length > 0 || extra}
 			<div class="flex flex-none items-center gap-2">
+				{@render extra?.()}
 				{#each actions as action (action.label)}
 					<button
 						type="button"
