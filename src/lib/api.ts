@@ -585,6 +585,37 @@ export function createTrip(
 	});
 }
 
+export function listTripItems(household: number, trip: number): Promise<TripItem[]> {
+	return request(`/households/${household}/trips/${trip}/items/`);
+}
+
+export function createTripItem(
+	household: number,
+	trip: number,
+	line: { item_type: number; person?: number | null; quantity?: number }
+): Promise<TripItem> {
+	return request(`/households/${household}/trips/${trip}/items/`, {
+		method: 'POST',
+		body: JSON.stringify(line)
+	});
+}
+
+export function updateTripItem(
+	household: number,
+	trip: number,
+	id: number,
+	changes: { person?: number | null; quantity?: number; status?: number }
+): Promise<TripItem> {
+	return request(`/households/${household}/trips/${trip}/items/${id}/`, {
+		method: 'PATCH',
+		body: JSON.stringify(changes)
+	});
+}
+
+export function deleteTripItem(household: number, trip: number, id: number): Promise<void> {
+	return request(`/households/${household}/trips/${trip}/items/${id}/`, { method: 'DELETE' });
+}
+
 export function addParticipant(
 	household: number,
 	trip: number,

@@ -7,6 +7,7 @@ import {
 	listKits,
 	listMembers,
 	listPersons,
+	listTripItems,
 	listTrips,
 	readKit,
 	readTrip
@@ -19,15 +20,14 @@ export const queryClient = new QueryClient({
 export const householdsQuery = () =>
 	queryOptions({ queryKey: ['households'], queryFn: listHouseholds });
 
-// L'écriture vient de rendre la représentation qui fait autorité : on la pose
-// dans le cache au lieu de la redemander. Redemander serait à la fois faillible
-// — un GET qui échoue après un POST réussi bloquerait la navigation, et le
-// second essai créerait un doublon — et incertain : `Query.fetch` rend la
-// promesse déjà en vol quand on ne lui passe pas `cancelRefetch`, donc la
-// réponse pourrait dater d'avant l'écriture. Les `load` lisent en
-// `staleTime: 'static'`, ils y trouveraient l'ancienne liste. L'invalidation
-// qui suit laisse le serveur réconcilier en arrière-plan, sans que le chemin de
-// succès dépende d'elle.
+// The write just returned the authoritative representation: it goes into the
+// cache instead of being asked for again. Asking again would be both fallible —
+// a GET failing after a successful POST would block navigation, and the retry
+// would create a duplicate — and uncertain: `Query.fetch` returns the in-flight
+// promise when it is not given `cancelRefetch`, so the answer could predate the
+// write. The `load`s read with `staleTime: 'static'`, where they would find the
+// old list. The invalidation that follows lets the server reconcile in the
+// background, without the success path depending on it.
 export function rewrite<T>(key: QueryKey, change: (all: T[]) => T[]): T[] {
 	const next = change(queryClient.getQueryData<T[]>(key) ?? []);
 	queryClient.setQueryData(key, next);
@@ -35,8 +35,8 @@ export function rewrite<T>(key: QueryKey, change: (all: T[]) => T[]): T[] {
 	return next;
 }
 
-// Toutes les clés d'un foyer prolongent la sienne : une écriture dont on ne sait
-// pas ce qu'elle a touché s'invalide en une fois, sans réveiller les autres.
+// Every key of a household extends its own: a write whose reach is unknown is
+// invalidated in one go, without waking the other households.
 export const householdKey = (household: number) => ['household', household];
 
 export const statusesQuery = (household: number) =>
@@ -51,11 +51,11 @@ export const personsQuery = (household: number) =>
 		queryFn: () => listPersons(household)
 	});
 
-// Les personnes et les membres en une seule requête, parce que l'écran du foyer
-// les croise : un « nouveau venu » est un membre sans personne. En deux requêtes
-// indépendantes, les réponses arrivent dans deux ticks et l'écran rend entre les
-// deux un état qui n'a jamais existé — une personne déjà détachée de son compte
-// dont l'adhésion figure encore, donc un nouveau venu fantôme.
+// Persons and members in a single query, because the household screen crosses
+// them: a "newcomer" is a member without a person. As two independent queries,
+// the answers land in two ticks and the screen renders in between a state that
+// never existed — a person already detached from their account whose membership
+// still shows, hence a phantom newcomer.
 export const peopleQuery = (household: number) =>
 	queryOptions({
 		queryKey: [...householdKey(household), 'people'],
@@ -74,8 +74,8 @@ export const invitationsQuery = (household: number) =>
 		queryFn: () => listInvitations(household)
 	});
 
-// La clé du détail prolonge celle de la liste : une écriture sur un kit change
-// les deux, et une seule invalidation sur `kits` les emporte.
+// The detail key extends the list key: a write on a kit changes both, and a
+// single invalidation on `kits` carries them away.
 export const kitsQuery = (household: number) =>
 	queryOptions({
 		queryKey: [...householdKey(household), 'kits'],
@@ -88,8 +88,8 @@ export const kitQuery = (household: number, kit: number) =>
 		queryFn: () => readKit(household, kit)
 	});
 
-// Archiver un voyage le fait passer d'une liste à l'autre : les deux clés
-// prolongent `tripsKey`, qu'une seule invalidation emporte.
+// Archiving a trip moves it from one list to the other: both keys extend
+// `tripsKey`, which a single invalidation carries away.
 export const tripsKey = (household: number) => [...householdKey(household), 'trips'];
 
 export const tripsQuery = (household: number, archived = false) =>
@@ -98,12 +98,21 @@ export const tripsQuery = (household: number, archived = false) =>
 		queryFn: () => listTrips(household, archived)
 	});
 
-// Le détail prolonge la clé des listes : archiver un voyage change les trois,
-// et une seule invalidation sur `tripsKey` les emporte.
+// The detail extends the lists key: archiving a trip changes all three, and a
+// single invalidation on `tripsKey` carries them away.
 export const tripQuery = (household: number, trip: number) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), trip],
 		queryFn: () => readTrip(household, trip)
+	});
+
+// Lines get their own key and their own query. The detail carries them too, but
+// two copies of the same list would drift apart at the first tick. This is also
+// the route that carries the ETag, the one polling will read.
+export const tripLinesQuery = (household: number, trip: number) =>
+	queryOptions({
+		queryKey: [...tripsKey(household), trip, 'lines'],
+		queryFn: () => listTripItems(household, trip)
 	});
 
 export const itemsQuery = (household: number) =>
