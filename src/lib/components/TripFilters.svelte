@@ -1,18 +1,22 @@
 <script lang="ts">
-	import type { Kit, Person } from '$lib/api.js';
+	import type { ItemStatus, Kit, Person } from '$lib/api.js';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
 	let {
 		kits,
 		participants,
+		statuses,
 		kit = $bindable(null),
-		person = $bindable(null)
+		person = $bindable(null),
+		status = $bindable(null)
 	}: {
 		kits: Kit[];
 		participants: Person[];
+		statuses: ItemStatus[];
 		kit?: number | null;
 		person?: number | null;
+		status?: number | null;
 	} = $props();
 
 	const chip =
@@ -66,6 +70,38 @@
 				class={[chip, 'gap-1.5 py-1 pr-3 pl-1', person === one.id ? on : off]}
 			>
 				<PersonAvatar id={one.id} name={one.name} small />
+				{one.name}
+			</button>
+		{/each}
+	</div>
+{/if}
+
+{#if statuses.length > 0}
+	<div
+		role="group"
+		aria-label={m.trip_filter_statuses()}
+		class="-mx-4 flex gap-2 overflow-x-auto px-4"
+	>
+		<button
+			type="button"
+			aria-pressed={status === null}
+			onclick={() => (status = null)}
+			class={[chip, 'px-3', status === null ? on : off]}
+		>
+			{m.trip_filter_all()}
+		</button>
+		{#each statuses as one (one.id)}
+			<button
+				type="button"
+				aria-pressed={status === one.id}
+				onclick={() => (status = status === one.id ? null : one.id)}
+				class={[chip, 'gap-1.5 px-3', status === one.id ? on : off]}
+			>
+				<span
+					aria-hidden="true"
+					class="size-[9px] flex-none rounded-full"
+					style:background-color={one.color}
+				></span>
 				{one.name}
 			</button>
 		{/each}

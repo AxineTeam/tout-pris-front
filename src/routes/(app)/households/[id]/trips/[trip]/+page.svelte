@@ -1,13 +1,14 @@
 <script lang="ts">
-	import ArrowUpDownIcon from '@lucide/svelte/icons/arrow-up-down';
-	import CheckIcon from '@lucide/svelte/icons/check';
+	import ArrowDown10Icon from '@lucide/svelte/icons/arrow-down-1-0';
+	import ArrowDownZAIcon from '@lucide/svelte/icons/arrow-down-z-a';
+	import ArrowUp01Icon from '@lucide/svelte/icons/arrow-up-0-1';
+	import ArrowUpAZIcon from '@lucide/svelte/icons/arrow-up-a-z';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import Menu from '$lib/components/Menu.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
-	import TripLines, { type Sorting } from '$lib/components/TripLines.svelte';
+	import TripLines, { type Direction, type Sorting } from '$lib/components/TripLines.svelte';
 	import TripProgress from '$lib/components/TripProgress.svelte';
 	import { locale } from '$lib/locale.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -22,12 +23,34 @@
 	const items = createQuery(() => itemsQuery(data.household.id));
 
 	let sorted = $state<Sorting>('order');
+	let direction = $state<Direction>('up');
 
-	let sortings = $derived<{ key: Sorting; label: string }[]>([
-		{ key: 'order', label: m.trip_sort_order() },
-		{ key: 'name', label: m.trip_sort_name() },
-		{ key: 'progress', label: m.trip_sort_progress() }
+	// One button per sort, and the button carries its own direction: pressing the
+	// sort already in force turns it around instead of doing nothing.
+	let sortings = $derived([
+		{
+			key: 'order' as Sorting,
+			icon: direction === 'down' && sorted === 'order' ? ArrowDown10Icon : ArrowUp01Icon,
+			label:
+				sorted === 'order' && direction === 'up'
+					? m.trip_sort_order_last()
+					: m.trip_sort_order_first()
+		},
+		{
+			key: 'name' as Sorting,
+			icon: direction === 'down' && sorted === 'name' ? ArrowDownZAIcon : ArrowUpAZIcon,
+			label:
+				sorted === 'name' && direction === 'up' ? m.trip_sort_name_z_a() : m.trip_sort_name_a_z()
+		}
 	]);
+
+	function sort(key: Sorting) {
+		if (sorted === key) direction = direction === 'up' ? 'down' : 'up';
+		else {
+			sorted = key;
+			direction = 'up';
+		}
+	}
 
 	let known = $derived(lines.data ?? []);
 	let going = $derived((trip.data?.participants ?? []).map((one) => one.person));
@@ -71,42 +94,22 @@
 	]}
 >
 	{#snippet extra()}
-		<Menu
-			label={m.trip_sort()}
-			align="right"
-			triggerClass="border-border bg-card text-primary hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 active:bg-primary/25 flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none focus-visible:ring-[3px]"
-		>
-			{#snippet trigger()}
-				<ArrowUpDownIcon size={16} aria-hidden="true" />
-			{/snippet}
-
-			{#snippet children(close: () => void)}
-				<span
-					class="text-muted-foreground px-2.5 pt-2 pb-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase"
-				>
-					{m.trip_sort()}
-				</span>
-				{#each sortings as sorting (sorting.key)}
-					<button
-						type="button"
-						role="menuitemradio"
-						aria-checked={sorted === sorting.key}
-						onclick={() => {
-							sorted = sorting.key;
-							close();
-						}}
-						class="hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
-					>
-						<span class="text-primary flex w-4 flex-none">
-							{#if sorted === sorting.key}
-								<CheckIcon size={15} aria-hidden="true" />
-							{/if}
-						</span>
-						{sorting.label}
-					</button>
-				{/each}
-			{/snippet}
-		</Menu>
+		{#each sortings as sorting (sorting.key)}
+			<button
+				type="button"
+				aria-pressed={sorted === sorting.key}
+				aria-label={sorting.label}
+				onclick={() => sort(sorting.key)}
+				class={[
+					'focus-visible:border-ring focus-visible:ring-ring/50 flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none focus-visible:ring-[3px]',
+					sorted === sorting.key
+						? 'border-primary bg-primary text-primary-foreground'
+						: 'border-border bg-card text-primary hover:bg-accent active:bg-primary/25'
+				]}
+			>
+				<sorting.icon size={16} aria-hidden="true" />
+			</button>
+		{/each}
 	{/snippet}
 </ScreenHeader>
 
@@ -119,5 +122,6 @@
 	participants={going}
 	items={items.data ?? []}
 	{sorted}
+	{direction}
 	onchanged={reload}
 />

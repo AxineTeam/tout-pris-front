@@ -1,9 +1,11 @@
 <script module lang="ts">
-	export type Sorting = 'order' | 'name' | 'progress';
+	export type Sorting = 'order' | 'name';
+	export type Direction = 'up' | 'down';
 </script>
 
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { tick } from 'svelte';
@@ -12,9 +14,9 @@
 		deleteTripItem,
 		updateTripItem,
 		type ItemType,
+		type ItemStatus,
 		type Kit,
 		type Person,
-		type ProgressCategory,
 		type TripItem
 	} from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
@@ -41,7 +43,9 @@
 		participants,
 		items,
 		sorted = 'order',
-		onchanged
+		direction = 'up',
+		onchanged,
+		onopen
 	}: {
 		household: number;
 		trip: number;
@@ -49,7 +53,9 @@
 		participants: Person[];
 		items: ItemType[];
 		sorted?: Sorting;
+		direction?: Direction;
 		onchanged: () => Promise<void>;
+		onopen?: (item: ItemType) => void;
 	} = $props();
 
 	const stepping = new Submission();
@@ -57,6 +63,7 @@
 	let typed = $state('');
 	let kept = $state.raw<number | null>(null);
 	let aimed = $state.raw<number | null>(null);
+	let staged = $state.raw<number | null>(null);
 	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let container = $state.raw<HTMLElement>();
@@ -64,8 +71,6 @@
 	function anchored(node: HTMLElement) {
 		container = node;
 	}
-
-	const rank: Record<ProgressCategory, number> = { not_started: 0, in_progress: 1, done: 2 };
 
 	// The kits a trip carries are the ones its own lines name: a household kit
 	// nobody embarked would be a chip that empties the screen.
@@ -85,9 +90,20 @@
 		lines.filter(
 			(line) =>
 				(kept === null || line.kits.some((kit) => kit.id === kept)) &&
-				(aimed === null || line.person === null || line.person.id === aimed)
+				(aimed === null || line.person === null || line.person.id === aimed) &&
+				(staged === null || line.status.id === staged)
 		)
 	);
+
+	// Same reading as the kits: the statuses a trip shows are the ones its lines
+	// wear, in the household's own order.
+	let worn = $derived.by(() => {
+		const found: ItemStatus[] = [];
+		for (const line of lines) {
+			if (!found.some((known) => known.id === line.status.id)) found.push(line.status);
+		}
+		return found.sort((one, other) => one.position - other.position);
+	});
 
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
@@ -105,23 +121,22 @@
 	let held = $derived([...new Set(lines.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
 
-	function leastAdvanced(group: Grouped): number {
-		return Math.min(...group.lines.map((line) => rank[line.status.progress]));
-	}
-
-	// Dragging only makes sense against the whole list in its stored order: on a
-	// computed sort the gesture would fight the sort, and under a filter the
-	// ranks would be counted over the lines that show, moving the hidden ones.
-	let movable = $derived(sorted === 'order' && kept === null && aimed === null);
+	// Dragging only makes sense against the whole list read the way it is stored:
+	// reversed or sorted by name the gesture would fight the order, and under a
+	// filter the ranks would be counted over the lines that show, moving the
+	// hidden ones.
+	let movable = $derived(
+		sorted === 'order' && direction === 'up' && kept === null && aimed === null && staged === null
+	);
 
 	let shown = $derived.by(() => {
-		if (sorted === 'name') {
-			return [...groups].sort((one, other) => one.item.name.localeCompare(other.item.name));
-		}
-		if (sorted === 'progress') {
-			return [...groups].sort((one, other) => leastAdvanced(one) - leastAdvanced(other));
-		}
-		return movable ? dragging.rows : groups;
+		const base =
+			sorted === 'name'
+				? [...groups].sort((one, other) => one.item.name.localeCompare(other.item.name))
+				: movable
+					? dragging.rows
+					: groups;
+		return direction === 'down' ? [...base].reverse() : base;
 	});
 
 	function whoever(person: Person | null): string {
@@ -225,7 +240,14 @@
 	<FormErrors errors={stepping.errors} />
 
 	{#if !searching}
-		<TripFilters kits={embarked} {participants} bind:kit={kept} bind:person={aimed} />
+		<TripFilters
+			kits={embarked}
+			{participants}
+			statuses={worn}
+			bind:kit={kept}
+			bind:person={aimed}
+			bind:status={staged}
+		/>
 
 		{#if groups.length === 0}
 			<p class="text-muted-foreground text-sm" data-testid="trip-empty">
@@ -264,14 +286,26 @@
 								<GripHorizontalIcon size={16} />
 							</span>
 						{/if}
-						<span class="min-w-0 flex-1">
-							<span class="block truncate text-sm font-semibold">{group.item.name}</span>
+						<button
+							type="button"
+							aria-label={m.trip_item_open({ name: group.item.name })}
+							onclick={() => onopen?.(group.item)}
+							class="focus-visible:ring-ring/50 grid min-w-0 flex-1 content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
+						>
+							<span class="flex min-w-0 items-center gap-0.5">
+								<span class="truncate text-sm font-semibold">{group.item.name}</span>
+								<ChevronRightIcon
+									size={15}
+									aria-hidden="true"
+									class="text-muted-foreground flex-none"
+								/>
+							</span>
 							{#if group.item.description}
-								<span class="text-muted-foreground block truncate text-xs">
+								<span class="text-muted-foreground truncate text-xs">
 									{group.item.description}
 								</span>
 							{/if}
-						</span>
+						</button>
 						{#if group.kits.length > 0}
 							<span class="flex flex-none flex-wrap justify-end gap-1">
 								{#each group.kits as kit (kit.id)}
