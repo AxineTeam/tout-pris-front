@@ -29,7 +29,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { queryClient, tripLinesQuery } from '$lib/query.js';
-	import { Reordering } from '$lib/reorder.svelte.js';
+	import { Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { inHierarchy } from '$lib/statuses.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -152,7 +152,7 @@
 	});
 
 	function whoever(person: Person | null): string {
-		return person ? person.name : m.trip_everyone();
+		return person ? person.name : m.everyone();
 	}
 
 	// Only the people going: a line aimed at someone who stayed home would be a
@@ -287,17 +287,10 @@
 		if (!move || move.to === move.from) return;
 		const wanted = landing(move.row);
 		stepping.run(async () => {
-			const current = [...lines];
 			try {
-				for (const [at, line] of wanted.entries()) {
-					if (current[at]?.id === line.id) continue;
-					await updateTripItem(household, trip, line.id, { position: at });
-					current.splice(
-						current.findIndex((known) => known.id === line.id),
-						1
-					);
-					current.splice(at, 0, line);
-				}
+				await rerank(wanted, lines, (line, at) =>
+					updateTripItem(household, trip, line.id, { position: at })
+				);
 			} catch (refusal) {
 				dragging.forget();
 				await onchanged();
@@ -314,19 +307,6 @@
 	onpointerup={drop}
 	onpointercancel={() => dragging.cancel()}
 />
-
-{#snippet face(person: Person | null)}
-	{#if person}
-		<PersonAvatar id={person.id} name={person.name} small />
-	{:else}
-		<span
-			aria-hidden="true"
-			class="bg-muted-foreground text-avatar-foreground flex size-7 flex-none items-center justify-center rounded-full text-xs font-semibold"
-		>
-			∗
-		</span>
-	{/if}
-{/snippet}
 
 <div {@attach anchored} class="grid gap-2.5">
 	<ItemPicker
@@ -424,7 +404,7 @@
 					<ul class="grid min-w-0">
 						{#each group.lines as line (line.id)}
 							<li class="border-border/60 flex min-h-11 min-w-0 items-center gap-2 border-t">
-								{@render face(line.person)}
+								<PersonAvatar person={line.person} small />
 								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
 									{whoever(line.person)}
 								</span>
@@ -467,7 +447,7 @@
 										onclick={() => addFor(group, person)}
 										class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
 									>
-										{@render face(person)}
+										<PersonAvatar {person} small />
 										<span class="truncate text-xs font-medium">{whoever(person)}</span>
 									</button>
 								{/each}
