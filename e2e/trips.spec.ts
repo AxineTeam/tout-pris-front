@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openAsShared } from './account';
-import { createShared, deleteShared, name, sheet } from './households';
+import { addPerson, createShared, deleteShared, name, sheet } from './households';
 
 function openTrips(page: Page) {
 	return page
@@ -24,9 +24,14 @@ function archives(page: Page) {
 	return page.getByTestId('trips-archived');
 }
 
-async function visitDetail(page: Page, opens: Locator, options?: { force: boolean }) {
+async function visitDetail(
+	page: Page,
+	opens: Locator,
+	holds: string,
+	options?: { force: boolean }
+) {
 	await opens.click(options);
-	await expect(page.getByTestId('screen-title')).toHaveText('Voyage');
+	await expect(page.getByTestId('screen-title')).toHaveText(holds);
 	await page.getByRole('link', { name: 'Retour' }).click();
 	await expect(page.getByTestId('screen-title')).toHaveText('Voyages');
 }
@@ -36,12 +41,20 @@ async function act(page: Page, holds: string, action: string) {
 	await page.getByRole('menu').getByRole('menuitem', { name: action }).click();
 }
 
-async function newTrip(page: Page, wanted: string, date: string) {
+// Creating a trip is a screen of its own now, not a dialog: it carries the
+// participants and the kits, which no bottom sheet had room for.
+async function newTrip(page: Page, wanted: string, date: string, going: string[] = []) {
 	await page.getByRole('button', { name: 'Nouveau voyage' }).click();
-	await expect(sheet(page).getByLabel('Date de départ')).toHaveValue(inDays(0));
-	await sheet(page).getByLabel('Nom du voyage').fill(wanted);
-	await sheet(page).getByLabel('Date de départ').fill(date);
-	await sheet(page).getByRole('button', { name: 'Créer' }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText('Nouveau voyage');
+	await expect(page.getByLabel('Date de départ')).toHaveValue(inDays(0));
+	await page.getByLabel('Nom du voyage').fill(wanted);
+	await page.getByLabel('Date de départ').fill(date);
+	for (const who of going) {
+		await page.getByRole('button', { name: `Fait partir ${who}` }).click();
+	}
+	await page.getByRole('button', { name: 'Créer' }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText(wanted);
+	await page.getByRole('link', { name: 'Retour' }).click();
 	await expect(trip(page, wanted)).toBeVisible();
 }
 
@@ -74,13 +87,17 @@ test('un voyage se crée, s’archive, se duplique, puis se supprime', async ({ 
 	await card.getByRole('button').hover();
 	await expect.poll(lit, { message: 'mais pas sous le menu' }).toBe(resting);
 
-	await visitDetail(page, card.getByRole('link'));
-	await visitDetail(page, card.locator('> svg'), { force: true });
+	await visitDetail(page, card.getByRole('link'), corse);
+	await visitDetail(page, card.locator('> svg'), corse, { force: true });
 
 	await act(page, corse, 'Archiver');
 	await expect(archives(page)).toContainText(corse);
 	await expect(archives(page).locator('[data-testid^="trip-"]')).not.toContainText('dans 9 jours');
-	await visitDetail(page, archives(page).locator('[data-testid^="trip-"]').getByRole('link'));
+	await visitDetail(
+		page,
+		archives(page).locator('[data-testid^="trip-"]').getByRole('link'),
+		corse
+	);
 
 	await page.reload();
 	await expect(archives(page)).toContainText(corse);
@@ -104,6 +121,105 @@ test('un voyage se crée, s’archive, se duplique, puis se supprime', async ({ 
 		await sheet(page).getByRole('button', { name: 'Supprimer' }).click();
 		await expect(trip(page, doomed)).toHaveCount(0);
 	}
+	await expect(page.getByTestId('trips-empty')).toBeVisible();
+
+	await deleteShared(page, shared);
+});
+
+function objectNames(page: Page) {
+	return page
+		.locator('li[data-trip-item] button[aria-label^="Ouvrir"]')
+		.evaluateAll((rows) => rows.map((row) => row.querySelector('span')!.textContent!.trim()));
+}
+
+function lineOf(page: Page, item: string, who: string) {
+	return page
+		.locator('li[data-trip-item]')
+		.filter({ hasText: item })
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
+}
+
+async function dragAbove(page: Page, handle: Locator, target: Locator) {
+	const grip = await handle.boundingBox();
+	const landing = await target.boundingBox();
+	if (!grip || !landing) throw new Error('nothing to drag');
+	await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(landing.x + landing.width / 2, landing.y + 4, { steps: 1 });
+	await page.mouse.up();
+}
+
+test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au rechargement', async ({
+	page
+}) => {
+	await openAsShared(page);
+	const shared = await createShared(page, name('préparation'));
+	await addPerson(page, 'Léa');
+
+	await openTrips(page);
+	const corse = name('corse');
+	await newTrip(page, corse, inDays(9), ['Léa']);
+	await trip(page, corse).getByRole('link').click();
+	await expect(page.getByTestId('trip-empty')).toBeVisible();
+
+	for (const object of ['Tente', 'Brosse à dents']) {
+		await page.getByRole('combobox').click();
+		await page.keyboard.type(object);
+		await page.getByTestId('item-create').click();
+		await expect(page.locator('li[data-trip-item]').filter({ hasText: object })).toBeVisible();
+	}
+	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
+
+	// La jauge compte les lignes prêtes : trois statuts, aucune ne l'est encore.
+	await expect(page.getByTestId('trip-progress')).toHaveAccessibleName('0 sur 2 prêts');
+	const first = lineOf(page, 'Tente', 'Tout le monde');
+	await first.getByRole('button', { name: 'Un de plus pour Tout le monde' }).click();
+	await expect(first).toContainText('2');
+
+	await first.getByRole('button', { name: /^Tente pour Tout le monde/ }).click();
+	await first.getByRole('button', { name: /^Tente pour Tout le monde/ }).click();
+	await expect(page.getByTestId('trip-progress')).toHaveAccessibleName('1 sur 2 prêts');
+
+	await dragAbove(
+		page,
+		page.getByTestId(/^trip-item-handle-/).last(),
+		page.locator('li[data-trip-item]').first()
+	);
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await page.reload();
+	await expect(page.locator('li[data-trip-item]')).toHaveCount(2);
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+
+	// La feuille de l'objet porte toutes ses lignes, et son crayon le renomme.
+	await page.getByRole('button', { name: 'Ouvrir « Tente »' }).click();
+	await expect(sheet(page)).toContainText('Tout le monde');
+	await sheet(page).getByRole('button', { name: 'Modifier l’objet « Tente »' }).click();
+	await sheet(page).getByLabel('Description de l’objet').fill('Deux places');
+	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
+	await expect(sheet(page)).toContainText('Deux places');
+	await page.getByRole('button', { name: 'Fermer' }).click();
+	await expect(page.locator('li[data-trip-item]').filter({ hasText: 'Tente' })).toContainText(
+		'Deux places'
+	);
+
+	// Un filtre laisse le tri et l'ancre : la ligne de Léa n'existe que sur un objet.
+	await page.getByRole('button', { name: 'Ouvrir « Brosse à dents »' }).click();
+	await sheet(page).getByRole('button', { name: 'Ajouter une ligne pour Léa' }).click();
+	await page.getByRole('button', { name: 'Fermer' }).click();
+	await page
+		.getByRole('group', { name: 'Filtrer par personne' })
+		.getByRole('button', { name: 'Léa' })
+		.click();
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await page.getByRole('button', { name: /^Trier par nom/ }).click();
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+
+	// Le voyage part avant le foyer : le retrait d'une personne dont l'objet est
+	// aussi pris en commun casse encore côté API (AxineTeam/tout-pris-api#101).
+	await page.getByRole('link', { name: 'Retour' }).click();
+	await act(page, corse, 'Supprimer');
+	await sheet(page).getByRole('button', { name: 'Supprimer' }).click();
 	await expect(page.getByTestId('trips-empty')).toBeVisible();
 
 	await deleteShared(page, shared);

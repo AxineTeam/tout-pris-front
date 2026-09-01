@@ -12,7 +12,9 @@ const echarpe = { id: 2, name: 'Écharpe', description: 'la rouge que Tom perd' 
 
 function show(held: number[] = []) {
 	const onchosen = vi.fn();
-	render(ItemPicker, { props: { household: 7, items: [chapeau, echarpe], held, onchosen } });
+	render(ItemPicker, {
+		props: { household: 7, items: [chapeau, echarpe], held, holding: 'déjà pris', onchosen }
+	});
 	return onchosen;
 }
 
@@ -103,7 +105,7 @@ describe('ItemPicker', () => {
 
 		await type(user, 'chap');
 
-		expect(proposed()[0]).toContain('déjà dans ce kit');
+		expect(proposed()[0]).toContain('déjà pris');
 	});
 
 	it('rend l’objet choisi sans rien créer', async () => {

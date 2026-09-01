@@ -202,7 +202,15 @@
 />
 
 <div {@attach anchored} class="grid gap-2.5">
-	<ItemPicker {household} {items} {held} bind:typed onchosen={chosen} />
+	<ItemPicker
+		{household}
+		{items}
+		{held}
+		holding={m.item_in_kit()}
+		busy={stepping.busy}
+		bind:typed
+		onchosen={chosen}
+	/>
 
 	<FormErrors errors={stepping.errors} />
 

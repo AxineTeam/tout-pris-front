@@ -14,12 +14,16 @@
 		household,
 		items,
 		held,
+		holding,
+		busy = false,
 		typed = $bindable(''),
 		onchosen
 	}: {
 		household: number;
 		items: ItemType[];
 		held: number[];
+		holding: string;
+		busy?: boolean;
 		typed?: string;
 		onchosen: (item: ItemType) => void;
 	} = $props();
@@ -72,6 +76,7 @@
 							{...field}
 							bind:value={typed}
 							onkeydown={forget}
+							disabled={busy}
 							aria-expanded={wanted.length > 0}
 							aria-label={m.item_field_label()}
 							placeholder={m.item_field_label()}
@@ -115,7 +120,7 @@
 													<span
 														class="bg-muted text-muted-foreground flex-none rounded-full px-2 py-0.5 text-[10px]"
 													>
-														{m.item_in_kit()}
+														{holding}
 													</span>
 												{/if}
 											</RowCard>
