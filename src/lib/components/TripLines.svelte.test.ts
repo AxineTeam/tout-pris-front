@@ -111,7 +111,67 @@ describe('TripLines', () => {
 	it('montre les kits de l’objet', () => {
 		show([line(tent, todo, { kits: [camping] })]);
 
-		expect(screen.getByText('Camping')).toBeInTheDocument();
+		expect(within(card('Tente')).getByText('Camping')).toBeInTheDocument();
+	});
+
+	it('ne garde que les objets du kit choisi', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
+				name: 'Camping'
+			})
+		);
+
+		expect(names()).toEqual(['Tente']);
+	});
+
+	it('garde les lignes communes quand on filtre sur une personne', async () => {
+		const user = userEvent.setup();
+		show([
+			line(socks, todo, { person: alice }),
+			line(socks, todo, { person: bob }),
+			line(tent, todo)
+		]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
+				name: 'Alice'
+			})
+		);
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
+	});
+
+	it('retire l’ancre tant qu’un filtre est posé', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		expect(screen.getByTestId(`trip-item-handle-${tent.id}`)).toBeInTheDocument();
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
+				name: 'Camping'
+			})
+		);
+		expect(screen.queryByTestId(`trip-item-handle-${tent.id}`)).not.toBeInTheDocument();
+	});
+
+	it('ne propose pas de recréer un objet qu’un filtre cache', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
+				name: 'Camping'
+			})
+		);
+		await user.click(screen.getByRole('combobox'));
+		await user.keyboard('Chaussettes');
+		await user.click(screen.getAllByRole('option')[0]);
+
+		expect(createTripItem).not.toHaveBeenCalled();
 	});
 
 	it('trie par nom puis par ce qui reste à faire', async () => {

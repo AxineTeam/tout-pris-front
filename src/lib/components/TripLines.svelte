@@ -21,6 +21,7 @@
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
+	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Reordering } from '$lib/reorder.svelte.js';
@@ -54,6 +55,8 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
+	let kept = $state.raw<number | null>(null);
+	let aimed = $state.raw<number | null>(null);
 	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let container = $state.raw<HTMLElement>();
@@ -64,9 +67,31 @@
 
 	const rank: Record<ProgressCategory, number> = { not_started: 0, in_progress: 1, done: 2 };
 
+	// The kits a trip carries are the ones its own lines name: a household kit
+	// nobody embarked would be a chip that empties the screen.
+	let embarked = $derived.by(() => {
+		const found: Kit[] = [];
+		for (const line of lines) {
+			for (const kit of line.kits) {
+				if (!found.some((known) => known.id === kit.id)) found.push(kit);
+			}
+		}
+		return found;
+	});
+
+	// A common line is everyone's, so it survives a filter on any one person:
+	// what Léa has to pack includes what the household shares.
+	let filtered = $derived(
+		lines.filter(
+			(line) =>
+				(kept === null || line.kits.some((kit) => kit.id === kept)) &&
+				(aimed === null || line.person === null || line.person.id === aimed)
+		)
+	);
+
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
-		for (const line of lines) {
+		for (const line of filtered) {
 			const group = found.find((known) => known.id === line.item_type.id);
 			if (group) group.lines.push(line);
 			else
@@ -75,16 +100,19 @@
 		return found;
 	});
 
-	let held = $derived(groups.map((group) => group.item.id));
+	// Read from every line, not from the visible groups: an object a filter hides
+	// is still in the trip, and offering it again would create a second line.
+	let held = $derived([...new Set(lines.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
 
 	function leastAdvanced(group: Grouped): number {
 		return Math.min(...group.lines.map((line) => rank[line.status.progress]));
 	}
 
-	// Dragging only makes sense against the stored order: on a computed sort the
-	// gesture would fight the sort, so the anchor is not drawn.
-	let movable = $derived(sorted === 'order');
+	// Dragging only makes sense against the whole list in its stored order: on a
+	// computed sort the gesture would fight the sort, and under a filter the
+	// ranks would be counted over the lines that show, moving the hidden ones.
+	let movable = $derived(sorted === 'order' && kept === null && aimed === null);
 
 	let shown = $derived.by(() => {
 		if (sorted === 'name') {
@@ -101,10 +129,15 @@
 	}
 
 	// Only the people going: a line aimed at someone who stayed home would be a
-	// row nobody packs, and the API refuses it anyway.
+	// row nobody packs, and the API refuses it anyway. What is taken is read from
+	// every line of the object, filtered ones included — a line a filter hides is
+	// still a line, and offering it again would be a duplicate the API refuses.
 	function missing(group: Grouped): (Person | null)[] {
-		const taken = group.lines.map((line) => line.person?.id ?? null);
-		return [null, ...participants].filter((person) => !taken.includes(person?.id ?? null));
+		const taken = lines
+			.filter((line) => line.item_type.id === group.id)
+			.map((line) => line.person?.id ?? null);
+		const offered = aimed === null ? participants : participants.filter((one) => one.id === aimed);
+		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
 	function act(call: () => Promise<unknown>) {
@@ -192,8 +225,12 @@
 	<FormErrors errors={stepping.errors} />
 
 	{#if !searching}
+		<TripFilters kits={embarked} {participants} bind:kit={kept} bind:person={aimed} />
+
 		{#if groups.length === 0}
-			<p class="text-muted-foreground text-sm" data-testid="trip-empty">{m.trip_empty()}</p>
+			<p class="text-muted-foreground text-sm" data-testid="trip-empty">
+				{lines.length === 0 ? m.trip_empty() : m.trip_filtered_empty()}
+			</p>
 		{/if}
 
 		<ul
