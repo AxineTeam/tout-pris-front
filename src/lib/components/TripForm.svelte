@@ -154,7 +154,7 @@
 						onclick={() => (going = toggle(going, person.id))}
 						class="border-border aria-pressed:border-primary aria-pressed:bg-accent hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 items-center gap-2 rounded-full border px-1.5 py-1 pr-3 text-sm transition-colors outline-none focus-visible:ring-[3px]"
 					>
-						<PersonAvatar id={person.id} name={person.name} small />
+						<PersonAvatar {person} small />
 						{person.name}
 					</button>
 				{/each}
