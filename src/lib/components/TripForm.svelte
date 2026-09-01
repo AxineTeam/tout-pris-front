@@ -64,10 +64,16 @@
 		for (const person of going.filter((id) => !already.includes(id))) {
 			await addParticipant(household, current.id, person);
 		}
-		for (const kit of embarking) {
-			await embarkKit(household, current.id, kit);
+		try {
+			for (const kit of embarking) {
+				await embarkKit(household, current.id, kit);
+			}
+		} finally {
+			// Each write lands on its own, so a refusal partway leaves the server
+			// ahead of the cache. Invalidating on the way out costs one request and
+			// keeps the screen from showing a name that is no longer the name.
+			await queryClient.invalidateQueries({ queryKey: tripsKey(household) });
 		}
-		await queryClient.invalidateQueries({ queryKey: tripsKey(household) });
 		return current.id;
 	}
 
@@ -136,6 +142,9 @@
 		{#if persons.length === 0}
 			<p class="text-muted-foreground text-sm">{m.trip_who_none()}</p>
 		{:else}
+			{#if trip}
+				<p class="text-muted-foreground text-xs">{m.trip_going_explains()}</p>
+			{/if}
 			<div role="group" aria-label={m.trip_who()} class="flex flex-wrap gap-1.5">
 				{#each persons as person (person.id)}
 					<button

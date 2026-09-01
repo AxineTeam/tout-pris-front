@@ -28,12 +28,16 @@
 
 	// One button per sort, and the button carries its own direction: pressing the
 	// sort already in force turns it around instead of doing nothing.
+	//
+	// The label states where the list stands, because `aria-pressed` states the
+	// same thing: naming the next tap instead would have a reader announce
+	// "Z to A, pressed" over a list running A to Z.
 	let sortings = $derived([
 		{
 			key: 'order' as Sorting,
 			icon: direction === 'down' && sorted === 'order' ? ArrowDown10Icon : ArrowUp01Icon,
 			label:
-				sorted === 'order' && direction === 'up'
+				sorted === 'order' && direction === 'down'
 					? m.trip_sort_order_last()
 					: m.trip_sort_order_first()
 		},
@@ -41,7 +45,7 @@
 			key: 'name' as Sorting,
 			icon: direction === 'down' && sorted === 'name' ? ArrowDownZAIcon : ArrowUpAZIcon,
 			label:
-				sorted === 'name' && direction === 'up' ? m.trip_sort_name_z_a() : m.trip_sort_name_a_z()
+				sorted === 'name' && direction === 'down' ? m.trip_sort_name_z_a() : m.trip_sort_name_a_z()
 		}
 	]);
 

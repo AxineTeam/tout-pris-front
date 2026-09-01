@@ -32,6 +32,11 @@
 	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
+	type Opened =
+		| { kind: 'sheet'; item: ItemType }
+		| { kind: 'edit'; item: ItemType }
+		| { kind: 'remove'; item: ItemType; line: TripItem; back: Opened | null };
+
 	interface Grouped {
 		id: number;
 		item: ItemType;
@@ -67,12 +72,14 @@
 	let kept = $state.raw<number | null>(null);
 	let aimed = $state.raw<number | null>(null);
 	let staged = $state.raw<number | null>(null);
-	let removed = $state.raw<{ group: Grouped; line: TripItem } | null>(null);
-	let opened = $state.raw<number | null>(null);
-	// The editor replaces the sheet rather than stacking on it: two dialogs deep
-	// is a trap on a phone, and closing the editor puts the sheet back.
-	let editing = $state.raw<ItemType | null>(null);
+	// One dialog at a time, held as one state: three flags side by side let two
+	// of them be true at once, which is how a confirmation ends up stacked on the
+	// sheet that raised it. A removal carries what it came from, so closing it
+	// lands back on the sheet when there was one and on the list when there was
+	// not.
+	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
+	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
 	function anchored(node: HTMLElement) {
@@ -159,24 +166,43 @@
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
+	// After any write the dialog has to be re-examined, not left as it was: the
+	// object it stands on may have lost its last line, and a dialog on an object
+	// that is gone would reappear the day the object comes back.
+	function settle() {
+		const next = opened?.kind === 'remove' ? opened.back : opened;
+		opened = next && lines.some((line) => line.item_type.id === next.item.id) ? next : null;
+	}
+
 	function act(call: () => Promise<unknown>) {
 		stepping.run(async () => {
 			await call();
-			removed = null;
 			await onchanged();
+			settle();
 			return [];
 		});
 	}
 
+	// Choosing an object the trip already carries points at it rather than adding
+	// it twice. Under a filter that object may not be on screen at all, and a
+	// scroll to a card that is not drawn would look like nothing happened — so
+	// the filters are cleared first, putting the reader in front of what they
+	// just asked for.
 	async function chosen(item: ItemType) {
-		if (held.includes(item.id)) {
-			highlighted = item.id;
-			setTimeout(() => (highlighted = null), 2500);
-			await tick();
-			container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
+		if (!held.includes(item.id)) {
+			act(() => createTripItem(household, trip, { item_type: item.id, person: null }));
 			return;
 		}
-		act(() => createTripItem(household, trip, { item_type: item.id, person: null }));
+		if (!groups.some((group) => group.id === item.id)) {
+			kept = null;
+			aimed = null;
+			staged = null;
+		}
+		clearTimeout(fading);
+		highlighted = item.id;
+		fading = setTimeout(() => (highlighted = null), 2500);
+		await tick();
+		container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
 	}
 
 	function step(line: TripItem, by: number) {
@@ -192,9 +218,17 @@
 		act(() => updateTripItem(household, trip, line.id, { status: next.id }));
 	}
 
-	// The sheet reads from the same groups the list shows, so a change made
-	// inside it lands on the screen behind without a second source of truth.
-	let sheet = $derived(groups.find((group) => group.id === opened) ?? null);
+	// The sheet is the detail of one object, so it reads every line that object
+	// has — not the groups the list shows. Reading the filtered groups would make
+	// it close on the reader the moment a line it holds stopped matching, which
+	// is exactly what advancing a status under a status filter does.
+	let sheet = $derived.by(() => {
+		const shown = opened;
+		if (shown?.kind !== 'sheet') return null;
+		const held = lines.filter((line) => line.item_type.id === shown.item.id);
+		if (held.length === 0) return null;
+		return { id: shown.item.id, item: held[0].item_type, kits: held[0].kits, lines: held };
+	});
 
 	// The write returned the object as it now stands, so it goes into the lines
 	// that carry it rather than being asked for again. It is put there without
@@ -206,14 +240,14 @@
 	// between objects and some are dropped. There the lines do change, so the
 	// fingerprint moves and asking again is both necessary and truthful.
 	async function follow(survivor: ItemType) {
-		const absorbed = survivor.id !== editing?.id;
+		const absorbed = survivor.id !== opened?.item.id;
 		queryClient.setQueryData<TripItem[]>(tripLinesQuery(household, trip).queryKey, (all) =>
 			(all ?? []).map((line) =>
 				line.item_type.id === survivor.id ? { ...line, item_type: survivor } : line
 			)
 		);
 		if (absorbed) await onchanged();
-		opened = survivor.id;
+		opened = { kind: 'sheet', item: survivor };
 	}
 
 	function addFor(group: Grouped, person: Person | null) {
@@ -335,7 +369,7 @@
 							<span
 								aria-hidden="true"
 								data-testid="trip-item-handle-{group.id}"
-								onpointerdown={(event) => dragging.grab(event, group)}
+								onpointerdown={(event) => !stepping.busy && dragging.grab(event, group)}
 								class="text-muted-foreground -mt-1.5 -ml-1 flex size-11 flex-none touch-none items-center justify-center"
 							>
 								<GripHorizontalIcon size={16} />
@@ -344,7 +378,7 @@
 						<button
 							type="button"
 							aria-label={m.trip_item_open({ name: group.item.name })}
-							onclick={() => (opened = group.id)}
+							onclick={() => (opened = { kind: 'sheet', item: group.item })}
 							class="focus-visible:ring-ring/50 grid min-w-0 flex-1 content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
 						>
 							<span class="flex min-w-0 items-center gap-0.5">
@@ -386,7 +420,10 @@
 									less={m.trip_quantity_less({ who: whoever(line.person) })}
 									more={m.trip_quantity_more({ who: whoever(line.person) })}
 									busy={stepping.busy}
-									onless={() => (line.quantity > 1 ? step(line, -1) : (removed = { group, line }))}
+									onless={() =>
+										line.quantity > 1
+											? step(line, -1)
+											: (opened = { kind: 'remove', item: group.item, line, back: null })}
 									onmore={() => step(line, 1)}
 								/>
 								<StatusPill
@@ -430,30 +467,24 @@
 	{/if}
 </div>
 
-{#if editing}
-	<ItemEditor {household} item={editing} onclose={() => (editing = null)} onsaved={follow} />
-{:else if sheet}
-	<TripItemSheet
-		item={sheet.item}
-		kits={sheet.kits}
-		lines={sheet.lines}
-		absent={missing(sheet)}
-		busy={stepping.busy}
-		{whoever}
-		onclose={() => (opened = null)}
-		onadvance={advance}
-		onstep={step}
-		onremove={(line) => (removed = { group: sheet, line })}
-		onadd={(person) => addFor(sheet, person)}
-		onedit={() => (editing = sheet.item)}
+{#if opened?.kind === 'edit'}
+	{@const shownItem = opened.item}
+	<ItemEditor
+		{household}
+		item={shownItem}
+		onclose={() => {
+			// Only a cancel puts this object's sheet back: a save has already moved
+			// the state onto whatever the write answered with, which after a merge
+			// is a different object entirely.
+			if (opened?.kind === 'edit') opened = { kind: 'sheet', item: shownItem };
+		}}
+		onsaved={follow}
 	/>
-{/if}
-
-{#if removed}
-	{@const { group, line } = removed}
+{:else if opened?.kind === 'remove'}
+	{@const { item, line, back } = opened}
 	<Modal
-		title={m.trip_line_remove_title({ name: group.item.name, who: whoever(line.person) })}
-		onclose={() => (removed = null)}
+		title={m.trip_line_remove_title({ name: item.name, who: whoever(line.person) })}
+		onclose={() => (opened = back)}
 	>
 		<p class="text-muted-foreground text-sm">{m.trip_line_remove_explains()}</p>
 		<FormErrors errors={stepping.errors} />
@@ -465,4 +496,20 @@
 			{m.trip_line_remove()}
 		</Button>
 	</Modal>
+{:else if sheet}
+	{@const shownSheet = sheet}
+	<TripItemSheet
+		item={shownSheet.item}
+		kits={shownSheet.kits}
+		lines={shownSheet.lines}
+		absent={missing(shownSheet)}
+		busy={stepping.busy}
+		{whoever}
+		onclose={() => (opened = null)}
+		onadvance={advance}
+		onstep={step}
+		onremove={(line) => (opened = { kind: 'remove', item: shownSheet.item, line, back: opened })}
+		onadd={(person) => addFor(shownSheet, person)}
+		onedit={() => (opened = { kind: 'edit', item: shownSheet.item })}
+	/>
 {/if}

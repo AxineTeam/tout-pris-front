@@ -199,6 +199,13 @@ describe('TripLines', () => {
 		await user.click(screen.getAllByRole('option')[0]);
 
 		expect(createTripItem).not.toHaveBeenCalled();
+		// The filters step aside so the object being pointed at is on screen.
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+		expect(
+			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
+				name: 'Tous'
+			})
+		).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('trie alphabétiquement, dans un sens puis dans l’autre', async () => {
@@ -399,6 +406,81 @@ describe('TripLines', () => {
 		// A rename moves no line, so the fingerprint stands still: asking again
 		// would hand back the old text and undo what the write just said.
 		expect(onchanged).not.toHaveBeenCalled();
+	});
+
+	it('garde la feuille ouverte quand un statut avancé sort du filtre', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(tent, todo)]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
+				name: 'À prendre'
+			})
+		);
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		const sheet = screen.getByRole('dialog');
+		await user.click(within(sheet).getByRole('button', { name: /Chaussettes pour Alice/ }));
+
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+	});
+
+	it('montre toutes les lignes de l’objet, même celles qu’un filtre cache', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(socks, packed, { person: bob })]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
+				name: 'Alice'
+			})
+		);
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).getByText('Alice')).toBeInTheDocument();
+		expect(within(sheet).getByText('Bob')).toBeInTheDocument();
+	});
+
+	it('ne rouvre pas la feuille d’un objet supprimé puis rajouté', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		// The screen behind reloads on every write, as the page makes it do.
+		let served = [only, other];
+		const reload = vi.fn(async () => {
+			await rerender({ lines: served });
+		});
+		const { rerender } = render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines: served,
+				participants: [alice],
+				items: [tent, socks],
+				statuses: catalogue,
+				onchanged: reload
+			}
+		});
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Retirer/ }));
+		served = [other];
+		await user.click(screen.getByRole('button', { name: 'Retirer la ligne' }));
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+		await rerender({ lines: [line(socks, todo, { person: alice }), other] });
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('remplace la feuille par la confirmation au lieu de l’empiler', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Retirer/ }));
+
+		expect(screen.getAllByRole('dialog')).toHaveLength(1);
+		expect(screen.getByRole('button', { name: 'Retirer la ligne' })).toBeInTheDocument();
 	});
 
 	it('annonce un voyage sans ligne', () => {

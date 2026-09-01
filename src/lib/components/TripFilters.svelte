@@ -19,94 +19,88 @@
 		status?: number | null;
 	} = $props();
 
-	const chip =
-		"focus-visible:ring-ring/50 relative flex h-8 flex-none items-center rounded-full border text-xs font-medium whitespace-nowrap transition-colors outline-none after:absolute after:-inset-y-1.5 after:content-[''] focus-visible:ring-[3px]";
+	// The button is the 44 px target and the pill inside is what shows. Growing
+	// the pill itself would not do: the rows scroll sideways, and a sideways
+	// scroller computes the other axis as a scroller too, so anything reaching
+	// out of the button's box to widen the target is clipped rather than tapped.
+	const tap =
+		'focus-visible:ring-ring/50 flex h-11 flex-none items-center rounded-full outline-none focus-visible:ring-[3px]';
+	const pill =
+		'flex h-8 min-w-0 items-center rounded-full border text-xs font-medium whitespace-nowrap transition-colors';
 	const on = 'border-primary bg-primary text-primary-foreground';
 	const off = 'border-border bg-card text-foreground hover:bg-accent';
+	const row = '-mx-4 -my-1.5 flex gap-1.5 overflow-x-auto px-4';
 </script>
 
 {#if kits.length > 0}
-	<div
-		role="group"
-		aria-label={m.trip_filter_kits()}
-		class="-mx-4 flex gap-1.5 overflow-x-auto px-4"
-	>
-		<button
-			type="button"
-			aria-pressed={kit === null}
-			onclick={() => (kit = null)}
-			class={[chip, 'px-2.5', kit === null ? on : off]}
-		>
-			{m.trip_filter_all()}
+	<div role="group" aria-label={m.trip_filter_kits()} class={row}>
+		<button type="button" aria-pressed={kit === null} onclick={() => (kit = null)} class={tap}>
+			<span class={[pill, 'px-2.5', kit === null ? on : off]}>{m.trip_filter_all()}</span>
 		</button>
 		{#each kits as one (one.id)}
 			<button
 				type="button"
 				aria-pressed={kit === one.id}
 				onclick={() => (kit = kit === one.id ? null : one.id)}
-				class={[chip, 'px-2.5', kit === one.id ? on : off]}
+				class={tap}
 			>
-				{one.name}
+				<span class={[pill, 'px-2.5', kit === one.id ? on : off]}>{one.name}</span>
 			</button>
 		{/each}
 	</div>
 {/if}
 
 {#if participants.length > 0}
-	<div
-		role="group"
-		aria-label={m.trip_filter_people()}
-		class="-mx-4 flex gap-1.5 overflow-x-auto px-4"
-	>
+	<div role="group" aria-label={m.trip_filter_people()} class={row}>
 		<button
 			type="button"
 			aria-pressed={person === null}
 			onclick={() => (person = null)}
-			class={[chip, 'px-2.5', person === null ? on : off]}
+			class={tap}
 		>
-			{m.trip_filter_all()}
+			<span class={[pill, 'px-2.5', person === null ? on : off]}>{m.trip_filter_all()}</span>
 		</button>
 		{#each participants as one (one.id)}
 			<button
 				type="button"
 				aria-pressed={person === one.id}
 				onclick={() => (person = person === one.id ? null : one.id)}
-				class={[chip, 'gap-1.5 pr-2.5 pl-1', person === one.id ? on : off]}
+				class={tap}
 			>
-				<PersonAvatar id={one.id} name={one.name} small />
-				{one.name}
+				<span class={[pill, 'gap-1.5 pr-2.5 pl-1', person === one.id ? on : off]}>
+					<PersonAvatar id={one.id} name={one.name} small />
+					{one.name}
+				</span>
 			</button>
 		{/each}
 	</div>
 {/if}
 
 {#if statuses.length > 0}
-	<div
-		role="group"
-		aria-label={m.trip_filter_statuses()}
-		class="-mx-4 flex gap-1.5 overflow-x-auto px-4"
-	>
+	<div role="group" aria-label={m.trip_filter_statuses()} class={row}>
 		<button
 			type="button"
 			aria-pressed={status === null}
 			onclick={() => (status = null)}
-			class={[chip, 'px-2.5', status === null ? on : off]}
+			class={tap}
 		>
-			{m.trip_filter_all()}
+			<span class={[pill, 'px-2.5', status === null ? on : off]}>{m.trip_filter_all()}</span>
 		</button>
 		{#each statuses as one (one.id)}
 			<button
 				type="button"
 				aria-pressed={status === one.id}
 				onclick={() => (status = status === one.id ? null : one.id)}
-				class={[chip, 'gap-1.5 px-2.5', status === one.id ? on : off]}
+				class={tap}
 			>
-				<span
-					aria-hidden="true"
-					class="size-[9px] flex-none rounded-full"
-					style:background-color={one.color}
-				></span>
-				{one.name}
+				<span class={[pill, 'gap-1.5 px-2.5', status === one.id ? on : off]}>
+					<span
+						aria-hidden="true"
+						class="size-[9px] flex-none rounded-full"
+						style:background-color={one.color}
+					></span>
+					{one.name}
+				</span>
 			</button>
 		{/each}
 	</div>

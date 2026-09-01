@@ -233,7 +233,7 @@
 						<span
 							aria-hidden="true"
 							data-testid="kit-item-handle-{group.id}"
-							onpointerdown={(event) => dragging.grab(event, group)}
+							onpointerdown={(event) => !stepping.busy && dragging.grab(event, group)}
 							class="text-muted-foreground -ml-1 flex size-11 flex-none touch-none items-center justify-center"
 						>
 							<GripHorizontalIcon size={16} />
