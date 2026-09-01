@@ -1,6 +1,13 @@
 import { error } from '@sveltejs/kit';
 import * as m from '$lib/paraglide/messages.js';
-import { householdsQuery, itemsQuery, queryClient, tripLinesQuery, tripQuery } from '$lib/query.js';
+import {
+	householdsQuery,
+	itemsQuery,
+	queryClient,
+	statusesQuery,
+	tripLinesQuery,
+	tripQuery
+} from '$lib/query.js';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {
@@ -11,7 +18,8 @@ export const load: PageLoad = async ({ params }) => {
 	await Promise.all([
 		queryClient.query(tripQuery(household.id, trip)),
 		queryClient.query(tripLinesQuery(household.id, trip)),
-		queryClient.query(itemsQuery(household.id))
+		queryClient.query(itemsQuery(household.id)),
+		queryClient.query(statusesQuery(household.id))
 	]);
 	return { household, trip };
 };
