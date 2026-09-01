@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import KitLines from './KitLines.svelte';
 import {
@@ -66,5 +67,36 @@ describe('KitLines', () => {
 
 		expect(createKitItem).not.toHaveBeenCalled();
 		expect(screen.getByText('Tente').closest('li[data-row]')).toHaveClass('border-primary');
+	});
+});
+
+describe('KitLines : surbrillance d’un objet déjà là', () => {
+	it('ne laisse pas un ancien minuteur éteindre la surbrillance qu’on vient d’allumer', async () => {
+		vi.useFakeTimers();
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		show([line(tent)]);
+
+		const lit = async () => {
+			await tick();
+			return screen.getByText('Tente').closest('li[data-row]')?.className ?? '';
+		};
+		const point = async () => {
+			await user.click(screen.getByRole('combobox'));
+			await user.keyboard('Tente');
+			await user.click(screen.getAllByRole('option')[0]);
+		};
+
+		await point();
+		expect(await lit()).toContain('border-primary');
+
+		// Deux secondes plus tard on redésigne le même objet. Le minuteur du
+		// premier passage arrive à échéance à 2,5 s : il ne doit pas éteindre ce
+		// que le second vient d'allumer.
+		vi.advanceTimersByTime(2000);
+		await point();
+		vi.advanceTimersByTime(1000);
+
+		expect(await lit()).toContain('border-primary');
+		vi.useRealTimers();
 	});
 });
