@@ -108,7 +108,7 @@ Ces règles valent pour les issues, les descriptions de PR, les revues et les co
 - Titre de commit en anglais, au présent impératif ; le corps doit être assez explicite et détaillé pour comprendre le changement sans contexte
 - Préfère les commits atomiques (un changement logique = un commit)
 - L'historique qui arrive sur `main` est celui de la bonne version, pas celui des allers-retours. Le dépôt merge en rebase-merge : les commits de la branche atterrissent tels quels, donc ils doivent déjà être propres
-- Avant de déclarer la PR prête, réécris **ta** branche pour qu'aucun de ses commits n'en corrige un autre. Pendant l'itération, `git commit --fixup=<sha>` ; à la fin, `git rebase --autosquash origin/main` — `rebase -i` n'est pas disponible en session agent, `GIT_SEQUENCE_EDITOR=true` le remplace
+- Avant de déclarer la PR prête, réécris **ta** branche pour qu'aucun de ses commits n'en corrige un autre. Pendant l'itération, `git commit --fixup=<sha>` ; à la fin, `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash origin/main` — le `-i` est obligatoire, sans lui `--autosquash` ne fait rien et les `fixup!` partent sur `main` sans un mot ; `GIT_SEQUENCE_EDITOR=true` remplace l'éditeur, indisponible en session agent
 - Vérifie que la réécriture n'a rien perdu : `git diff <ancienne-tête> HEAD` doit être vide. Un rebase qui traverse un conflit supprime un morceau sans le dire, et c'est la seule preuve qui vaille — ne pousse pas avant de l'avoir lue
 - Pousse la réécriture avec `--force-with-lease`, jamais `--force` : il refuse si la branche a bougé entre-temps
 - Le message décrit le code tel qu'il arrive, pas le chemin parcouru : jamais de « la première version faisait X, corrigé en `abc1234` ». L'hésitation appartient à la PR, pas à `main`
