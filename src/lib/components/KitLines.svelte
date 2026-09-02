@@ -159,6 +159,8 @@
 		busy={stepping.busy}
 		bind:typed
 		onchosen={chosen}
+		onadopt={(item) => createKitItem(household, kit.id, { item_type: item.id, person: null })}
+		onrefresh={onchanged}
 	/>
 
 	<FormErrors errors={stepping.errors} />

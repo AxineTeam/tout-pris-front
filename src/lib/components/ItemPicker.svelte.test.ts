@@ -13,9 +13,22 @@ const echarpe = { id: 2, name: 'Écharpe', description: 'la rouge que Tom perd' 
 function show(held: number[] = []) {
 	const onchosen = vi.fn();
 	render(ItemPicker, {
-		props: { household: 7, items: [chapeau, echarpe], held, holding: 'déjà pris', onchosen }
+		props: {
+			household: 7,
+			items: [chapeau, echarpe],
+			held,
+			holding: 'déjà pris',
+			onchosen,
+			onadopt: vi.fn().mockResolvedValue(undefined),
+			onrefresh: vi.fn().mockResolvedValue(undefined)
+		}
 	});
 	return onchosen;
+}
+
+async function paste(user: ReturnType<typeof userEvent.setup>, text: string) {
+	await user.click(screen.getByRole('combobox'));
+	await user.paste(text);
 }
 
 async function type(user: ReturnType<typeof userEvent.setup>, letters: string) {
@@ -148,6 +161,57 @@ describe('ItemPicker', () => {
 		await user.click(screen.getByTestId('item-create'));
 
 		expect(createItemType).toHaveBeenCalledTimes(1);
+	});
+
+	it('ouvre l’import sur un collage de plusieurs lignes plutôt que de le saisir', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await paste(user, 'Chapeau\nGourde');
+
+		expect(await screen.findByTestId('item-import-detected')).toHaveTextContent('2');
+		expect(screen.getByTestId('item-field')).toHaveValue('');
+	});
+
+	it('laisse un collage d’un seul mot atterrir dans le champ', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await paste(user, 'Chapeau');
+
+		expect(screen.queryByTestId('item-import')).not.toBeInTheDocument();
+		expect(screen.getByTestId('item-field')).toHaveValue('Chapeau');
+	});
+
+	it('laisse un seul mot suivi d’un retour à la ligne atterrir dans le champ', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await paste(user, 'Chapeau\n');
+
+		expect(screen.queryByTestId('item-import')).not.toBeInTheDocument();
+		// Le champ mange lui-même le retour à la ligne, c'est tout l'intérêt de
+		// le laisser passer plutôt que d'annuler le collage.
+		expect(screen.getByTestId('item-field')).toHaveValue('Chapeau');
+	});
+
+	it('laisse un collage entièrement blanc atterrir dans le champ', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await paste(user, '\n\n  \n');
+
+		expect(screen.queryByTestId('item-import')).not.toBeInTheDocument();
+	});
+
+	it('ouvre la même fenêtre en explication depuis le bouton du champ', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await user.click(screen.getByTestId('item-import-open'));
+
+		expect(await screen.findByTestId('item-import')).toBeInTheDocument();
+		expect(screen.queryByTestId('item-import-start')).not.toBeInTheDocument();
 	});
 
 	it('dit sous quel nom l’API a rangé la saisie quand elle réutilise une entrée', async () => {
