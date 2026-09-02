@@ -108,11 +108,17 @@ export const tripQuery = (household: number, trip: number) =>
 
 // Lines get their own key and their own query. The detail carries them too, but
 // two copies of the same list would drift apart at the first tick. This is also
-// the route that carries the ETag, the one polling will read.
-export const tripLinesQuery = (household: number, trip: number) =>
+// the route that carries the ETag, the one polling reads: the browser revalidates
+// it on its own, so a tick that changed nothing costs a 304 and no parsing.
+//
+// The screen keeps the poll quiet while a finger holds a card — a response
+// landing mid-gesture re-derives the rows under it — and while a write is in
+// flight, whose answer is the one to wait for.
+export const tripLinesQuery = (household: number, trip: number, quiet = false) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), trip, 'lines'],
-		queryFn: () => listTripItems(household, trip)
+		queryFn: () => listTripItems(household, trip),
+		refetchInterval: quiet ? false : 3000
 	});
 
 export const itemsQuery = (household: number) =>

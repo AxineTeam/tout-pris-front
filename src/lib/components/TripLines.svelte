@@ -56,6 +56,7 @@
 		statuses,
 		sorted = 'order',
 		direction = 'up',
+		onbusy,
 		onchanged
 	}: {
 		household: number;
@@ -67,6 +68,7 @@
 		statuses: ItemStatus[];
 		sorted?: Sorting;
 		direction?: Direction;
+		onbusy?: (busy: boolean) => void;
 		onchanged: () => Promise<void>;
 	} = $props();
 
@@ -190,6 +192,8 @@
 		});
 	}
 
+	$effect(() => onbusy?.(dragging.grabbed !== null || stepping.busy));
+
 	// Choosing an object the trip already carries points at it rather than adding
 	// it twice. Under a filter that object may not be on screen at all, and a
 	// scroll to a card that is not drawn would look like nothing happened — so
@@ -210,6 +214,16 @@
 		fading = setTimeout(() => (highlighted = null), 2500);
 		await tick();
 		container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
+	}
+
+	// Turning the interval off is not enough: it stops the timer, while a request
+	// already on its way still lands, and `Reordering.rows` drops its arrangement
+	// as soon as `groups` is a new array — the card would jump out from under the
+	// finger. So the grab cancels the flight too, and does not wait on it: the
+	// card has to follow the finger on this very event.
+	function grab(event: PointerEvent, group: Grouped) {
+		void queryClient.cancelQueries({ queryKey: tripLinesQuery(household, trip).queryKey });
+		dragging.grab(event, group);
 	}
 
 	function step(line: TripItem, by: number) {
@@ -239,6 +253,15 @@
 		const held = lines.filter((line) => line.item_type.id === shown.item.id);
 		if (held.length === 0) return null;
 		return { id: shown.item.id, item: held[0].item_type, kits: held[0].kits, lines: held };
+	});
+
+	// Same reading as the sheet, and for the same reason now that a poll refreshes
+	// the list on its own: the other phone can take the line away under the
+	// confirmation, and confirming would send a DELETE on an id that is gone.
+	let removing = $derived.by(() => {
+		const shown = opened;
+		if (shown?.kind !== 'remove') return null;
+		return lines.some((line) => line.id === shown.line.id) ? shown : null;
 	});
 
 	// The write returned the object as it now stands, so it goes into the lines
@@ -414,7 +437,7 @@
 							<span
 								aria-hidden="true"
 								data-testid="trip-item-handle-{group.id}"
-								onpointerdown={(event) => !stepping.busy && dragging.grab(event, group)}
+								onpointerdown={(event) => !stepping.busy && grab(event, group)}
 								class="text-muted-foreground -mt-1.5 -ml-1 flex size-11 flex-none touch-none items-center justify-center"
 							>
 								<GripHorizontalIcon size={16} />
@@ -525,8 +548,8 @@
 		}}
 		onsaved={follow}
 	/>
-{:else if opened?.kind === 'remove'}
-	{@const { item, line, back } = opened}
+{:else if removing}
+	{@const { item, line, back } = removing}
 	<Modal
 		title={m.trip_line_remove_title({ name: item.name, who: whoever(line.person) })}
 		onclose={() => (opened = back)}

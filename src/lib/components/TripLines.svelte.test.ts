@@ -396,6 +396,26 @@ describe('TripLines', () => {
 		vi.restoreAllMocks();
 	});
 
+	it('coupe le sondage déjà en vol quand un doigt attrape une carte', async () => {
+		const only = line(socks, todo);
+		const key = tripLinesQuery(7, 3).queryKey;
+		queryClient.setQueryData(key, [only]);
+		const polling = queryClient.fetchQuery({
+			queryKey: key,
+			queryFn: () => new Promise<TripItem[]>(() => {}),
+			staleTime: 0
+		});
+		polling.catch(() => {});
+		show([only]);
+
+		await fireEvent.pointerDown(screen.getByTestId(`trip-item-handle-${socks.id}`), {
+			pointerId: 1
+		});
+
+		await vi.waitFor(() => expect(queryClient.isFetching({ queryKey: key })).toBe(0));
+		await fireEvent.pointerUp(window, { pointerId: 1 });
+	});
+
 	it('n’offre pas d’ancre sur un tri calculé', () => {
 		show([line(socks, todo), line(tent, todo)], 'name');
 
