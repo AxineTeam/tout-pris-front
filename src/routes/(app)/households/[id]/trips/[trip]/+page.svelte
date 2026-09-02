@@ -17,9 +17,13 @@
 
 	let { data }: PageProps = $props();
 
+	// Declared before the query that reads it: `createQuery` calls its options
+	// once on creation, and a `$state` read above its own declaration throws.
+	let busy = $state(false);
+
 	const client = useQueryClient();
 	const trip = createQuery(() => tripQuery(data.household.id, data.trip));
-	const lines = createQuery(() => tripLinesQuery(data.household.id, data.trip));
+	const lines = createQuery(() => tripLinesQuery(data.household.id, data.trip, busy));
 	const items = createQuery(() => itemsQuery(data.household.id));
 	const statuses = createQuery(() => statusesQuery(data.household.id));
 	const kits = createQuery(() => kitsQuery(data.household.id));
@@ -131,5 +135,6 @@
 	statuses={statuses.data ?? []}
 	{sorted}
 	{direction}
+	onbusy={(held) => (busy = held)}
 	onchanged={reload}
 />
