@@ -169,7 +169,9 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		await page.getByTestId('item-create').click();
 		await expect(page.locator('li[data-trip-item]').filter({ hasText: object })).toBeVisible();
 	}
-	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
+	// Le dernier ajouté est en tête : l'API pose une ligne créée au début de la
+	// collection, pour la mettre sous les yeux de qui vient de l'écrire.
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 
 	// La jauge compte les lignes prêtes : trois statuts, aucune ne l'est encore.
 	await expect(page.getByTestId('trip-progress')).toHaveAccessibleName('0 sur 2 prêts');
@@ -186,10 +188,10 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		page.getByTestId(/^trip-item-handle-/).last(),
 		page.locator('li[data-trip-item]').first()
 	);
-	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
 	await page.reload();
 	await expect(page.locator('li[data-trip-item]')).toHaveCount(2);
-	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
 
 	// La feuille de l'objet porte toutes ses lignes, et son crayon le renomme.
 	await page.getByRole('button', { name: 'Ouvrir « Tente »' }).click();
@@ -211,7 +213,7 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		.getByRole('group', { name: 'Filtrer par personne' })
 		.getByRole('button', { name: 'Léa' })
 		.click();
-	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
 	await page.getByRole('button', { name: /^Trier par nom/ }).click();
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 

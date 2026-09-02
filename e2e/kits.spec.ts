@@ -188,17 +188,19 @@ test('les kits et leurs objets se rangent à la main, et l’ordre tient au rech
 	await page.getByRole('link', { name: second }).click();
 	await addItem(page, 'Masque');
 	await addItem(page, 'Palmes');
-	await expect.poll(() => itemNames(page)).toEqual(['Masque', 'Palmes']);
+	// Le dernier ajouté est en tête : l'API pose une ligne créée au début de la
+	// collection, pour la mettre sous les yeux de qui vient de l'écrire.
+	await expect.poll(() => itemNames(page)).toEqual(['Palmes', 'Masque']);
 
 	await dragAbove(
 		page,
 		page.getByTestId(/^kit-item-handle-/).last(),
 		page.locator('[data-row]').first()
 	);
-	await expect.poll(() => itemNames(page)).toEqual(['Palmes', 'Masque']);
+	await expect.poll(() => itemNames(page)).toEqual(['Masque', 'Palmes']);
 	await page.reload();
 	await expect(page.locator('[data-row]')).toHaveCount(2);
-	await expect.poll(() => itemNames(page)).toEqual(['Palmes', 'Masque']);
+	await expect.poll(() => itemNames(page)).toEqual(['Masque', 'Palmes']);
 
 	await deleteShared(page, shared);
 });
