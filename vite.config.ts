@@ -52,8 +52,9 @@ export default defineConfig({
 			}
 		}
 	},
-	// Tests unitaires réservés aux composants (*.svelte.test.ts) — tout le
-	// reste est couvert en E2E par Playwright contre la vraie API.
+	// Tests unitaires réservés aux composants et aux modules purs — les flux
+	// complets et le client API sont couverts en E2E par Playwright contre la
+	// vraie API.
 	test: {
 		projects: [
 			{
@@ -63,7 +64,7 @@ export default defineConfig({
 					name: 'client',
 					environment: 'jsdom',
 					clearMocks: true,
-					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					include: ['src/**/*.{test,spec}.{js,ts}'],
 					setupFiles: ['./vitest-setup-client.ts']
 				}
 			}
