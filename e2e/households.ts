@@ -75,3 +75,21 @@ export async function deleteShared(page: Page, household: SharedHousehold) {
 	await expect(menu(page).getByRole('menuitem', { name: household.name })).toHaveCount(0);
 	await closeMenu(page);
 }
+
+export function openTrips(page: Page) {
+	return page
+		.getByRole('navigation', { name: 'Navigation principale' })
+		.getByRole('link', { name: 'Voyages' })
+		.click();
+}
+
+export function inDays(days: number): string {
+	const day = new Date();
+	day.setDate(day.getDate() + days);
+	const month = String(day.getMonth() + 1).padStart(2, '0');
+	return `${day.getFullYear()}-${month}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
+export function trip(page: Page, holds: string) {
+	return page.locator('[data-testid^="trip-"]').filter({ hasText: holds });
+}

@@ -1,24 +1,15 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openAsShared } from './account';
-import { addPerson, createShared, deleteShared, name, sheet } from './households';
-
-function openTrips(page: Page) {
-	return page
-		.getByRole('navigation', { name: 'Navigation principale' })
-		.getByRole('link', { name: 'Voyages' })
-		.click();
-}
-
-function inDays(days: number): string {
-	const day = new Date();
-	day.setDate(day.getDate() + days);
-	const month = String(day.getMonth() + 1).padStart(2, '0');
-	return `${day.getFullYear()}-${month}-${String(day.getDate()).padStart(2, '0')}`;
-}
-
-function trip(page: Page, holds: string) {
-	return page.locator('[data-testid^="trip-"]').filter({ hasText: holds });
-}
+import {
+	addPerson,
+	createShared,
+	deleteShared,
+	inDays,
+	name,
+	openTrips,
+	sheet,
+	trip
+} from './households';
 
 function archives(page: Page) {
 	return page.getByTestId('trips-archived');
