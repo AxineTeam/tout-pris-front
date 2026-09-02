@@ -117,6 +117,10 @@ function names(): string[] {
 		.map((one) => one.querySelector('span span')?.textContent?.trim() ?? '');
 }
 
+function cached(): TripItem[] | undefined {
+	return queryClient.getQueryData<TripItem[]>(tripLinesQuery(7, 3).queryKey);
+}
+
 function card(name: string): HTMLElement {
 	return screen.getByText(name).closest('li[data-row]') as HTMLElement;
 }
@@ -324,14 +328,17 @@ describe('TripLines', () => {
 		expect(names()).toEqual(['Tente']);
 	});
 
-	it('monte la quantité d’une ligne', async () => {
+	it('monte la quantité d’une ligne sans attendre la réponse', async () => {
 		const user = userEvent.setup();
-		show([line(socks, todo, { person: alice, quantity: 2 })]);
+		const only = line(socks, todo, { person: alice, quantity: 2 });
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [only]);
+		vi.mocked(updateTripItem).mockReturnValue(new Promise(() => {}));
+		show([only]);
 
 		await user.click(screen.getByRole('button', { name: 'Un de plus pour Alice' }));
 
-		expect(updateTripItem).toHaveBeenCalledWith(7, 3, expect.any(Number), { quantity: 3 });
-		expect(onchanged).toHaveBeenCalled();
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { quantity: 3 });
+		await vi.waitFor(() => expect(cached()?.[0].quantity).toBe(3));
 	});
 
 	it('demande confirmation plutôt que de descendre sous un', async () => {
@@ -420,6 +427,83 @@ describe('TripLines', () => {
 		show([line(socks, todo), line(tent, todo)], 'name');
 
 		expect(screen.queryByTestId(`trip-item-handle-${socks.id}`)).not.toBeInTheDocument();
+	});
+
+	it('coche la ligne avant la réponse du serveur, sans figer sa pastille', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [only]);
+		vi.mocked(updateTripItem).mockReturnValue(new Promise(() => {}));
+		show([only]);
+
+		const pill = screen.getByRole('button', { name: /Chaussettes pour Alice/ });
+		await user.click(pill);
+
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(packed));
+		expect(pill).toBeEnabled();
+	});
+
+	it('remet la ligne comme elle était quand l’écriture est refusée', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [only]);
+		let refuse: (cause: Error) => void = () => {};
+		vi.mocked(updateTripItem).mockReturnValue(
+			new Promise<TripItem>((_, reject) => (refuse = reject))
+		);
+		show([only]);
+
+		await user.click(screen.getByRole('button', { name: /Chaussettes pour Alice/ }));
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(packed));
+
+		refuse(new Error('refus'));
+
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(todo));
+		expect(screen.getByText('L’API est injoignable.')).toBeInTheDocument();
+	});
+
+	it('ne remet en place que la ligne refusée, pas celles cochées entre-temps', async () => {
+		const user = userEvent.setup();
+		const first = line(socks, todo, { person: alice });
+		const second = line(tent, todo);
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [first, second]);
+		let refuse: (cause: Error) => void = () => {};
+		vi.mocked(updateTripItem)
+			.mockReturnValueOnce(new Promise<TripItem>((_, reject) => (refuse = reject)))
+			.mockResolvedValueOnce({ ...second, status: packed });
+		show([first, second]);
+
+		await user.click(screen.getByRole('button', { name: /Chaussettes pour Alice/ }));
+		await user.click(screen.getByRole('button', { name: /Tente pour Tout le monde/ }));
+		await vi.waitFor(() => expect(cached()?.[1].status).toEqual(packed));
+
+		refuse(new Error('refus'));
+
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(todo));
+		expect(cached()?.[1].status).toEqual(packed);
+	});
+
+	it('ne laisse pas une réponse de sondage en retard défaire une coche', async () => {
+		const user = userEvent.setup();
+		const only = line(socks, todo, { person: alice });
+		const key = tripLinesQuery(7, 3).queryKey;
+		queryClient.setQueryData(key, [only]);
+		let answer: (all: TripItem[]) => void = () => {};
+		const polling = queryClient.fetchQuery({
+			queryKey: key,
+			queryFn: () => new Promise<TripItem[]>((resolve) => (answer = resolve)),
+			staleTime: 0
+		});
+		vi.mocked(updateTripItem).mockReturnValue(new Promise(() => {}));
+		show([only]);
+
+		await user.click(screen.getByRole('button', { name: /Chaussettes pour Alice/ }));
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(packed));
+
+		answer([only]);
+		await polling.catch(() => {});
+
+		expect(cached()?.[0].status).toEqual(packed);
 	});
 
 	it('avance le statut d’une ligne d’une tape, et boucle au bout', async () => {
