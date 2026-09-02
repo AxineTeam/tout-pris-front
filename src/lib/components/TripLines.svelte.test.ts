@@ -49,6 +49,7 @@ const seaside: Kit = { id: 7, name: 'Bord de mer', description: '', position: 3 
 
 const alice: Person = { id: 1, name: 'Alice', user: null };
 const bob: Person = { id: 2, name: 'Bob', user: null };
+const chloe: Person = { id: 3, name: 'Chloé', user: null };
 
 let next = 0;
 
@@ -177,6 +178,55 @@ describe('TripLines', () => {
 
 		expect(names()).toEqual(['Chaussettes', 'Tente']);
 		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
+	});
+
+	it('réunit les lignes de deux personnes retenues', async () => {
+		const user = userEvent.setup();
+		show(
+			[
+				line(socks, todo, { person: alice }),
+				line(tent, todo, { person: bob }),
+				line(map, todo, { person: chloe })
+			],
+			'order',
+			[alice, bob, chloe]
+		);
+
+		const row = screen.getByRole('group', { name: 'Filtrer par personne' });
+		const all = within(row).getByRole('button', { name: 'Tous' });
+		await user.click(within(row).getByRole('button', { name: 'Alice' }));
+		await user.click(within(row).getByRole('button', { name: 'Bob' }));
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(all).toHaveAttribute('aria-pressed', 'false');
+
+		await user.click(within(row).getByRole('button', { name: 'Bob' }));
+		await user.click(within(row).getByRole('button', { name: 'Alice' }));
+
+		expect(names()).toEqual(['Chaussettes', 'Tente', 'Carte']);
+		expect(all).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	it('croise la rangée personne et la rangée statut', async () => {
+		const user = userEvent.setup();
+		show([
+			line(socks, todo, { person: alice }),
+			line(tent, packed, { person: alice }),
+			line(map, packed, { person: bob })
+		]);
+
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
+				name: 'Alice'
+			})
+		);
+		await user.click(
+			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
+				name: 'Rangé'
+			})
+		);
+
+		expect(names()).toEqual(['Tente']);
 	});
 
 	it('ne déplace pas les lignes qu’un filtre cache', async () => {

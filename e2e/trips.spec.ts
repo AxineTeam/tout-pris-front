@@ -156,10 +156,11 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 	await openAsShared(page);
 	const shared = await createShared(page, name('préparation'));
 	await addPerson(page, 'Léa');
+	await addPerson(page, 'Paul');
 
 	await openTrips(page);
 	const corse = name('corse');
-	await newTrip(page, corse, inDays(9), ['Léa']);
+	await newTrip(page, corse, inDays(9), ['Léa', 'Paul']);
 	await trip(page, corse).getByRole('link').click();
 	await expect(page.getByTestId('trip-empty')).toBeVisible();
 
@@ -207,15 +208,51 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	// Un filtre laisse le tri et l'ancre : la ligne de Léa n'existe que sur un objet.
 	await page.getByRole('button', { name: 'Ouvrir « Brosse à dents »' }).click();
-	await sheet(page).getByRole('button', { name: 'Ajouter une ligne pour Léa' }).click();
+	for (const who of ['Léa', 'Paul']) {
+		await sheet(page)
+			.getByRole('button', { name: `Ajouter une ligne pour ${who}` })
+			.click();
+	}
 	await page.getByRole('button', { name: 'Fermer' }).click();
-	await page
-		.getByRole('group', { name: 'Filtrer par personne' })
-		.getByRole('button', { name: 'Léa' })
-		.click();
+	const people = page.getByRole('group', { name: 'Filtrer par personne' });
+	await people.getByRole('button', { name: 'Léa' }).click();
+	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
+	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toHaveCount(0);
 	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
 	await page.getByRole('button', { name: /^Trier par nom/ }).click();
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+
+	// Une deuxième capsule de la même rangée s'ajoute à la première.
+	await people.getByRole('button', { name: 'Paul' }).click();
+	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
+	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toBeVisible();
+	await expect(people.getByRole('button', { name: 'Tous' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
+
+	// Les rangées se croisent : la tente porte la ligne commune que le filtre
+	// personne laisse passer, mais pas le statut d'abord retenu.
+	const statuses = page.getByRole('group', { name: 'Filtrer par statut' });
+	await statuses.getByRole('button', { name: 'Pas préparé' }).click();
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents']);
+	await statuses.getByRole('button', { name: 'Dans les sacs' }).click();
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+
+	// « Tous » est la sortie de la rangée, et il se rallume seul quand le dernier
+	// choix de l'autre rangée est décoché.
+	await statuses.getByRole('button', { name: 'Tous' }).click();
+	await expect(statuses.getByRole('button', { name: 'Tous' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	for (const who of ['Léa', 'Paul']) {
+		await people.getByRole('button', { name: who }).click();
+	}
+	await expect(people.getByRole('button', { name: 'Tous' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
 
 	// Le voyage part avant le foyer : le retrait d'une personne dont l'objet est
 	// aussi pris en commun casse encore côté API (AxineTeam/tout-pris-api#101).
