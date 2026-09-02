@@ -9,12 +9,18 @@
 			({ type: 'file'; files?: FileList } | { type?: InputType; files?: undefined })
 	>;
 
+	// Divergence assumée d'avec le fichier généré par shadcn-svelte, à réappliquer
+	// après un `npx shadcn-svelte@latest add input` : l'autocapitalisation ne se
+	// lit que sur le champ lui-même ou sur le `<form>` qui le possède, jamais sur
+	// un ancêtre, donc c'est ici ou nulle part. Un appelant qui passe la prop
+	// gagne, ce qui laisse `none` aux champs email, URL et mot de passe.
 	let {
 		ref = $bindable(null),
 		value = $bindable(),
 		type,
 		files = $bindable(),
 		class: className,
+		autocapitalize = 'sentences',
 		'data-slot': dataSlot = 'input',
 		...restProps
 	}: Props = $props();
@@ -46,6 +52,7 @@
 			className
 		)}
 		{type}
+		{autocapitalize}
 		bind:value
 		{...restProps}
 	/>
