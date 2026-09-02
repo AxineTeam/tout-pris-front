@@ -7,6 +7,7 @@
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { tick } from 'svelte';
+	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
 	import {
 		createKitItem,
 		createTripItem,
@@ -32,7 +33,7 @@
 	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
 	import { Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { inHierarchy } from '$lib/statuses.js';
-	import { Submission } from '$lib/submission.svelte.js';
+	import { failure, Submission } from '$lib/submission.svelte.js';
 
 	type Opened =
 		| { kind: 'sheet'; item: ItemType }
@@ -183,6 +184,14 @@
 		opened = next && lines.some((line) => line.item_type.id === next.item.id) ? next : null;
 	}
 
+	// Two write paths, because two kinds of write. `act` is for the ones that
+	// change the shape of the list — a line appears, disappears, or moves between
+	// objects: they wait for the server, then ask the whole list again, because
+	// what comes back is not something the screen could have guessed. `patching`
+	// is for the ones that change a line in place, the tap on a status and the
+	// tap on a quantity, repeated dozens of times over one trip: those show their
+	// result at once and let the server confirm behind. The optimistic path costs
+	// a rollback to write, which only pays off on a gesture repeated that often.
 	function act(call: () => Promise<unknown>) {
 		stepping.run(async () => {
 			await call();
@@ -192,7 +201,69 @@
 		});
 	}
 
-	$effect(() => onbusy?.(dragging.grabbed !== null || stepping.busy));
+	// The payload is not shaped like the cached line: `{ status: 3 }` names a
+	// status the line carries whole. So the caller hands over both the line as it
+	// must read and the fields to send.
+	type Patch = { line: TripItem; sent: { status?: number; quantity?: number } };
+
+	// Every in-place patch shares one key, because both the count of writes in
+	// flight and the invalidation that follows the last of them are read from the
+	// mutation cache. `patching.isPending` cannot answer either: a second tap
+	// detaches the observer from the first mutation, so it only ever describes
+	// the latest one.
+	const patchKey = ['trip-line-patch'];
+
+	const patching = createMutation(
+		() => {
+			const key = tripLinesQuery(household, trip).queryKey;
+			return {
+				mutationKey: patchKey,
+				mutationFn: ({ line, sent }: Patch) => updateTripItem(household, trip, line.id, sent),
+				// A poll already on its way carries the state the tap just left, and
+				// would land on top of it: it is dropped before the line is replaced.
+				// Only the line being written is held, not the whole list: a refusal
+				// putting back a snapshot would also undo every tap that landed since.
+				onMutate: async ({ line }: Patch) => {
+					stepping.errors = [];
+					await queryClient.cancelQueries({ queryKey: key });
+					const before = queryClient
+						.getQueryData<TripItem[]>(key)
+						?.find((one) => one.id === line.id);
+					queryClient.setQueryData<TripItem[]>(key, (all) =>
+						(all ?? []).map((one) => (one.id === line.id ? line : one))
+					);
+					return { before };
+				},
+				onError: (cause: unknown, _patch: Patch, context: { before?: TripItem } | undefined) => {
+					const before = context?.before;
+					if (before) {
+						queryClient.setQueryData<TripItem[]>(key, (all) =>
+							(all ?? []).map((one) => (one.id === before.id ? before : one))
+						);
+					}
+					stepping.errors = failure(cause);
+				},
+				// A mutation still counts itself here, so one left means this is the
+				// last write in flight. Invalidating under an earlier one would hand
+				// back a body older than the tap still on its way, and the line it
+				// carries would flick back for a round trip.
+				onSettled: () => {
+					if (queryClient.isMutating({ mutationKey: patchKey }) === 1)
+						void queryClient.invalidateQueries({ queryKey: key });
+				}
+			};
+		},
+		() => queryClient
+	);
+
+	const writing = useIsMutating({ mutationKey: patchKey }, queryClient);
+
+	// Reporting upwards a state that only this component knows has no simpler
+	// shape in runes: a component cannot export a derived, and `$bindable` moves
+	// the assignment to the parent rather than removing it.
+	$effect(() => {
+		onbusy?.(dragging.grabbed !== null || stepping.busy || writing.current > 0);
+	});
 
 	// Choosing an object the trip already carries points at it rather than adding
 	// it twice. Under a filter that object may not be on screen at all, and a
@@ -227,7 +298,8 @@
 	}
 
 	function step(line: TripItem, by: number) {
-		act(() => updateTripItem(household, trip, line.id, { quantity: line.quantity + by }));
+		const quantity = line.quantity + by;
+		patching.mutate({ line: { ...line, quantity }, sent: { quantity } });
 	}
 
 	let ranked = $derived(inHierarchy(statuses));
@@ -240,7 +312,7 @@
 		const at = ranked.findIndex((one) => one.id === line.status.id);
 		const next = at === -1 ? ranked[0] : ranked[(at + 1) % ranked.length];
 		if (!next || next.id === line.status.id) return;
-		act(() => updateTripItem(household, trip, line.id, { status: next.id }));
+		patching.mutate({ line: { ...line, status: next }, sent: { status: next.id } });
 	}
 
 	// The sheet is the detail of one object, so it reads every line that object
