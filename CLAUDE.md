@@ -119,7 +119,7 @@ Ces règles valent pour les issues, les descriptions de PR, les revues et les co
 
 ## Tests
 
-- Tests unitaires uniquement pour les composants (`*.svelte.test.ts`) ; tout le reste (client API, flux complets) est couvert en E2E
+- Tests unitaires pour les composants (`*.svelte.test.ts`) et les modules purs (`*.test.ts`) ; tout le reste (client API, flux complets) est couvert en E2E
 - Lance uniquement les tests pertinents, pas toute la suite
 - Lance toute la suite (`make test`, et `make e2e` si l'API est disponible) une fois que tu penses avoir fini
 - Utilise la TDD quand c'est pertinent, demande si nécessaire
