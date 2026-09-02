@@ -1,6 +1,10 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openAsShared } from './account';
-import { addPerson, createShared, deleteShared, name, sheet } from './households';
+import { addPerson, closeSheet, createShared, deleteShared, name, sheet } from './households';
+
+// Le collage se joue au presse-papier du navigateur, qui le refuse sans ces
+// permissions. Les autres tests du fichier n'y touchent pas.
+test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
 
 function openKits(page: Page) {
 	return page
@@ -201,6 +205,64 @@ test('les kits et leurs objets se rangent à la main, et l’ordre tient au rech
 	await page.reload();
 	await expect(page.locator('[data-row]')).toHaveCount(2);
 	await expect.poll(() => itemNames(page)).toEqual(['Masque', 'Palmes']);
+
+	await deleteShared(page, shared);
+});
+
+// Un vrai collage, pas un ClipboardEvent fabriqué : un événement posé par script
+// exécute bien nos gestionnaires, mais le navigateur n'insère jamais son texte.
+// Le champ resterait vide que l'on annule le collage ou non, et l'assertion qui
+// compte ici ne prouverait rien.
+async function pasteInField(page: Page, list: string) {
+	await page.evaluate((raw) => navigator.clipboard.writeText(raw), list);
+	await page.getByTestId('item-field').focus();
+	await page.keyboard.press('Control+V');
+}
+
+test('une liste collée dans le champ remplit le catalogue et le kit d’un coup', async ({
+	page
+}) => {
+	await openAsShared(page);
+	const shared = await createShared(page, name('import'));
+	await openKits(page);
+
+	const kit = name('plage');
+	await newKit(page, kit, '');
+	await page.getByRole('link', { name: kit }).click();
+	await addItem(page, 'Gourde');
+
+	await page.getByTestId('item-import-open').click();
+	await expect(sheet(page)).toContainText('Une ligne, un objet');
+	await expect(page.getByTestId('item-import-start')).toHaveCount(0);
+	await closeSheet(page);
+
+	// Un seul nom reste un nom, retour à la ligne compris — les Notes d'un
+	// téléphone et une cellule de tableur en ajoutent un, et c'est le champ qui
+	// le mange.
+	await pasteInField(page, 'Sac à dos\n');
+	await expect(sheet(page)).toHaveCount(0);
+	await expect(page.getByTestId('item-field')).toHaveValue('Sac à dos');
+	await page.getByTestId('item-field').fill('');
+
+	await pasteInField(page, 'Gourde\nTente\n\nSac à dos');
+	await expect(page.getByTestId('item-import-detected')).toContainText('3');
+	await expect(sheet(page)).toContainText('Tente');
+	await expect(page.getByTestId('item-field')).toHaveValue('');
+
+	await page.getByTestId('item-import-start').click();
+	await expect(page.getByTestId('item-import-created')).toContainText('2');
+	await expect(page.getByTestId('item-import-reused')).toContainText('1');
+	await expect(page.getByTestId('item-import-refused')).toContainText('0');
+	await closeSheet(page);
+
+	await expect(page.locator('[data-row]')).toHaveCount(3);
+	await expect(group(page, 'Tente')).toBeVisible();
+	await expect(group(page, 'Sac à dos')).toBeVisible();
+	// Le kit ne porte pas deux fois l'objet que le foyer connaissait déjà.
+	await expect(lineOf(page, 'Gourde', 'Tout le monde')).toHaveCount(1);
+
+	await page.reload();
+	await expect(page.locator('[data-row]')).toHaveCount(3);
 
 	await deleteShared(page, shared);
 });

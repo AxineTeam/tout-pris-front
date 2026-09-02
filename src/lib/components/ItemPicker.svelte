@@ -1,12 +1,16 @@
 <script lang="ts">
+	import InfoIcon from '@lucide/svelte/icons/info';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import { Command } from 'bits-ui';
 	import { createItemType, type ItemType } from '$lib/api.js';
 	import { remember, rewriteItems, search } from '$lib/catalog.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import ItemImport from '$lib/components/ItemImport.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import { PASTE_LIMIT, parseItems } from '$lib/imports.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
@@ -17,7 +21,9 @@
 		holding,
 		busy = false,
 		typed = $bindable(''),
-		onchosen
+		onchosen,
+		onadopt,
+		onrefresh
 	}: {
 		household: number;
 		items: ItemType[];
@@ -26,13 +32,29 @@
 		busy?: boolean;
 		typed?: string;
 		onchosen: (item: ItemType) => void;
+		onadopt: (item: ItemType) => Promise<unknown>;
+		onrefresh: () => Promise<void>;
 	} = $props();
 
 	const submission = new Submission();
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
+	// The pasted text, or the empty string when the window was opened to be read
+	// rather than to import. Null is closed.
+	let importing = $state.raw<string | null>(null);
 
 	let wanted = $derived(typed.trim());
 	let results = $derived(wanted ? search(items, wanted) : []);
+
+	// Only a paste holding several objects is an import. A single name stays
+	// typed text, trailing newline and all — notes and spreadsheets add one —
+	// and so does a paste of nothing but blank lines. Anything past the size cap
+	// is refused by the window rather than parsed to be counted.
+	function importList(event: ClipboardEvent) {
+		const list = event.clipboardData?.getData('text/plain') ?? '';
+		if (list.length <= PASTE_LIMIT && parseItems(list).length < 2) return;
+		event.preventDefault();
+		importing = list;
+	}
 
 	function forget(event: KeyboardEvent) {
 		if (event.key !== 'Escape' || !wanted) return;
@@ -76,15 +98,27 @@
 							{...field}
 							bind:value={typed}
 							onkeydown={forget}
+							onpaste={importList}
 							disabled={busy}
 							aria-expanded={wanted.length > 0}
 							aria-label={m.item_field_label()}
 							placeholder={m.item_field_label()}
-							class="bg-muted focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-[10px] border-transparent pl-9 focus-visible:ring-[3px]"
+							class="bg-muted focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-[10px] border-transparent pr-11 pl-9 focus-visible:ring-[3px]"
 							data-testid="item-field"
 						/>
 					{/snippet}
 				</Command.Input>
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label={m.item_import_open()}
+					disabled={busy}
+					onclick={() => (importing = '')}
+					class="text-muted-foreground absolute top-1/2 right-0 size-11 -translate-y-1/2 rounded-full"
+					data-testid="item-import-open"
+				>
+					<InfoIcon class="size-[18px]" aria-hidden="true" />
+				</Button>
 			</div>
 
 			<FormErrors errors={submission.errors} />
@@ -148,3 +182,14 @@
 		</div>
 	{/snippet}
 </Command.Root>
+
+{#if importing !== null}
+	<ItemImport
+		{household}
+		{held}
+		pasted={importing}
+		{onadopt}
+		{onrefresh}
+		onclose={() => (importing = null)}
+	/>
+{/if}

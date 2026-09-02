@@ -369,6 +369,8 @@
 		busy={stepping.busy}
 		bind:typed
 		onchosen={chosen}
+		onadopt={(item) => createTripItem(household, trip, { item_type: item.id, person: null })}
+		onrefresh={onchanged}
 	/>
 
 	<FormErrors errors={stepping.errors} />
