@@ -73,9 +73,9 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
-	let kept = $state.raw<number | null>(null);
-	let aimed = $state.raw<number | null>(null);
-	let staged = $state.raw<number | null>(null);
+	let kept = $state.raw<number[]>([]);
+	let aimed = $state.raw<number[]>([]);
+	let staged = $state.raw<number[]>([]);
 	// One dialog at a time, held as one state: three flags side by side let two
 	// of them be true at once, which is how a confirmation ends up stacked on the
 	// sheet that raised it. A removal carries what it came from, so closing it
@@ -102,14 +102,16 @@
 		return found;
 	});
 
-	// A common line is everyone's, so it survives a filter on any one person:
-	// what Léa has to pack includes what the household shares.
+	// A row holds an or and the rows an and: what a reader picks inside one row
+	// widens the list, what they pick in another narrows it. An empty row filters
+	// nothing. A common line is everyone's, so it survives a filter on any set of
+	// people: what Léa has to pack includes what the household shares.
 	let filtered = $derived(
 		lines.filter(
 			(line) =>
-				(kept === null || line.kits.some((kit) => kit.id === kept)) &&
-				(aimed === null || line.person === null || line.person.id === aimed) &&
-				(staged === null || line.status.id === staged)
+				(kept.length === 0 || line.kits.some((kit) => kept.includes(kit.id))) &&
+				(aimed.length === 0 || line.person === null || aimed.includes(line.person.id)) &&
+				(staged.length === 0 || staged.includes(line.status.id))
 		)
 	);
 
@@ -166,7 +168,8 @@
 		const taken = lines
 			.filter((line) => line.item_type.id === group.id)
 			.map((line) => line.person?.id ?? null);
-		const offered = aimed === null ? participants : participants.filter((one) => one.id === aimed);
+		const offered =
+			aimed.length === 0 ? participants : participants.filter((one) => aimed.includes(one.id));
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
@@ -198,9 +201,9 @@
 			return;
 		}
 		if (!groups.some((group) => group.id === item.id)) {
-			kept = null;
-			aimed = null;
-			staged = null;
+			kept = [];
+			aimed = [];
+			staged = [];
 		}
 		clearTimeout(fading);
 		highlighted = item.id;
