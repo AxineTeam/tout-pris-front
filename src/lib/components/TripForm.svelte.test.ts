@@ -84,6 +84,12 @@ describe('TripForm', () => {
 		expect(goto).toHaveBeenCalledWith('/households/7/trips/5');
 	});
 
+	it('porte la consigne de majuscule sur le champ, pas sur un ancêtre', () => {
+		show();
+
+		expect(screen.getByLabelText('Nom du voyage')).toHaveAttribute('autocapitalize', 'sentences');
+	});
+
 	it('part de qui participe déjà quand il modifie', () => {
 		show(corse);
 

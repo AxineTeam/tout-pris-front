@@ -44,10 +44,18 @@ test('les quatre onglets mènent aux quatre écrans, et l’onglet allumé survi
 	await expect(page.getByTestId('account-email')).toHaveText(email);
 });
 
-test('le document demande au clavier une majuscule en début de phrase', async ({ page }) => {
+// Lu sur le champ, pas sur l'attribut : le navigateur calcule l'indice depuis le
+// champ lui-même ou depuis le `<form>` qui le possède, jamais depuis un ancêtre.
+// Un attribut posé plus haut passerait un test qui le cherche là où il est écrit,
+// et laisserait le clavier sans consigne.
+test('un champ de texte demande au clavier une majuscule en début de phrase', async ({ page }) => {
 	await openAsShared(page);
 
-	await expect(page.locator('html')).toHaveAttribute('autocapitalize', 'sentences');
+	await page.getByRole('button', { name: 'Nouveau voyage' }).click();
+	const named = page.getByLabel('Nom du voyage');
+	await expect(named).toBeVisible();
+
+	expect(await named.evaluate((field: HTMLInputElement) => field.autocapitalize)).toBe('sentences');
 });
 
 test('le sélecteur de foyer ne suit pas jusqu’au profil', async ({ page }) => {
