@@ -37,8 +37,8 @@ function kitNames(page: Page) {
 
 function itemNames(page: Page) {
 	return page
-		.locator('[data-row] button[aria-label^="Modifier l’objet"]')
-		.evaluateAll((rows) => rows.map((row) => row.querySelector('span')!.textContent!.trim()));
+		.locator('[data-row] [data-testid="kit-item-name"]')
+		.evaluateAll((names) => names.map((name) => name.textContent!.trim()));
 }
 
 async function newKit(page: Page, wanted: string, description: string) {

@@ -68,6 +68,17 @@ describe('KitLines', () => {
 		expect(createKitItem).not.toHaveBeenCalled();
 		expect(screen.getByText('Tente').closest('li[data-row]')).toHaveClass('border-primary');
 	});
+
+	it('n’ouvre l’éditeur que depuis le crayon, jamais depuis le nom de l’objet', async () => {
+		const user = userEvent.setup();
+		show([line(tent)]);
+
+		await user.click(screen.getByText('Tente'));
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Tente »' }));
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+	});
 });
 
 describe('KitLines : surbrillance d’un objet déjà là', () => {

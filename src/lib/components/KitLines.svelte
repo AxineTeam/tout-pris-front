@@ -1,5 +1,6 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { tick } from 'svelte';
 	import {
 		createKitItem,
@@ -194,19 +195,25 @@
 						>
 							<GripHorizontalIcon size={16} />
 						</span>
-						<button
-							type="button"
-							aria-label={m.item_edit({ name: group.item.name })}
-							onclick={() => editItem(group)}
-							class="focus-visible:ring-ring/50 grid min-h-11 min-w-0 flex-1 content-center rounded-md pr-2 text-left outline-none focus-visible:ring-[3px]"
-						>
-							<span class="truncate text-sm font-semibold">{group.item.name}</span>
+						<div class="grid min-h-11 min-w-0 flex-1 content-center pr-2">
+							<span data-testid="kit-item-name" class="truncate text-sm font-semibold">
+								{group.item.name}
+							</span>
 							{#if group.item.description}
 								<span class="text-muted-foreground truncate text-xs">
 									{group.item.description}
 								</span>
 							{/if}
-						</button>
+						</div>
+						<Button
+							variant="ghost"
+							size="icon"
+							aria-label={m.item_edit({ name: group.item.name })}
+							onclick={() => editItem(group)}
+							class="text-muted-foreground size-11 flex-none"
+						>
+							<PencilIcon class="size-[15px]" aria-hidden="true" />
+						</Button>
 					</div>
 
 					<ul class="ml-10 grid min-w-0">
