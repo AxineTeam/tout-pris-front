@@ -76,6 +76,18 @@ describe('ItemImport', () => {
 		expect(screen.getByTestId('item-import-refused')).toHaveTextContent('0');
 	});
 
+	it('annonce le récapitulatif dans une région qui existait avant lui', async () => {
+		const user = userEvent.setup();
+		createItemType.mockResolvedValue({ item: item(1, 'Tente'), created: true });
+		show('Tente');
+		const live = screen.getByRole('status');
+
+		await user.click(start());
+		await screen.findByTestId('item-import-created');
+
+		expect(live).toContainElement(screen.getByTestId('item-import-created'));
+	});
+
 	it('poursuit après une ligne refusée et en donne la raison', async () => {
 		const user = userEvent.setup();
 		createItemType
