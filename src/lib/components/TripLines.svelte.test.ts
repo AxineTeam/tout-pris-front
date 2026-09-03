@@ -155,6 +155,10 @@ async function filterBy(user: User, kind: string, name: string) {
 	await closeFilters(user);
 }
 
+async function unfoldAdd(user: User, name: string) {
+	await user.click(screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` }));
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 });
@@ -189,6 +193,28 @@ describe('TripLines', () => {
 
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('2');
 		expect(screen.getByRole('button', { name: 'Filtres — actifs : 2' })).toBeInTheDocument();
+	});
+
+	it('allume le bouton de la carte dépliée, et lui seul', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(tent, todo, { person: alice })]);
+
+		const opener = (name: string) =>
+			screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` });
+
+		expect(opener('Chaussettes')).toHaveClass('text-muted-foreground');
+		expect(opener('Chaussettes')).not.toHaveClass('bg-accent');
+
+		await unfoldAdd(user, 'Chaussettes');
+
+		expect(opener('Chaussettes')).toHaveClass('bg-accent', 'text-primary');
+		expect(opener('Chaussettes')).not.toHaveClass('text-muted-foreground');
+		expect(opener('Tente')).not.toHaveClass('bg-accent');
+
+		await unfoldAdd(user, 'Tente');
+
+		expect(opener('Tente')).toHaveClass('bg-accent', 'text-primary');
+		expect(opener('Chaussettes')).not.toHaveClass('bg-accent');
 	});
 
 	it('cache le bouton des filtres pendant une recherche', async () => {
@@ -228,6 +254,74 @@ describe('TripLines', () => {
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
 		expect(names()).toEqual(['Chaussettes']);
 		expect(screen.queryByTestId('trip-empty')).not.toBeInTheDocument();
+	});
+
+	it('ne déplie la rangée d’ajout que de la carte dont on tape le +', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(tent, todo, { person: alice })]);
+
+		const plus = screen.getByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' });
+		expect(plus).toHaveAttribute('aria-expanded', 'false');
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).not.toBeInTheDocument();
+
+		await unfoldAdd(user, 'Chaussettes');
+		expect(plus).toHaveAttribute('aria-expanded', 'true');
+		expect(
+			within(card('Chaussettes')).getByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).toBeVisible();
+		expect(
+			within(card('Tente')).queryByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).not.toBeInTheDocument();
+
+		await unfoldAdd(user, 'Tente');
+		expect(
+			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).toBeVisible();
+		expect(
+			within(card('Chaussettes')).queryByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).not.toBeInTheDocument();
+	});
+
+	it('replie la rangée d’ajout quand un filtre ne laisse plus personne à proposer', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo), line(socks, todo, { person: alice })]);
+
+		await unfoldAdd(user, 'Chaussettes');
+		const plus = screen.getByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' });
+		expect(plus).toHaveAttribute('aria-expanded', 'true');
+
+		// Filtrée sur Alice, la carte n'a plus personne à proposer : le + s'en va.
+		await filterBy(user, 'Personnes', 'Alice');
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' })
+		).not.toBeInTheDocument();
+
+		// Le filtre relâché, elle en a de nouveau — mais la rangée reste repliée.
+		await filterBy(user, 'Personnes', 'Alice');
+		expect(
+			screen.getByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' })
+		).toHaveAttribute('aria-expanded', 'false');
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).not.toBeInTheDocument();
+	});
+
+	it('ne dessine le + que sur les cartes où il reste quelqu’un à ajouter', () => {
+		show([
+			line(socks, todo),
+			line(socks, todo, { person: alice }),
+			line(socks, todo, { person: bob }),
+			line(tent, todo)
+		]);
+
+		expect(
+			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne à « Tente »' })
+		).toBeVisible();
+		expect(
+			within(card('Chaussettes')).queryByRole('button', { name: /Ajouter une ligne à/ })
+		).not.toBeInTheDocument();
 	});
 
 	it('regroupe les lignes d’un même objet sous une seule carte', () => {
@@ -441,6 +535,8 @@ describe('TripLines', () => {
 	it('n’offre d’ajouter que les personnes qui partent et qui manquent', async () => {
 		const user = userEvent.setup();
 		show([line(socks, todo, { person: alice })]);
+
+		await unfoldAdd(user, 'Chaussettes');
 
 		const group = card('Chaussettes');
 		expect(within(group).getByRole('button', { name: 'Ajouter une ligne pour Bob' })).toBeVisible();
