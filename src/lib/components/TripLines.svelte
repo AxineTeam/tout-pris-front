@@ -612,7 +612,7 @@
 
 					<ul class="grid min-w-0">
 						{#each group.lines as line (line.id)}
-							<li class="border-border/60 flex min-h-11 min-w-0 items-center gap-2 border-t">
+							<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
 								<PersonAvatar person={line.person} small />
 								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
 									{whoever(line.person)}
@@ -622,6 +622,7 @@
 									less={m.trip_quantity_less({ who: whoever(line.person) })}
 									more={m.trip_quantity_more({ who: whoever(line.person) })}
 									busy={stepping.busy}
+									tight
 									onless={() =>
 										line.quantity > 1
 											? step(line, -1)
@@ -636,6 +637,7 @@
 										status: line.status.name
 									})}
 									busy={stepping.busy}
+									tight
 									onadvance={() => advance(line)}
 								/>
 							</li>
