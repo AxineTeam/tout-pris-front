@@ -131,6 +131,16 @@ function lineOf(page: Page, item: string, who: string) {
 		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
 }
 
+async function openFilters(page: Page) {
+	await page.getByRole('button', { name: 'Filtres' }).click();
+	await expect(sheet(page)).toBeVisible();
+}
+
+async function closeFilters(page: Page) {
+	await page.getByRole('button', { name: 'Fermer' }).click();
+	await expect(sheet(page)).toHaveCount(0);
+}
+
 async function dragAbove(page: Page, handle: Locator, target: Locator) {
 	const grip = await handle.boundingBox();
 	const landing = await target.boundingBox();
@@ -205,8 +215,16 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 			.click();
 	}
 	await page.getByRole('button', { name: 'Fermer' }).click();
-	const people = page.getByRole('group', { name: 'Filtrer par personne' });
+	// Les trois rangées ont quitté l'écran : un bouton posé à côté du champ les
+	// ouvre, et porte le nombre de filtres actifs.
+	await expect(page.getByRole('group', { name: 'Personnes' })).toHaveCount(0);
+	const people = sheet(page).getByRole('group', { name: 'Personnes' });
+	const statuses = sheet(page).getByRole('group', { name: 'Statuts' });
+
+	await openFilters(page);
 	await people.getByRole('button', { name: 'Léa' }).click();
+	await closeFilters(page);
+	await expect(page.getByTestId('trip-filters-open')).toHaveText('1');
 	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
 	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toHaveCount(0);
 	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
@@ -214,24 +232,31 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 
 	// Une deuxième capsule de la même rangée s'ajoute à la première.
+	await openFilters(page);
 	await people.getByRole('button', { name: 'Paul' }).click();
-	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
-	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toBeVisible();
 	await expect(people.getByRole('button', { name: 'Tous' })).toHaveAttribute(
 		'aria-pressed',
 		'false'
 	);
+	await closeFilters(page);
+	await expect(page.getByTestId('trip-filters-open')).toHaveText('2');
+	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
+	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toBeVisible();
 
 	// Les rangées se croisent : la tente porte la ligne commune que le filtre
 	// personne laisse passer, mais pas le statut d'abord retenu.
-	const statuses = page.getByRole('group', { name: 'Filtrer par statut' });
+	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Pas préparé' }).click();
+	await closeFilters(page);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents']);
+	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Dans les sacs' }).click();
+	await closeFilters(page);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 
 	// « Tous » est la sortie de la rangée, et il se rallume seul quand le dernier
 	// choix de l'autre rangée est décoché.
+	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Tous' }).click();
 	await expect(statuses.getByRole('button', { name: 'Tous' })).toHaveAttribute(
 		'aria-pressed',
@@ -244,6 +269,15 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		'aria-pressed',
 		'true'
 	);
+	await closeFilters(page);
+	await expect(page.getByTestId('trip-filters-open')).toHaveText('');
+
+	// Les filtres ne portent pas sur les résultats de recherche : le bouton s'en
+	// va avec les rangées qu'il a remplacées.
+	await page.getByTestId('item-field').fill('Tente');
+	await expect(page.getByTestId('trip-filters-open')).toHaveCount(0);
+	await page.getByTestId('item-field').fill('');
+	await expect(page.getByTestId('trip-filters-open')).toBeVisible();
 
 	// Le voyage part avant le foyer : le retrait d'une personne dont l'objet est
 	// aussi pris en commun casse encore côté API (AxineTeam/tout-pris-api#101).

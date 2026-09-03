@@ -125,11 +125,111 @@ function card(name: string): HTMLElement {
 	return screen.getByText(name).closest('li[data-row]') as HTMLElement;
 }
 
+type User = ReturnType<typeof userEvent.setup>;
+
+// The three filter rows live in a sheet now, so a test that filters opens it,
+// picks, and closes it — the same three steps the screen asks of a reader.
+async function openFilters(user: User) {
+	await user.click(screen.getByTestId('trip-filters-open'));
+	await screen.findByRole('dialog');
+}
+
+// The dialog locks the page behind it with `pointer-events: none` and lifts the
+// lock a beat after the close, so a click on the list right after closing would
+// land on a page that still refuses pointers.
+async function closeFilters(user: User) {
+	await user.click(screen.getByRole('button', { name: 'Fermer' }));
+	await vi.waitFor(() => {
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(document.body.style.pointerEvents).not.toBe('none');
+	});
+}
+
+function filterRow(title: string): HTMLElement {
+	return screen.getByRole('group', { name: title });
+}
+
+async function filterBy(user: User, kind: string, name: string) {
+	await openFilters(user);
+	await user.click(within(filterRow(kind)).getByRole('button', { name }));
+	await closeFilters(user);
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 });
 
 describe('TripLines', () => {
+	it('range les trois rangées de filtres derrière un bouton', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, packed, { person: alice })]);
+
+		for (const title of ['Kits', 'Personnes', 'Statuts']) {
+			expect(screen.queryByRole('group', { name: title })).not.toBeInTheDocument();
+		}
+
+		await openFilters(user);
+
+		for (const title of ['Kits', 'Personnes', 'Statuts']) {
+			expect(filterRow(title)).toBeVisible();
+			expect(screen.getByText(title)).toBeVisible();
+		}
+	});
+
+	it('porte sur son bouton le nombre de filtres actifs', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, packed, { person: alice })]);
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+
+		await openFilters(user);
+		await user.click(within(filterRow('Kits')).getByRole('button', { name: 'Camping' }));
+		await user.click(within(filterRow('Statuts')).getByRole('button', { name: 'À prendre' }));
+		await closeFilters(user);
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('2');
+		expect(screen.getByRole('button', { name: 'Filtres — actifs : 2' })).toBeInTheDocument();
+	});
+
+	it('cache le bouton des filtres pendant une recherche', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)]);
+
+		expect(screen.getByTestId('trip-filters-open')).toBeVisible();
+
+		await user.click(screen.getByRole('combobox'));
+		await user.keyboard('Tente');
+
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
+	});
+
+	it('cesse de compter un filtre que sa rangée n’offre plus', async () => {
+		const user = userEvent.setup();
+		const props = {
+			household: 7,
+			trip: 3,
+			lines: [line(tent, todo, { kits: [camping] }), line(socks, todo)],
+			participants: [alice],
+			items: [],
+			kits: [camping],
+			statuses: catalogue,
+			onchanged
+		};
+		const { rerender } = render(TripLines, { props });
+
+		await filterBy(user, 'Kits', 'Camping');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+		expect(names()).toEqual(['Tente']);
+
+		// La dernière ligne qui portait le kit quitte le voyage : la rangée qui
+		// l'offrait s'en va, et le filtre ne peut plus ni compter ni cacher.
+		await rerender({ lines: [line(socks, todo)] });
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.queryByTestId('trip-empty')).not.toBeInTheDocument();
+	});
+
 	it('regroupe les lignes d’un même objet sous une seule carte', () => {
 		show([
 			line(socks, todo, { person: alice }),
@@ -157,11 +257,7 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
-				name: 'Camping'
-			})
-		);
+		await filterBy(user, 'Kits', 'Camping');
 
 		expect(names()).toEqual(['Tente']);
 	});
@@ -174,11 +270,7 @@ describe('TripLines', () => {
 			line(tent, todo)
 		]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
-				name: 'Alice'
-			})
-		);
+		await filterBy(user, 'Personnes', 'Alice');
 
 		expect(names()).toEqual(['Chaussettes', 'Tente']);
 		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
@@ -196,19 +288,29 @@ describe('TripLines', () => {
 			[alice, bob, chloe]
 		);
 
-		const row = screen.getByRole('group', { name: 'Filtrer par personne' });
-		const all = within(row).getByRole('button', { name: 'Tous' });
+		await openFilters(user);
+		const row = filterRow('Personnes');
 		await user.click(within(row).getByRole('button', { name: 'Alice' }));
 		await user.click(within(row).getByRole('button', { name: 'Bob' }));
+		expect(within(row).getByRole('button', { name: 'Tous' })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		await closeFilters(user);
 
 		expect(names()).toEqual(['Chaussettes', 'Tente']);
-		expect(all).toHaveAttribute('aria-pressed', 'false');
 
-		await user.click(within(row).getByRole('button', { name: 'Bob' }));
-		await user.click(within(row).getByRole('button', { name: 'Alice' }));
+		await openFilters(user);
+		const again = filterRow('Personnes');
+		await user.click(within(again).getByRole('button', { name: 'Bob' }));
+		await user.click(within(again).getByRole('button', { name: 'Alice' }));
+		expect(within(again).getByRole('button', { name: 'Tous' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await closeFilters(user);
 
 		expect(names()).toEqual(['Chaussettes', 'Tente', 'Carte']);
-		expect(all).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('croise la rangée personne et la rangée statut', async () => {
@@ -219,16 +321,10 @@ describe('TripLines', () => {
 			line(map, packed, { person: bob })
 		]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
-				name: 'Alice'
-			})
-		);
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
-				name: 'Rangé'
-			})
-		);
+		await openFilters(user);
+		await user.click(within(filterRow('Personnes')).getByRole('button', { name: 'Alice' }));
+		await user.click(within(filterRow('Statuts')).getByRole('button', { name: 'Rangé' }));
+		await closeFilters(user);
 
 		expect(names()).toEqual(['Tente']);
 	});
@@ -242,11 +338,7 @@ describe('TripLines', () => {
 		show([tentOne, hidden, socksOne]);
 
 		const user = userEvent.setup();
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
-				name: 'Camping'
-			})
-		);
+		await filterBy(user, 'Kits', 'Camping');
 		expect(names()).toEqual(['Tente', 'Chaussettes']);
 
 		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
@@ -272,11 +364,7 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
-				name: 'Camping'
-			})
-		);
+		await filterBy(user, 'Kits', 'Camping');
 		await user.click(screen.getByRole('combobox'));
 		await user.keyboard('Chaussettes');
 		await user.click(screen.getAllByRole('option')[0]);
@@ -284,11 +372,13 @@ describe('TripLines', () => {
 		expect(createTripItem).not.toHaveBeenCalled();
 		// The filters step aside so the object being pointed at is on screen.
 		expect(names()).toEqual(['Tente', 'Chaussettes']);
-		expect(
-			within(screen.getByRole('group', { name: 'Filtrer par kit' })).getByRole('button', {
-				name: 'Tous'
-			})
-		).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.getByTestId('trip-filters-open')).not.toHaveTextContent('1');
+
+		await openFilters(user);
+		expect(within(filterRow('Kits')).getByRole('button', { name: 'Tous' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
 	});
 
 	it('trie alphabétiquement, dans un sens puis dans l’autre', async () => {
@@ -319,11 +409,7 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(socks, todo), line(tent, packed)]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
-				name: 'Rangé'
-			})
-		);
+		await filterBy(user, 'Statuts', 'Rangé');
 
 		expect(names()).toEqual(['Tente']);
 	});
@@ -552,10 +638,12 @@ describe('TripLines', () => {
 		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: unprepared.id });
 	});
 
-	it('range les filtres par statut dans l’ordre des sections', () => {
+	it('range les filtres par statut dans l’ordre des sections', async () => {
+		const user = userEvent.setup();
 		show([line(tent, bagged), line(socks, pulled), line(map, unprepared)], 'order', [], jumbled);
 
-		const row = screen.getByRole('group', { name: 'Filtrer par statut' });
+		await openFilters(user);
+		const row = filterRow('Statuts');
 		expect(
 			within(row)
 				.getAllByRole('button')
@@ -640,11 +728,7 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(socks, todo, { person: alice }), line(tent, todo)]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par statut' })).getByRole('button', {
-				name: 'À prendre'
-			})
-		);
+		await filterBy(user, 'Statuts', 'À prendre');
 		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
 		const sheet = screen.getByRole('dialog');
 		await user.click(within(sheet).getByRole('button', { name: /Chaussettes pour Alice/ }));
@@ -656,11 +740,7 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(socks, todo, { person: alice }), line(socks, packed, { person: bob })]);
 
-		await user.click(
-			within(screen.getByRole('group', { name: 'Filtrer par personne' })).getByRole('button', {
-				name: 'Alice'
-			})
-		);
+		await filterBy(user, 'Personnes', 'Alice');
 		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
 
 		const sheet = screen.getByRole('dialog');
