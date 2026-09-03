@@ -6,6 +6,7 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import { tick } from 'svelte';
 	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
 	import {
@@ -38,7 +39,8 @@
 	type Opened =
 		| { kind: 'sheet'; item: ItemType }
 		| { kind: 'edit'; item: ItemType }
-		| { kind: 'remove'; item: ItemType; line: TripItem; back: Opened | null };
+		| { kind: 'remove'; item: ItemType; line: TripItem; back: Opened | null }
+		| { kind: 'filters' };
 
 	interface Grouped {
 		id: number;
@@ -105,19 +107,6 @@
 		return found;
 	});
 
-	// A row holds an or and the rows an and: what a reader picks inside one row
-	// widens the list, what they pick in another narrows it. An empty row filters
-	// nothing. A common line is everyone's, so it survives a filter on any set of
-	// people: what Léa has to pack includes what the household shares.
-	let filtered = $derived(
-		lines.filter(
-			(line) =>
-				(kept.length === 0 || line.kits.some((kit) => kept.includes(kit.id))) &&
-				(aimed.length === 0 || line.person === null || aimed.includes(line.person.id)) &&
-				(staged.length === 0 || staged.includes(line.status.id))
-		)
-	);
-
 	// Same reading as the kits: the statuses a trip shows are the ones its lines
 	// wear, in the order the statuses screen lays them out.
 	let worn = $derived.by(() => {
@@ -127,6 +116,30 @@
 		}
 		return inHierarchy(found);
 	});
+
+	// A choice outlives what offered it: the last line carrying a kit can leave
+	// the trip, and the row that offered that kit goes with it. Applying such a
+	// choice would empty the list, and counting it on the button would point at a
+	// chip nobody can find to unpress. It is remembered rather than applied — the
+	// kit coming back brings the choice back with it.
+	let chosenKits = $derived(kept.filter((id) => embarked.some((kit) => kit.id === id)));
+	let chosenPeople = $derived(aimed.filter((id) => participants.some((one) => one.id === id)));
+	let chosenStatuses = $derived(staged.filter((id) => worn.some((one) => one.id === id)));
+
+	// A row holds an or and the rows an and: what a reader picks inside one row
+	// widens the list, what they pick in another narrows it. An empty row filters
+	// nothing. A common line is everyone's, so it survives a filter on any set of
+	// people: what Léa has to pack includes what the household shares.
+	let filtered = $derived(
+		lines.filter(
+			(line) =>
+				(chosenKits.length === 0 || line.kits.some((kit) => chosenKits.includes(kit.id))) &&
+				(chosenPeople.length === 0 ||
+					line.person === null ||
+					chosenPeople.includes(line.person.id)) &&
+				(chosenStatuses.length === 0 || chosenStatuses.includes(line.status.id))
+		)
+	);
 
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
@@ -143,6 +156,7 @@
 	// is still in the trip, and offering it again would create a second line.
 	let held = $derived([...new Set(lines.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
+	let active = $derived(chosenKits.length + chosenPeople.length + chosenStatuses.length);
 
 	// Dragging only makes sense against the stored order read forwards: sorted by
 	// name or reversed, the gesture would fight the order. A filter is no
@@ -172,7 +186,9 @@
 			.filter((line) => line.item_type.id === group.id)
 			.map((line) => line.person?.id ?? null);
 		const offered =
-			aimed.length === 0 ? participants : participants.filter((one) => aimed.includes(one.id));
+			chosenPeople.length === 0
+				? participants
+				: participants.filter((one) => chosenPeople.includes(one.id));
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
@@ -181,7 +197,8 @@
 	// that is gone would reappear the day the object comes back.
 	function settle() {
 		const next = opened?.kind === 'remove' ? opened.back : opened;
-		opened = next && lines.some((line) => line.item_type.id === next.item.id) ? next : null;
+		if (!next || next.kind === 'filters') opened = next;
+		else opened = lines.some((line) => line.item_type.id === next.item.id) ? next : null;
 	}
 
 	// Two write paths, because two kinds of write. `act` is for the ones that
@@ -346,7 +363,7 @@
 	// between objects and some are dropped. There the lines do change, so the
 	// fingerprint moves and asking again is both necessary and truthful.
 	async function follow(survivor: ItemType) {
-		const absorbed = survivor.id !== opened?.item.id;
+		const absorbed = opened?.kind === 'edit' && survivor.id !== opened.item.id;
 		queryClient.setQueryData<TripItem[]>(tripLinesQuery(household, trip).queryKey, (all) =>
 			(all ?? []).map((line) =>
 				line.item_type.id === survivor.id ? { ...line, item_type: survivor } : line
@@ -456,30 +473,42 @@
 />
 
 <div {@attach anchored} class="grid gap-2.5">
-	<ItemPicker
-		{household}
-		{items}
-		{held}
-		holding={m.item_in_trip()}
-		busy={stepping.busy}
-		bind:typed
-		onchosen={chosen}
-		onadopt={(item) => createTripItem(household, trip, { item_type: item.id, person: null })}
-		onrefresh={onchanged}
-	/>
+	<!-- Beside the field, not inside it: its right edge already carries the
+	import icon. Top-aligned so the results list cannot push the button down. -->
+	<div class="flex items-start gap-2">
+		<div class="min-w-0 flex-1">
+			<ItemPicker
+				{household}
+				{items}
+				{held}
+				holding={m.item_in_trip()}
+				busy={stepping.busy}
+				bind:typed
+				onchosen={chosen}
+				onadopt={(item) => createTripItem(household, trip, { item_type: item.id, person: null })}
+				onrefresh={onchanged}
+			/>
+		</div>
+		{#if !searching}
+			<Button
+				variant="outline"
+				size="icon"
+				aria-label={active > 0 ? m.trip_filters_active({ count: active }) : m.trip_filters_open()}
+				onclick={() => (opened = { kind: 'filters' })}
+				class="h-11 w-auto min-w-11 flex-none gap-1.5 px-2.5"
+				data-testid="trip-filters-open"
+			>
+				<SlidersHorizontalIcon class="size-[18px]" aria-hidden="true" />
+				{#if active > 0}
+					<span class="text-[13px] font-semibold">{active}</span>
+				{/if}
+			</Button>
+		{/if}
+	</div>
 
 	<FormErrors errors={stepping.errors} />
 
 	{#if !searching}
-		<TripFilters
-			kits={embarked}
-			{participants}
-			statuses={worn}
-			bind:kit={kept}
-			bind:person={aimed}
-			bind:status={staged}
-		/>
-
 		{#if groups.length === 0}
 			<p class="text-muted-foreground text-sm" data-testid="trip-empty">
 				{lines.length === 0 ? m.trip_empty() : m.trip_filtered_empty()}
@@ -609,7 +638,18 @@
 	{/if}
 </div>
 
-{#if opened?.kind === 'edit'}
+{#if opened?.kind === 'filters'}
+	<Modal title={m.trip_filters_open()} onclose={() => (opened = null)}>
+		<TripFilters
+			kits={embarked}
+			{participants}
+			statuses={worn}
+			bind:kit={kept}
+			bind:person={aimed}
+			bind:status={staged}
+		/>
+	</Modal>
+{:else if opened?.kind === 'edit'}
 	{@const shownItem = opened.item}
 	<ItemEditor
 		{household}
