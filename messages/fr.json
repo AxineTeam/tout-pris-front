@@ -88,6 +88,25 @@
 	"item_name_label": "Nom de l’objet",
 	"item_results_label": "Objets du foyer",
 	"item_reused": "« {asked} » existait déjà sous le nom « {name} », c’est cette entrée qui a servi.",
+	"kit_actions": "Actions de « {name} »",
+	"kit_copy": "Copier vers un autre foyer",
+	"kit_copy_alone": "Tu n’as pas d’autre foyer où copier ce kit.",
+	"kit_copy_done": [
+		{
+			"declarations": ["input count", "input household", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} objet copié vers le foyer {household}.",
+				"countPlural=*": "{count} objets copiés vers le foyer {household}."
+			}
+		}
+	],
+	"kit_copy_explains": "Le kit arrive avec son nom, sa description et ses objets. Les objets manquants sont créés au catalogue du foyer d’arrivée, et toutes les lignes y sont communes.",
+	"kit_copy_progress": "{done} sur {total}",
+	"kit_copy_refusal": "« {name} » : {message}",
+	"kit_copy_start": "Copier vers ce foyer",
+	"kit_copy_target": "Copier vers le foyer {name}",
+	"kit_copy_title": "Copier « {name} »",
 	"kit_delete": "Supprimer ce kit",
 	"kit_delete_explains": "Les lignes du kit partent avec lui. Les objets restent au référentiel et les voyages déjà préparés ne bougent pas.",
 	"kit_delete_title": "Supprimer « {name} » ?",
@@ -103,6 +122,23 @@
 	"kit_line_add_open": "Ajouter une ligne à « {name} »",
 	"kit_line_remove_explains": "La ligne part du kit. L’objet reste au référentiel du foyer.",
 	"kit_line_remove_title": "Retirer « {name} » pour {who} ?",
+	"kit_move": "Déplacer vers un autre foyer",
+	"kit_move_alone": "Tu n’as pas d’autre foyer où déplacer ce kit.",
+	"kit_move_done": [
+		{
+			"declarations": ["input count", "input household", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} objet déplacé vers le foyer {household}.",
+				"countPlural=*": "{count} objets déplacés vers le foyer {household}."
+			}
+		}
+	],
+	"kit_move_explains": "Le kit part avec son nom, sa description et ses objets. Les objets manquants sont créés au catalogue du foyer d’arrivée, toutes les lignes y sont communes, et le kit de départ n’est supprimé qu’une fois tout arrivé. Ses objets, eux, restent au catalogue de départ.",
+	"kit_move_kept": "Le kit de départ est conservé : la copie n’est pas allée au bout.",
+	"kit_move_start": "Déplacer vers ce foyer",
+	"kit_move_target": "Déplacer vers le foyer {name}",
+	"kit_move_title": "Déplacer « {name} »",
 	"kit_name_label": "Nom du kit",
 	"kit_new": "Nouveau kit",
 	"kit_quantity_less": "Un de moins pour {who}",

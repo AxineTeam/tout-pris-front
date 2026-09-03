@@ -1,6 +1,15 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openAsShared } from './account';
-import { addPerson, closeSheet, createShared, deleteShared, name, sheet } from './households';
+import {
+	addPerson,
+	closeSheet,
+	createShared,
+	deleteShared,
+	menu,
+	name,
+	openSwitcher,
+	sheet
+} from './households';
 
 // Le collage se joue au presse-papier du navigateur, qui le refuse sans ces
 // permissions. Les autres tests du fichier n'y touchent pas.
@@ -275,4 +284,119 @@ test('une liste collée dans le champ remplit le catalogue et le kit d’un coup
 	await expect(page.locator('[data-row]')).toHaveCount(3);
 
 	await deleteShared(page, shared);
+});
+
+async function openKitMenu(page: Page, kit: string) {
+	await page.getByRole('button', { name: `Actions de « ${kit} »` }).click();
+	await expect(menu(page)).toBeVisible();
+	await menu(page).getByRole('menuitem', { name: 'Copier vers un autre foyer' }).click();
+}
+
+// Le sélecteur de foyer navigue côté client, et c'est la seule bascule qui
+// exerce le cache : un `page.goto` repartirait d'un QueryClient vide, où
+// n'importe quel écran se remplirait tout seul.
+async function switchHousehold(page: Page, wanted: string) {
+	await openSwitcher(page);
+	await menu(page).getByRole('menuitem', { name: wanted }).click();
+	await expect(page.getByTestId('household-switcher')).toHaveText(wanted);
+}
+
+test('un kit se copie dans un autre foyer, ses lignes fondues en lignes communes', async ({
+	page
+}) => {
+	await openAsShared(page);
+	const away = await createShared(page, name('arrivee'));
+	const home = await createShared(page, name('depart'));
+	await addPerson(page, 'Léa');
+
+	// Les kits du foyer d'arrivée entrent au cache avant la copie : c'est ce
+	// cache-là que l'invalidation doit balayer pour que le kit copié se voie.
+	await switchHousehold(page, away.name);
+	await openKits(page);
+	await expect(page.getByTestId('kits-empty')).toBeVisible();
+
+	await switchHousehold(page, home.name);
+	const kit = name('trousse');
+	await newKit(page, kit, 'Pour la salle de bain');
+	await page.getByRole('link', { name: kit }).click();
+
+	await addItem(page, 'Couches');
+	await addLineFor(page, 'Couches', 'Léa');
+	await raise(page, 'Couches', 'Léa', 2);
+	await raise(page, 'Couches', 'Tout le monde', 1);
+	await addItem(page, 'Lingettes');
+	await expect.poll(() => itemNames(page)).toEqual(['Lingettes', 'Couches']);
+
+	// Les deux entrées mènent à la même boîte : celle du kit ouvert se montre,
+	// celle de la liste fait la copie.
+	await page.getByRole('button', { name: 'Copier vers un autre foyer' }).click();
+	await expect(sheet(page)).toContainText(away.name);
+	await closeSheet(page);
+
+	await openKits(page);
+	await openKitMenu(page, kit);
+	await sheet(page)
+		.getByRole('button', { name: `Copier vers le foyer ${away.name}` })
+		.click();
+	await page.getByTestId('kit-copy-start').click();
+	await expect(page.getByTestId('kit-copy-done')).toHaveText(
+		`2 objets copiés vers le foyer ${away.name}.`
+	);
+	await expect(page.getByTestId('kit-copy-refusals')).toHaveCount(0);
+	await closeSheet(page);
+
+	await switchHousehold(page, away.name);
+	await page.getByRole('link', { name: kit }).click();
+	await expect(page.getByTestId('subtitle')).toHaveText('Pour la salle de bain');
+	await expect.poll(() => itemNames(page)).toEqual(['Lingettes', 'Couches']);
+	// Léa n'existe pas ici : ses trois couches ont rejoint la ligne commune, et
+	// c'est la seule que l'objet porte.
+	await expect(lineOf(page, 'Couches', 'Tout le monde')).toContainText('5');
+	await expect(group(page, 'Couches').getByRole('listitem')).toHaveCount(1);
+	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toContainText('1');
+
+	await deleteShared(page, home);
+	await deleteShared(page, away);
+});
+
+test('un kit déplacé quitte son foyer, y laisse ses objets, et arrive entier', async ({ page }) => {
+	await openAsShared(page);
+	const away = await createShared(page, name('accueil'));
+	const home = await createShared(page, name('origine'));
+
+	await openKits(page);
+	const kit = name('sac');
+	await newKit(page, kit, '');
+	await page.getByRole('link', { name: kit }).click();
+	await addItem(page, 'Couches');
+	await addItem(page, 'Lingettes');
+
+	await page.getByRole('button', { name: 'Déplacer vers un autre foyer' }).click();
+	await sheet(page)
+		.getByRole('button', { name: `Déplacer vers le foyer ${away.name}` })
+		.click();
+	await page.getByTestId('kit-copy-start').click();
+	await expect(page.getByTestId('kit-copy-done')).toHaveText(
+		`2 objets déplacés vers le foyer ${away.name}.`
+	);
+	await closeSheet(page);
+
+	// L'écran du kit déplacé n'existe plus : fermer le récapitulatif ramène à la
+	// liste, pas sur un kit supprimé.
+	await expect(page.getByTestId('screen-title')).toHaveText('Kits');
+	await expect(page.getByRole('link', { name: kit })).toHaveCount(0);
+
+	const left = name('reste');
+	await newKit(page, left, '');
+	await page.getByRole('link', { name: left }).click();
+	await page.getByTestId('item-field').fill('Couch');
+	await expect(page.getByRole('option').first()).toContainText('Couches');
+
+	await page.getByRole('link', { name: 'Retour' }).click();
+	await switchHousehold(page, away.name);
+	await page.getByRole('link', { name: kit }).click();
+	await expect.poll(() => itemNames(page)).toEqual(['Lingettes', 'Couches']);
+
+	await deleteShared(page, home);
+	await deleteShared(page, away);
 });

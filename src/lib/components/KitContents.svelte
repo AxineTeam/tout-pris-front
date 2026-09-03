@@ -1,9 +1,19 @@
 <script lang="ts">
+	import CopyIcon from '@lucide/svelte/icons/copy';
+	import FolderInputIcon from '@lucide/svelte/icons/folder-input';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { deleteKit, updateKit, type ItemType, type KitDetail, type Person } from '$lib/api.js';
+	import {
+		deleteKit,
+		updateKit,
+		type Household,
+		type ItemType,
+		type KitDetail,
+		type Person
+	} from '$lib/api.js';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import KitCopy from '$lib/components/KitCopy.svelte';
 	import KitLines from '$lib/components/KitLines.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
@@ -15,6 +25,7 @@
 
 	let {
 		household,
+		households,
 		kit,
 		persons,
 		items,
@@ -22,6 +33,7 @@
 		onremoved
 	}: {
 		household: number;
+		households: Household[];
 		kit: KitDetail;
 		persons: Person[];
 		items: ItemType[];
@@ -30,17 +42,36 @@
 	} = $props();
 
 	const submission = new Submission();
-	let opened = $state.raw<'edit' | 'remove' | null>(null);
+	let opened = $state.raw<'edit' | 'copy' | 'move' | 'remove' | null>(null);
 	let named = $state('');
 	let described = $state('');
+	// The screen this box sits on is the moved kit's: taking it away while the
+	// recap is still open would take the recap with it. So the departure waits
+	// for whichever comes last, the deletion or the closing.
+	let gone = false;
 
 	let back = $derived(resolve('/(app)/households/[id]/kits', { id: String(household) }));
 
-	function open(next: 'edit' | 'remove') {
+	function open(next: 'edit' | 'copy' | 'move' | 'remove') {
 		submission.errors = [];
 		named = kit.name;
 		described = kit.description;
 		opened = next;
+	}
+
+	async function backToKits() {
+		onremoved();
+		await goto(resolve('/(app)/households/[id]/kits', { id: String(household) }));
+	}
+
+	function moved() {
+		gone = true;
+		if (opened === null) void backToKits();
+	}
+
+	function closeBox() {
+		opened = null;
+		if (gone) void backToKits();
 	}
 
 	function save(event: SubmitEvent) {
@@ -58,8 +89,7 @@
 	function remove() {
 		submission.run(async () => {
 			await deleteKit(household, kit.id);
-			onremoved();
-			await goto(resolve('/(app)/households/[id]/kits', { id: String(household) }));
+			await backToKits();
 			return [];
 		});
 	}
@@ -69,7 +99,11 @@
 	title={kit.name}
 	subtitle={kit.description || undefined}
 	{back}
-	actions={[{ label: m.kit_edit(), icon: PencilIcon, onclick: () => open('edit') }]}
+	actions={[
+		{ label: m.kit_edit(), icon: PencilIcon, onclick: () => open('edit') },
+		{ label: m.kit_copy(), icon: CopyIcon, onclick: () => open('copy') },
+		{ label: m.kit_move(), icon: FolderInputIcon, onclick: () => open('move') }
+	]}
 />
 
 <KitLines {household} {kit} {persons} {items} {onchanged} />
@@ -94,6 +128,8 @@
 			{m.kit_delete()}
 		</Button>
 	</Modal>
+{:else if opened === 'copy' || opened === 'move'}
+	<KitCopy {household} {households} {kit} mode={opened} onmoved={moved} onclose={closeBox} />
 {:else if opened === 'remove'}
 	<Modal title={m.kit_delete_title({ name: kit.name })} onclose={() => (opened = null)}>
 		<FormErrors errors={submission.errors} />

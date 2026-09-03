@@ -88,6 +88,25 @@
 	"item_name_label": "Item name",
 	"item_results_label": "Household items",
 	"item_reused": "“{asked}” already existed under the name “{name}”, and that entry is the one used.",
+	"kit_actions": "Actions for “{name}”",
+	"kit_copy": "Copy to another household",
+	"kit_copy_alone": "You have no other household to copy this kit to.",
+	"kit_copy_done": [
+		{
+			"declarations": ["input count", "input household", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item copied to the {household} household.",
+				"countPlural=*": "{count} items copied to the {household} household."
+			}
+		}
+	],
+	"kit_copy_explains": "The kit arrives with its name, its description and its items. Missing items are created in the receiving household’s catalog, and every line there is shared.",
+	"kit_copy_progress": "{done} of {total}",
+	"kit_copy_refusal": "“{name}”: {message}",
+	"kit_copy_start": "Copy to this household",
+	"kit_copy_target": "Copy to the {name} household",
+	"kit_copy_title": "Copy “{name}”",
 	"kit_delete": "Delete this kit",
 	"kit_delete_explains": "The kit lines go with it. The items stay in the catalog and trips already prepared do not move.",
 	"kit_delete_title": "Delete “{name}”?",
@@ -103,6 +122,23 @@
 	"kit_line_add_open": "Add a line to “{name}”",
 	"kit_line_remove_explains": "The line leaves the kit. The item stays in the household catalog.",
 	"kit_line_remove_title": "Remove “{name}” for {who}?",
+	"kit_move": "Move to another household",
+	"kit_move_alone": "You have no other household to move this kit to.",
+	"kit_move_done": [
+		{
+			"declarations": ["input count", "input household", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item moved to the {household} household.",
+				"countPlural=*": "{count} items moved to the {household} household."
+			}
+		}
+	],
+	"kit_move_explains": "The kit leaves with its name, its description and its items. Missing items are created in the receiving household’s catalog, every line there is shared, and the kit is deleted here only once everything has arrived. Its items stay in the catalog they came from.",
+	"kit_move_kept": "The kit stays where it was: the copy did not go all the way.",
+	"kit_move_start": "Move to this household",
+	"kit_move_target": "Move to the {name} household",
+	"kit_move_title": "Move “{name}”",
 	"kit_name_label": "Kit name",
 	"kit_new": "New kit",
 	"kit_quantity_less": "One less for {who}",
