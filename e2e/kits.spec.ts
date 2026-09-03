@@ -23,6 +23,20 @@ function lineOf(page: Page, item: string, who: string) {
 		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
 }
 
+// La rangée « Ajouter » de la carte ne se montre qu'appelée par le + du titre.
+async function addLineFor(page: Page, item: string, who: string) {
+	await expect(
+		group(page, item).getByRole('button', { name: `Ajouter une ligne pour ${who}` })
+	).toHaveCount(0);
+	await group(page, item)
+		.getByRole('button', { name: `Ajouter une ligne à « ${item} »` })
+		.click();
+	await group(page, item)
+		.getByRole('button', { name: `Ajouter une ligne pour ${who}` })
+		.click();
+	await expect(lineOf(page, item, who)).toBeVisible();
+}
+
 async function dragAbove(page: Page, handle: Locator, target: Locator) {
 	const grip = await handle.boundingBox();
 	const landing = await target.boundingBox();
@@ -96,9 +110,7 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 
 	await addItem(page, 'Couches taille 4');
 	await describeItem(page, 'Couches taille 4', 'Compter 6 par jour');
-	await group(page, 'Couches taille 4')
-		.getByRole('button', { name: 'Ajouter une ligne pour Tom' })
-		.click();
+	await addLineFor(page, 'Couches taille 4', 'Tom');
 	await raise(page, 'Couches taille 4', 'Tom', 3);
 	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('4');
 
@@ -115,9 +127,7 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await expect(page.getByTestId('item-field')).toHaveValue('');
 	await expect(page.locator('[data-row]')).toHaveCount(2);
 
-	await group(page, 'Lingettes')
-		.getByRole('button', { name: 'Ajouter une ligne pour Tom' })
-		.click();
+	await addLineFor(page, 'Lingettes', 'Tom');
 	await expect(lineOf(page, 'Lingettes', 'Tom')).toContainText('1');
 	await lineOf(page, 'Lingettes', 'Tom')
 		.getByRole('button', { name: 'Un de plus pour Tom' })

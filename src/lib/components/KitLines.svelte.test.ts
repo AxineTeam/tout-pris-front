@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
@@ -30,17 +30,22 @@ function line(item: ItemType, over: Partial<KitItem> = {}): KitItem {
 	return { id: item.id * 10, item_type: item, person: null, quantity: 1, position: 1, ...over };
 }
 
+function bag(lines: KitItem[]): KitDetail {
+	return { id: 3, name: 'Sac à langer', description: '', position: 1, items: lines };
+}
+
 function show(lines: KitItem[]) {
-	const kit: KitDetail = {
-		id: 3,
-		name: 'Sac à langer',
-		description: '',
-		position: 1,
-		items: lines
-	};
 	render(KitLines, {
-		props: { household: 7, kit, persons: [alice], items: [tent, socks], onchanged }
+		props: { household: 7, kit: bag(lines), persons: [alice], items: [tent, socks], onchanged }
 	});
+}
+
+function card(name: string): HTMLElement {
+	return screen.getByText(name).closest('li[data-row]') as HTMLElement;
+}
+
+function unfoldAdd(user: ReturnType<typeof userEvent.setup>, name: string) {
+	return user.click(screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` }));
 }
 
 async function choose(name: string) {
@@ -67,6 +72,107 @@ describe('KitLines', () => {
 
 		expect(createKitItem).not.toHaveBeenCalled();
 		expect(screen.getByText('Tente').closest('li[data-row]')).toHaveClass('border-primary');
+	});
+
+	it('ne déplie la rangée d’ajout que de la carte dont on tape le +', async () => {
+		const user = userEvent.setup();
+		show([line(tent), line(socks)]);
+
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).not.toBeInTheDocument();
+
+		await unfoldAdd(user, 'Tente');
+		expect(
+			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).toBeVisible();
+		expect(
+			within(card('Chaussettes')).queryByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).not.toBeInTheDocument();
+
+		await unfoldAdd(user, 'Chaussettes');
+		expect(
+			within(card('Chaussettes')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).toBeVisible();
+		expect(
+			within(card('Tente')).queryByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).not.toBeInTheDocument();
+
+		await user.click(
+			within(card('Chaussettes')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		);
+		expect(createKitItem).toHaveBeenCalledWith(7, 3, { item_type: socks.id, person: alice.id });
+	});
+
+	it('allume le bouton de la carte dépliée, et lui seul', async () => {
+		const user = userEvent.setup();
+		show([line(tent), line(socks)]);
+
+		const opener = (name: string) =>
+			screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` });
+
+		expect(opener('Tente')).toHaveClass('text-muted-foreground');
+		expect(opener('Tente')).not.toHaveClass('bg-accent');
+
+		await unfoldAdd(user, 'Tente');
+
+		expect(opener('Tente')).toHaveClass('bg-accent', 'text-primary');
+		expect(opener('Tente')).not.toHaveClass('text-muted-foreground');
+		expect(opener('Chaussettes')).not.toHaveClass('bg-accent');
+
+		await unfoldAdd(user, 'Chaussettes');
+
+		expect(opener('Chaussettes')).toHaveClass('bg-accent', 'text-primary');
+		expect(opener('Tente')).not.toHaveClass('bg-accent');
+	});
+
+	it('replie la rangée d’ajout quand l’objet n’a plus personne à proposer', async () => {
+		const user = userEvent.setup();
+		const common = line(tent);
+		const { rerender } = render(KitLines, {
+			props: {
+				household: 7,
+				kit: bag([common]),
+				persons: [alice],
+				items: [tent, socks],
+				onchanged
+			}
+		});
+
+		await unfoldAdd(user, 'Tente');
+		expect(screen.getByRole('button', { name: 'Ajouter une ligne à « Tente »' })).toHaveAttribute(
+			'aria-expanded',
+			'true'
+		);
+
+		// Alice prise, l'objet n'a plus personne à proposer : le + s'en va.
+		await rerender({ kit: bag([common, line(tent, { id: 11, person: alice })]) });
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne à « Tente »' })
+		).not.toBeInTheDocument();
+
+		// Sa ligne retirée, il en a de nouveau — mais la rangée reste repliée.
+		await rerender({ kit: bag([common]) });
+		expect(screen.getByRole('button', { name: 'Ajouter une ligne à « Tente »' })).toHaveAttribute(
+			'aria-expanded',
+			'false'
+		);
+		expect(
+			screen.queryByRole('button', { name: 'Ajouter une ligne pour Alice' })
+		).not.toBeInTheDocument();
+	});
+
+	it('ne dessine le + que sur les cartes où il reste quelqu’un à ajouter', () => {
+		show([line(tent), line(tent, { id: 11, person: alice }), line(socks)]);
+
+		expect(
+			within(card('Chaussettes')).getByRole('button', {
+				name: 'Ajouter une ligne à « Chaussettes »'
+			})
+		).toBeVisible();
+		expect(
+			within(card('Tente')).queryByRole('button', { name: /Ajouter une ligne à/ })
+		).not.toBeInTheDocument();
 	});
 
 	it('n’ouvre l’éditeur que depuis le crayon, jamais depuis le nom de l’objet', async () => {

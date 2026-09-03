@@ -141,6 +141,15 @@ async function closeFilters(page: Page) {
 	await expect(sheet(page)).toHaveCount(0);
 }
 
+// La rangée « Ajouter » de la carte ne se montre qu'appelée par le + du titre.
+async function addLineFor(page: Page, item: string, who: string) {
+	const card = page.locator('li[data-trip-item]').filter({ hasText: item });
+	await expect(card.getByRole('button', { name: `Ajouter une ligne pour ${who}` })).toHaveCount(0);
+	await card.getByRole('button', { name: `Ajouter une ligne à « ${item} »` }).click();
+	await card.getByRole('button', { name: `Ajouter une ligne pour ${who}` }).click();
+	await expect(lineOf(page, item, who)).toBeVisible();
+}
+
 async function dragAbove(page: Page, handle: Locator, target: Locator) {
 	const grip = await handle.boundingBox();
 	const landing = await target.boundingBox();
@@ -209,12 +218,9 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	// Un filtre laisse le tri et l'ancre : la ligne de Léa n'existe que sur un objet.
 	await page.getByRole('button', { name: 'Ouvrir « Brosse à dents »' }).click();
-	for (const who of ['Léa', 'Paul']) {
-		await sheet(page)
-			.getByRole('button', { name: `Ajouter une ligne pour ${who}` })
-			.click();
-	}
+	await sheet(page).getByRole('button', { name: 'Ajouter une ligne pour Léa' }).click();
 	await page.getByRole('button', { name: 'Fermer' }).click();
+	await addLineFor(page, 'Brosse à dents', 'Paul');
 	// Les trois rangées ont quitté l'écran : un bouton posé à côté du champ les
 	// ouvre, et porte le nombre de filtres actifs.
 	await expect(page.getByRole('group', { name: 'Personnes' })).toHaveCount(0);

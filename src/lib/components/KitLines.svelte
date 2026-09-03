@@ -1,6 +1,7 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
+	import UsersIcon from '@lucide/svelte/icons/users';
 	import { tick } from 'svelte';
 	import {
 		createKitItem,
@@ -53,6 +54,9 @@
 	let typed = $state('');
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
+	// The one card showing its add row, held as an id so opening another closes
+	// the first: the row is a detour off the packing gesture, not a fixture.
+	let unfolded = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
@@ -77,8 +81,10 @@
 		return person ? person.name : m.everyone();
 	}
 
-	function missing(group: Grouped): (Person | null)[] {
-		const taken = group.lines.map((line) => line.person?.id ?? null);
+	function missing(item: number): (Person | null)[] {
+		const taken = kit.items
+			.filter((line) => line.item_type.id === item)
+			.map((line) => line.person?.id ?? null);
 		return [null, ...persons].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
@@ -90,6 +96,18 @@
 			return [];
 		});
 	}
+
+	// The unfolded row stands on a card that still has someone to offer, and the
+	// tap that opened it is spent as soon as that card has nobody: left in place,
+	// the id would reopen the row unasked the day the card offers again — the
+	// last line removed, the object put back. What empties the offer is not
+	// always a gesture this component sees, so the state is reconciled against
+	// the kit rather than folded at each call site.
+	$effect(() => {
+		if (unfolded === null) return;
+		const carried = kit.items.some((line) => line.item_type.id === unfolded);
+		if (!carried || missing(unfolded).length === 0) unfolded = null;
+	});
 
 	async function chosen(item: ItemType) {
 		if (held.includes(item.id)) {
@@ -175,7 +193,7 @@
 			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
 		>
 			{#each dragging.rows as group (group.id)}
-				{@const absent = missing(group)}
+				{@const absent = missing(group.id)}
 				<li
 					data-row={group.id}
 					style:transform={dragging.grabbed?.id === group.id
@@ -207,6 +225,21 @@
 								</span>
 							{/if}
 						</div>
+						{#if absent.length > 0}
+							<Button
+								variant="ghost"
+								size="icon"
+								aria-label={m.kit_line_add_open({ name: group.item.name })}
+								aria-expanded={unfolded === group.id}
+								onclick={() => (unfolded = unfolded === group.id ? null : group.id)}
+								class={[
+									'size-11 flex-none',
+									unfolded === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
+								]}
+							>
+								<UsersIcon class="size-[15px]" aria-hidden="true" />
+							</Button>
+						{/if}
 						<Button
 							variant="ghost"
 							size="icon"
@@ -239,7 +272,7 @@
 							</li>
 						{/each}
 
-						{#if absent.length > 0}
+						{#if absent.length > 0 && unfolded === group.id}
 							<li
 								class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
 							>
