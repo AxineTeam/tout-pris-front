@@ -7,6 +7,12 @@ export function failure(cause: unknown): AuthError[] {
 		: [{ message: m.api_unreachable(), code: 'unreachable' }];
 }
 
+export function said(cause: unknown): string {
+	return failure(cause)
+		.map((error) => error.message)
+		.join(' ');
+}
+
 export class Submission {
 	errors = $state.raw<AuthError[]>([]);
 	busy = $state(false);

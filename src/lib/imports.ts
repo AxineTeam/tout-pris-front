@@ -1,6 +1,6 @@
-import { ApiError, apiErrors, createItemType, type ItemType } from '$lib/api.js';
+import { createItemType, type ItemType } from '$lib/api.js';
 import { remember, rewriteItems } from '$lib/catalog.js';
-import * as m from '$lib/paraglide/messages.js';
+import { said } from '$lib/submission.svelte.js';
 
 export const IMPORT_LIMIT = 100;
 
@@ -42,13 +42,6 @@ export function parseItems(text: string): PastedItem[] {
 		wanted.push({ line: at + 1, name });
 	});
 	return wanted;
-}
-
-function said(refusal: unknown): string {
-	if (!(refusal instanceof ApiError)) return m.api_unreachable();
-	return apiErrors(refusal)
-		.map((error) => error.message)
-		.join(' ');
 }
 
 // The cache is written once, at the end: going through `rewriteItems` line by
