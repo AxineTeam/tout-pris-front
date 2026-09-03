@@ -1,10 +1,16 @@
 <script lang="ts">
+	import type { LucideIcon } from '@lucide/svelte';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import CopyIcon from '@lucide/svelte/icons/copy';
+	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+	import FolderInputIcon from '@lucide/svelte/icons/folder-input';
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import { resolve } from '$app/paths';
-	import { createKit, updateKit, type Kit } from '$lib/api.js';
+	import { createKit, updateKit, type Household, type Kit } from '$lib/api.js';
 	import AddCard from '$lib/components/AddCard.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
+	import KitCopy from '$lib/components/KitCopy.svelte';
+	import Menu from '$lib/components/Menu.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -14,13 +20,18 @@
 	import { Reordering } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
-	let { household, kits, onchanged }: { household: number; kits: Kit[]; onchanged: () => void } =
-		$props();
+	let {
+		household,
+		households,
+		kits,
+		onchanged
+	}: { household: number; households: Household[]; kits: Kit[]; onchanged: () => void } = $props();
 
 	const submission = new Submission();
 	const dropping = new Submission();
 	const dragging = new Reordering(() => kits);
 	let adding = $state(false);
+	let sending = $state.raw<{ kit: Kit; mode: 'copy' | 'move' } | null>(null);
 	let named = $state('');
 	let described = $state('');
 
@@ -66,6 +77,19 @@
 	onpointercancel={() => dragging.cancel()}
 />
 
+{#snippet entry(icon: LucideIcon, text: string, onclick: () => void)}
+	{@const Icon = icon}
+	<button
+		type="button"
+		role="menuitem"
+		{onclick}
+		class="hover:bg-accent focus-visible:ring-ring/50 active:bg-primary/25 flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
+	>
+		<Icon size={16} aria-hidden="true" class="flex-none" />
+		{text}
+	</button>
+{/snippet}
+
 {#if kits.length === 0}
 	<p class="text-muted-foreground text-sm" data-testid="kits-empty">{m.kits_empty()}</p>
 {/if}
@@ -106,7 +130,30 @@
 						<span class="text-muted-foreground block truncate text-xs">{kit.description}</span>
 					{/if}
 				</span>
-				<ChevronRightIcon size={16} aria-hidden="true" class="text-muted-foreground flex-none" />
+
+				{#snippet actions()}
+					<Menu
+						label={m.kit_actions({ name: kit.name })}
+						align="right"
+						triggerClass="text-muted-foreground relative z-10 -my-1 flex size-11 flex-none items-center justify-center"
+					>
+						{#snippet trigger()}
+							<EllipsisIcon size={18} aria-hidden="true" />
+						{/snippet}
+
+						{#snippet children(close: () => void)}
+							{@render entry(CopyIcon, m.kit_copy(), () => {
+								close();
+								sending = { kit, mode: 'copy' };
+							})}
+							{@render entry(FolderInputIcon, m.kit_move(), () => {
+								close();
+								sending = { kit, mode: 'move' };
+							})}
+						{/snippet}
+					</Menu>
+					<ChevronRightIcon size={16} aria-hidden="true" class="text-muted-foreground flex-none" />
+				{/snippet}
 			</RowCard>
 		</li>
 	{/each}
@@ -114,6 +161,17 @@
 		<AddCard label={m.kit_new()} onclick={open} />
 	</li>
 </ul>
+
+{#if sending}
+	<KitCopy
+		{household}
+		{households}
+		kit={sending.kit}
+		mode={sending.mode}
+		onmoved={onchanged}
+		onclose={() => (sending = null)}
+	/>
+{/if}
 
 {#if adding}
 	<Modal title={m.kit_new()} onclose={() => (adding = false)}>
