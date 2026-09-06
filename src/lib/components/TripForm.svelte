@@ -36,8 +36,7 @@
 	}: { household: number; persons: Person[]; kits: Kit[]; trip?: TripDetail } = $props();
 
 	const submission = new Submission();
-	// The form seeds itself once: a background refetch of the query must not wipe
-	// out what the user is currently typing.
+	// Seeded once: a background refetch must not wipe out what is being typed.
 	let named = $state(untrack(() => trip?.name) ?? '');
 	let dated = $state(untrack(() => trip?.date) ?? locale.today());
 	let going = $state.raw<number[]>(
@@ -67,15 +66,15 @@
 			}
 		} finally {
 			// Each write lands on its own, so a refusal partway leaves the server
-			// ahead of the cache. Invalidating on the way out costs one request and
-			// keeps the screen from showing a name that is no longer the name.
+			// ahead of the cache: invalidating on the way out keeps the screen from
+			// showing a name that is no longer the name.
 			await queryClient.invalidateQueries({ queryKey: tripsKey(household) });
 		}
 		return current.id;
 	}
 
-	// Creation answers with the whole trip: it goes into the cache instead of
-	// being asked for again, and only the two lists are invalidated — `tripsKey`
+	// Creation answers with the whole trip, so it goes into the cache instead of
+	// being asked for again. Only the two lists are invalidated: `tripsKey`
 	// covers both but also prefixes the detail, which it would mark stale.
 	async function build(): Promise<number> {
 		const built = await createTrip(household, {

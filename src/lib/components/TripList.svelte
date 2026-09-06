@@ -56,7 +56,7 @@
 		opened = next;
 	}
 
-	function act(call: () => Promise<unknown>) {
+	function writeThenReload(call: () => Promise<unknown>) {
 		submission.run(async () => {
 			await call();
 			opened = null;
@@ -67,7 +67,7 @@
 
 	function copy(event: SubmitEvent, trip: Trip) {
 		event.preventDefault();
-		if (ready) act(() => duplicateTrip(household, trip.id, named.trim(), dated));
+		if (ready) writeThenReload(() => duplicateTrip(household, trip.id, named.trim(), dated));
 	}
 </script>
 
@@ -123,12 +123,12 @@
 						{#if filed}
 							{@render entry(ArchiveRestoreIcon, m.trip_unarchive(), () => {
 								close();
-								act(() => updateTrip(household, trip.id, { archived: false }));
+								writeThenReload(() => updateTrip(household, trip.id, { archived: false }));
 							})}
 						{:else}
 							{@render entry(ArchiveIcon, m.trip_archive(), () => {
 								close();
-								act(() => updateTrip(household, trip.id, { archived: true }));
+								writeThenReload(() => updateTrip(household, trip.id, { archived: true }));
 							})}
 						{/if}
 						{@render entry(CopyIcon, m.trip_duplicate(), () => {
@@ -227,7 +227,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => deleteTrip(household, trip.id))}
+			onclick={() => writeThenReload(() => deleteTrip(household, trip.id))}
 		>
 			{m.delete_it()}
 		</Button>

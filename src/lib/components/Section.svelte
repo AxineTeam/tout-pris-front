@@ -3,9 +3,6 @@
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { cn } from '$lib/utils.js';
 
-	// Every screen stacks a heading over a list or a form. Holding that rhythm
-	// here rather than in each screen is what keeps them from drifting apart, and
-	// is the one place to touch when the spacing has to change again.
 	let {
 		title,
 		heading,

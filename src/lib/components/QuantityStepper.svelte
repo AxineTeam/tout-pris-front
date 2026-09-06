@@ -3,12 +3,12 @@
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { Button } from '$lib/components/ui/button/index.js';
 
-	// The buttons are drawn at 32 px and widened by a pseudo-element, so the
-	// control stops dwarfing the name beside it without becoming a small target.
-	// `tight` is for the rows that leave it no room — the person rows of the two
-	// list screens, which stand 36 px — where the halo stops at the row's edge
-	// rather than reaching over the line below and taking its taps. Left alone,
-	// it keeps the 44 px it reaches in a row with room to spare.
+	// The buttons are drawn at 32 px and widened by a pseudo-element to the 44 px
+	// a touch target needs, so the control stops dwarfing the name beside it
+	// without becoming small to hit. `tight` is for the rows that leave it no
+	// room — the 36 px person rows of the two list screens — where the halo stops
+	// at the row's edge rather than reaching over the line below and taking its
+	// taps.
 	let {
 		quantity,
 		less,

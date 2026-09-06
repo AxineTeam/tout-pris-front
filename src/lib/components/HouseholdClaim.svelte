@@ -40,7 +40,7 @@
 		)
 	);
 
-	function act(submission: Submission, call: () => Promise<unknown>) {
+	function writeThenReload(submission: Submission, call: () => Promise<unknown>) {
 		submission.run(async () => {
 			try {
 				await call();
@@ -56,7 +56,7 @@
 		event.preventDefault();
 		const name = typed.trim();
 		if (!name) return;
-		act(inventing, async () => {
+		writeThenReload(inventing, async () => {
 			const person = await createPerson(household.id, name);
 			await claimPerson(household.id, person.id);
 		});
@@ -80,7 +80,7 @@
 				<RowCard
 					aria-label={m.person_claim({ name: person.name })}
 					disabled={claiming.busy}
-					onclick={() => act(claiming, () => claimPerson(household.id, person.id))}
+					onclick={() => writeThenReload(claiming, () => claimPerson(household.id, person.id))}
 				>
 					<PersonAvatar {person} />
 					<span class="min-w-0 flex-1">

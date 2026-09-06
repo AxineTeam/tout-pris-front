@@ -9,8 +9,8 @@
 	import { Submission } from '$lib/submission.svelte.js';
 	import { cn } from '$lib/utils.js';
 
-	// Chaque langue s'écrit dans la sienne : c'est ainsi qu'on la reconnaît
-	// quand on ne comprend pas celle qui est affichée.
+	// Each language is written in itself: that is how it is recognised by someone
+	// who cannot read the one on screen.
 	const names: Record<ApiLocale, string> = {
 		fr: 'Français',
 		'en-us': 'English'
@@ -18,8 +18,8 @@
 	const languages = Object.entries(names) as [ApiLocale, string][];
 
 	const submission = new Submission();
-	// allauth sert la langue du compte en simple chaîne : le nom affiché se
-	// cherche dans la table plutôt que de l'y indexer.
+	// allauth serves the account language as a plain string, so the name shown is
+	// looked up in the table rather than indexed in it.
 	let spoken = $derived(session.user?.language ?? '');
 	let name = $derived(languages.find(([code]) => code === spoken)?.[1] ?? '');
 

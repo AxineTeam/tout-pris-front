@@ -55,8 +55,6 @@
 	let named = $derived(absent.filter((person) => person !== null));
 	let common = $derived(absent.some((person) => person === null));
 
-	// One dialog at a time, as the removal confirmation does: the picker takes
-	// the sheet's place instead of standing on top of it.
 	let picking = $state.raw(false);
 	let picked = $state.raw<number[]>([]);
 
@@ -64,6 +62,12 @@
 	// A kit that already holds the object is ticked and locked: the API puts no
 	// uniqueness on kit lines, so a second pass would silently double them.
 	let chosen = $derived(offered.filter((kit) => picked.includes(kit.id) && !held.includes(kit.id)));
+
+	function pickKits() {
+		picked = [];
+		onpicking();
+		picking = true;
+	}
 
 	const dashed =
 		'border-border text-primary hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-2 rounded-xl border border-dashed px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px] disabled:opacity-50';
@@ -115,8 +119,6 @@
 			<Button
 				disabled={chosen.length === 0 || busy}
 				onclick={async () => {
-					// Back to the sheet on success, where the new chips say it worked;
-					// a refusal keeps the picker up, with its error and its ticks.
 					if (await onaddtokits(chosen)) picking = false;
 				}}
 			>
@@ -146,14 +148,7 @@
 			<button
 				type="button"
 				data-testid="sheet-kits"
-				onclick={() => {
-					// Reopening starts from what the kits hold now, not from ticks left
-					// over from a run that was abandoned or refused. The errors go with
-					// them: they belong to whatever wrote last, which is rarely this.
-					picked = [];
-					onpicking();
-					picking = true;
-				}}
+				onclick={pickKits}
 				class="border-border text-primary hover:bg-accent focus-visible:ring-ring/50 relative flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[10px] font-medium transition-colors outline-none after:absolute after:-inset-3 after:content-[''] focus-visible:ring-[3px]"
 			>
 				<PlusIcon size={11} aria-hidden="true" />

@@ -10,9 +10,6 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
-	// An object belongs to the household, not to the kit or the trip showing it,
-	// so both screens rename it the same way — including the merge a rename onto
-	// an existing name performs, which is the part worth writing only once.
 	let {
 		household,
 		item,
@@ -41,9 +38,8 @@
 	}
 
 	// Every branch answers with the object as the server now holds it, never with
-	// the one this form opened on: the caller puts it straight into the screens
-	// that show it, and a copy that predates the write would put the old text
-	// back on the very save that changed it.
+	// the one this form opened on: a copy that predates the write would put the
+	// old text back on the very save that changed it.
 	async function rename(): Promise<ItemType> {
 		const name = named.trim();
 		if (name === item.name) return describe();

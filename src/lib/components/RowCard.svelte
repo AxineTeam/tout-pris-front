@@ -21,14 +21,13 @@
 	const ringed =
 		'focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]';
 
-	// Le lien étiré : sa cible couvre la carte entière, ce qui laisse le bouton
-	// des actions à côté de lui plutôt que dedans — un <button> dans un <a> est
-	// du HTML invalide. Son anneau se dessine sur la même étendue.
-	// Le survol reste porté par la carte, qu'il ne peut pas quitter : posé sur
-	// ce pseudo-élément, qui est peint par-dessus le contenu du lien, il
-	// couvrirait le texte. La carte s'éteint donc à la main quand le pointeur
-	// désigne une action — seule chose au-dessus du lien étiré, donc seule à
-	// recevoir :hover ailleurs que sur lui.
+	// The stretched link's target covers the whole card, which leaves the actions
+	// button beside it rather than inside it — a `<button>` in an `<a>` is
+	// invalid HTML. Hover stays on the card, which it cannot leave: laid on this
+	// pseudo-element, painted over the link's content, it would cover the text.
+	// So the card is dimmed by hand when the pointer designates an action — the
+	// only thing above the stretched link, hence the only one to receive `:hover`
+	// anywhere but on it.
 	const stretched =
 		'focus-visible:after:border-ring focus-visible:after:ring-ring/50 flex min-w-0 flex-1 items-center gap-3 outline-none after:absolute after:-inset-px after:rounded-xl focus-visible:after:border focus-visible:after:ring-[3px]';
 

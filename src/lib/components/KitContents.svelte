@@ -45,10 +45,10 @@
 	let opened = $state.raw<'edit' | 'copy' | 'move' | 'remove' | null>(null);
 	let named = $state('');
 	let described = $state('');
-	// The screen this box sits on is the moved kit's: taking it away while the
-	// recap is still open would take the recap with it. So the departure waits
-	// for whichever comes last, the deletion or the closing.
-	let gone = false;
+	// The screen this box sits on is the moved kit's: leaving while the recap is
+	// still open would take the recap with it, so the departure waits for
+	// whichever comes last.
+	let movedAway = false;
 
 	let back = $derived(resolve('/(app)/households/[id]/kits', { id: String(household) }));
 
@@ -65,13 +65,13 @@
 	}
 
 	function moved() {
-		gone = true;
+		movedAway = true;
 		if (opened === null) void backToKits();
 	}
 
 	function closeBox() {
 		opened = null;
-		if (gone) void backToKits();
+		if (movedAway) void backToKits();
 	}
 
 	function save(event: SubmitEvent) {

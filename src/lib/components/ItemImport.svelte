@@ -34,20 +34,18 @@
 	const submission = new Submission();
 	let done = $state.raw<number | null>(null);
 	let report = $state.raw<ImportReport | null>(null);
-	// Nothing on screen reads it, only the closure the loop holds — which is why
-	// it still answers once this component is gone.
+	// A plain `let`, not `$state`: only the closure the loop holds reads it,
+	// which is why it still answers once this component is gone.
 	let stopping = false;
 
-	// A paste too big to be an item list is never turned into one: parsing it
-	// first would allocate an object per line to then say there are too many.
+	// Never parsed when oversized: parsing first would allocate an object per
+	// line only to say there are too many.
 	let oversized = $derived(pasted.length > PASTE_LIMIT);
 	let wanted = $derived(oversized ? [] : parseItems(pasted));
 	let advance = $derived(m.item_import_progress({ done: done ?? 0, total: wanted.length }));
 
-	// Leaving stops the run rather than outliving it behind a closed door: a
-	// reload would leave a half-done import anyway, so the screen tolerates one,
-	// and refusing to stop would only be a door shut on someone who said stop.
-	// The recap goes with it — the kit behind shows what landed.
+	// A reload would leave a half-done import anyway, so the screen tolerates
+	// one: refusing to stop would only shut the door on someone who said stop.
 	function leave() {
 		stopping = true;
 		onclose();
@@ -64,8 +62,8 @@
 				progressed: (reached) => !stopping && (done = reached),
 				stopped: () => stopping
 			});
-			// Once asked to leave, this box has no reader left: what it would draw
-			// goes nowhere, and the refresh below is the only thing still owed.
+			// Once asked to leave, this box has no reader left: only the refresh
+			// below is still owed.
 			if (!stopping) {
 				done = null;
 				report = outcome;

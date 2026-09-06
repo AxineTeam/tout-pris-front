@@ -32,8 +32,8 @@
 	let done = $state.raw<number | null>(null);
 	let total = $state.raw(0);
 	let report = $state.raw<CopyReport | null>(null);
-	// Nothing on screen reads it, only the closure the loop holds — which is why
-	// it still answers once this component is gone.
+	// A plain `let`, not `$state`: only the closure the loop holds reads it,
+	// which is why it still answers once this component is gone.
 	let stopping = false;
 
 	let others = $derived(households.filter((known) => known.id !== household));
@@ -56,8 +56,6 @@
 				}
 	);
 
-	// Leaving stops the run rather than outliving it behind a closed door: what
-	// has landed stays, and the kits of the household that received it show it.
 	function leave() {
 		stopping = true;
 		onclose();
@@ -79,17 +77,15 @@
 					},
 					stopped: () => stopping
 				});
-				// Told even behind a closed door: the kit is gone from the household
-				// this box was opened in, and every screen still showing it lies.
+				// The move is told even behind a closed door — the kit is gone from the
+				// household this box was opened in, and every screen still showing it
+				// lies — while the recap is not: there is no reader left for it.
 				if (outcome.moved) onmoved?.();
-				// Once asked to leave, this box has no reader left: what it would draw
-				// goes nowhere.
 				if (!stopping) report = outcome;
 			} finally {
 				done = null;
-				// Its kits and its catalog both moved, and every one of their keys
-				// extends the household's. Owed even when the run threw, since the
-				// deletion that closes a move comes after everything has landed.
+				// Owed even when the run threw, since the deletion that closes a move
+				// comes after everything has landed.
 				await queryClient.invalidateQueries({ queryKey: householdKey(destination.id) });
 			}
 			return [];

@@ -30,13 +30,10 @@
 		'flex h-8 min-w-0 items-center rounded-full border text-xs font-medium whitespace-nowrap transition-colors';
 	const on = 'border-primary bg-primary text-primary-foreground';
 	const off = 'border-border bg-card text-foreground hover:bg-accent';
-	// The rows scroll sideways and bleed into the sheet's padding, so a chip cut
-	// off at the edge reads as more to come rather than as a chip drawn short.
-	// The bleed is the padding Modal sets, not the one the trip screen sets: the
-	// three rows live nowhere else now.
+	// The rows scroll sideways and bleed into the padding Modal sets, so a chip
+	// cut off at the edge reads as more to come rather than as a chip drawn
+	// short.
 	const row = '-mx-5 -my-1.5 flex gap-1.5 overflow-x-auto px-5';
-	// The sheet lays its children out on a grid with room between them, so each
-	// title travels with its own row rather than floating between two.
 	const section = 'grid gap-1.5';
 	const heading = 'text-muted-foreground text-xs font-medium';
 </script>

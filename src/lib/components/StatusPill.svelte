@@ -1,15 +1,14 @@
 <script lang="ts">
 	import type { ItemStatus } from '$lib/api.js';
 
-	// The household picks the colour, so the label keeps the page's ink and only
-	// the ground is tinted: a pale amber and a deep green both stay readable,
+	// The household picks the colour, so only the ground is tinted and the label
+	// keeps the page's ink: a pale amber and a deep green both stay readable,
 	// which a label drawn in the household's own colour would not.
 	//
-	// The pill is drawn at 28 px and widened by a pseudo-element. `tight` is for
-	// the rows that leave it no room — the person rows of the two list screens,
-	// which stand 36 px — where the halo stops at the row's edge rather than
-	// reaching over the line below and taking its taps. Left alone, it keeps the
-	// 44 px it reaches in a row with room to spare.
+	// The pill is drawn at 28 px and widened by a pseudo-element to the 44 px a
+	// touch target needs. `tight` is for the rows that leave it no room — the 36
+	// px person rows of the two list screens — where the halo stops at the row's
+	// edge rather than reaching over the line below and taking its taps.
 	let {
 		status,
 		label,
