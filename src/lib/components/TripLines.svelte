@@ -79,19 +79,15 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
-	let kept = $state.raw<number[]>([]);
-	let aimed = $state.raw<number[]>([]);
-	let staged = $state.raw<number[]>([]);
+	let keptKits = $state.raw<number[]>([]);
+	let keptPeople = $state.raw<number[]>([]);
+	let keptStatuses = $state.raw<number[]>([]);
 	// One dialog at a time, held as one state: three flags side by side let two
 	// of them be true at once, which is how a confirmation ends up stacked on the
-	// sheet that raised it. A removal carries what it came from, so closing it
-	// lands back on the sheet when there was one and on the list when there was
-	// not.
+	// sheet that raised it.
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
-	// The one card showing its add row, held as an id so opening another closes
-	// the first: the row is a detour off the packing gesture, not a fixture.
-	let unfolded = $state.raw<number | null>(null);
+	let addRowOn = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
@@ -99,9 +95,7 @@
 		container = node;
 	}
 
-	// The kits a trip carries are the ones its own lines name: a household kit
-	// nobody embarked would be a chip that empties the screen.
-	let embarked = $derived.by(() => {
+	let kitsOnLines = $derived.by(() => {
 		const found: Kit[] = [];
 		for (const line of lines) {
 			for (const kit of line.kits) {
@@ -111,9 +105,7 @@
 		return found;
 	});
 
-	// Same reading as the kits: the statuses a trip shows are the ones its lines
-	// wear, in the order the statuses screen lays them out.
-	let worn = $derived.by(() => {
+	let statusesOnLines = $derived.by(() => {
 		const found: ItemStatus[] = [];
 		for (const line of lines) {
 			if (!found.some((known) => known.id === line.status.id)) found.push(line.status);
@@ -124,26 +116,26 @@
 	// A choice outlives what offered it: the last line carrying a kit can leave
 	// the trip, and the row that offered that kit goes with it. Applying such a
 	// choice would empty the list, and counting it on the button would point at a
-	// chip nobody can find to unpress. It is remembered rather than applied — the
-	// kit coming back brings the choice back with it.
-	let chosenKits = $derived(kept.filter((id) => embarked.some((kit) => kit.id === id)));
-	let chosenPeople = $derived(aimed.filter((id) => participants.some((one) => one.id === id)));
-	let chosenStatuses = $derived(staged.filter((id) => worn.some((one) => one.id === id)));
-
-	// A row holds an or and the rows an and: what a reader picks inside one row
-	// widens the list, what they pick in another narrows it. An empty row filters
-	// nothing. A common line is everyone's, so it survives a filter on any set of
-	// people: what Léa has to pack includes what the household shares.
-	let filtered = $derived(
-		lines.filter(
-			(line) =>
-				(chosenKits.length === 0 || line.kits.some((kit) => chosenKits.includes(kit.id))) &&
-				(chosenPeople.length === 0 ||
-					line.person === null ||
-					chosenPeople.includes(line.person.id)) &&
-				(chosenStatuses.length === 0 || chosenStatuses.includes(line.status.id))
-		)
+	// chip nobody can find to unpress — hence `active` counting the chosen and
+	// not the kept. It is remembered rather than applied: the kit coming back
+	// brings the choice back with it.
+	let chosenKits = $derived(keptKits.filter((id) => kitsOnLines.some((kit) => kit.id === id)));
+	let chosenPeople = $derived(keptPeople.filter((id) => participants.some((one) => one.id === id)));
+	let chosenStatuses = $derived(
+		keptStatuses.filter((id) => statusesOnLines.some((one) => one.id === id))
 	);
+
+	function matchesFilters(line: TripItem): boolean {
+		const carriesChosenKit =
+			chosenKits.length === 0 || line.kits.some((kit) => chosenKits.includes(kit.id));
+		const commonOrForChosenPerson =
+			chosenPeople.length === 0 || line.person === null || chosenPeople.includes(line.person.id);
+		const wearsChosenStatus =
+			chosenStatuses.length === 0 || chosenStatuses.includes(line.status.id);
+		return carriesChosenKit && commonOrForChosenPerson && wearsChosenStatus;
+	}
+
+	let filtered = $derived(lines.filter(matchesFilters));
 
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
@@ -156,15 +148,10 @@
 		return found;
 	});
 
-	// Read from every line, not from the visible groups: an object a filter hides
-	// is still in the trip, and offering it again would create a second line.
-	let held = $derived([...new Set(lines.map((line) => line.item_type.id))]);
+	let itemIdsInTrip = $derived([...new Set(lines.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
 	let active = $derived(chosenKits.length + chosenPeople.length + chosenStatuses.length);
 
-	// Dragging only makes sense against the stored order read forwards: sorted by
-	// name or reversed, the gesture would fight the order. A filter is no
-	// obstacle — the drop is resolved against every line, not the visible ones.
 	let movable = $derived(sorted === 'order' && direction === 'up');
 
 	let shown = $derived.by(() => {
@@ -181,14 +168,12 @@
 		return person ? person.name : m.everyone();
 	}
 
-	// Only the people going: a line aimed at someone who stayed home would be a
-	// row nobody packs, and the API refuses it anyway. What is taken is read from
-	// every line of the object, filtered ones included — a line a filter hides is
-	// still a line, and offering it again would be a duplicate the API refuses.
-	function missing(item: number): (Person | null)[] {
-		const taken = lines
-			.filter((line) => line.item_type.id === item)
-			.map((line) => line.person?.id ?? null);
+	function everyLineFor(item: number): TripItem[] {
+		return lines.filter((line) => line.item_type.id === item);
+	}
+
+	function whoeverWithoutLine(item: number): (Person | null)[] {
+		const taken = everyLineFor(item).map((line) => line.person?.id ?? null);
 		const offered =
 			chosenPeople.length === 0
 				? participants
@@ -196,42 +181,33 @@
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
-	// After any write the dialog has to be re-examined, not left as it was: the
-	// object it stands on may have lost its last line, and a dialog on an object
-	// that is gone would reappear the day the object comes back.
-	function settle() {
-		const next = opened?.kind === 'remove' ? opened.back : opened;
-		if (!next || next.kind === 'filters') opened = next;
-		else opened = lines.some((line) => line.item_type.id === next.item.id) ? next : null;
+	function settleDialog() {
+		const unwound = opened?.kind === 'remove' ? opened.back : opened;
+		if (!unwound || unwound.kind === 'filters') opened = unwound;
+		else opened = everyLineFor(unwound.item.id).length > 0 ? unwound : null;
 	}
 
-	// Two write paths, because two kinds of write. `act` is for the ones that
-	// change the shape of the list — a line appears, disappears, or moves between
-	// objects: they wait for the server, then ask the whole list again, because
-	// what comes back is not something the screen could have guessed. `patching`
-	// is for the ones that change a line in place, the tap on a status and the
-	// tap on a quantity, repeated dozens of times over one trip: those show their
-	// result at once and let the server confirm behind. The optimistic path costs
-	// a rollback to write, which only pays off on a gesture repeated that often.
-	function act(call: () => Promise<unknown>) {
+	// The writes that change the shape of the list — a line appears, disappears,
+	// or moves between objects — ask the whole list again, because what comes
+	// back is not something the screen could have guessed. Only the two taps
+	// repeated dozens of times over one trip, the status and the quantity, take
+	// the optimistic path below: it costs a rollback to write, which only pays
+	// off on a gesture repeated that often.
+	function writeThenReload(call: () => Promise<unknown>) {
 		stepping.run(async () => {
 			await call();
 			await onchanged();
-			settle();
+			settleDialog();
 			return [];
 		});
 	}
 
-	// The payload is not shaped like the cached line: `{ status: 3 }` names a
-	// status the line carries whole. So the caller hands over both the line as it
-	// must read and the fields to send.
 	type Patch = { line: TripItem; sent: { status?: number; quantity?: number } };
 
-	// Every in-place patch shares one key, because both the count of writes in
+	// `patching.isPending` only ever describes the latest tap, a second one
+	// detaching the observer from the first. So both the count of writes in
 	// flight and the invalidation that follows the last of them are read from the
-	// mutation cache. `patching.isPending` cannot answer either: a second tap
-	// detaches the observer from the first mutation, so it only ever describes
-	// the latest one.
+	// mutation cache, under one key every in-place patch shares.
 	const patchKey = ['trip-line-patch'];
 
 	const patching = createMutation(
@@ -242,8 +218,8 @@
 				mutationFn: ({ line, sent }: Patch) => updateTripItem(household, trip, line.id, sent),
 				// A poll already on its way carries the state the tap just left, and
 				// would land on top of it: it is dropped before the line is replaced.
-				// Only the line being written is held, not the whole list: a refusal
-				// putting back a snapshot would also undo every tap that landed since.
+				// Only the line being written is snapshotted: a refusal putting back
+				// the whole list would also undo every tap that landed since.
 				onMutate: async ({ line }: Patch) => {
 					stepping.errors = [];
 					await queryClient.cancelQueries({ queryKey: key });
@@ -266,8 +242,7 @@
 				},
 				// A mutation still counts itself here, so one left means this is the
 				// last write in flight. Invalidating under an earlier one would hand
-				// back a body older than the tap still on its way, and the line it
-				// carries would flick back for a round trip.
+				// back a body older than the tap still on its way.
 				onSettled: () => {
 					if (queryClient.isMutating({ mutationKey: patchKey }) === 1)
 						void queryClient.invalidateQueries({ queryKey: key });
@@ -279,40 +254,35 @@
 
 	const writing = useIsMutating({ mutationKey: patchKey }, queryClient);
 
-	// Reporting upwards a state that only this component knows has no simpler
-	// shape in runes: a component cannot export a derived, and `$bindable` moves
-	// the assignment to the parent rather than removing it.
+	// A component cannot export a derived, and `$bindable` moves the assignment
+	// to the parent rather than removing it: reporting this upwards has no
+	// simpler shape in runes.
 	$effect(() => {
 		onbusy?.(dragging.grabbed !== null || stepping.busy || writing.current > 0);
 	});
 
-	// The unfolded row stands on a card that still has someone to offer, and the
-	// tap that opened it is spent as soon as that card has nobody: left in place,
-	// the id would reopen the row unasked the day the card offers again — a
-	// filter released, a line removed on the other phone. What empties the offer
-	// is not always a gesture this component sees, so the state is reconciled
-	// against the lines rather than folded at each call site.
+	// What empties a card's offer is not always a gesture this component sees — a
+	// filter released, a line removed on the other phone — so the open add row is
+	// reconciled against the lines rather than folded at each call site.
 	$effect(() => {
-		if (unfolded === null) return;
-		const carried = lines.some((line) => line.item_type.id === unfolded);
-		if (!carried || missing(unfolded).length === 0) unfolded = null;
+		if (addRowOn === null) return;
+		const carried = lines.some((line) => line.item_type.id === addRowOn);
+		if (!carried || whoeverWithoutLine(addRowOn).length === 0) addRowOn = null;
 	});
 
-	// Choosing an object the trip already carries points at it rather than adding
-	// it twice. Under a filter that object may not be on screen at all, and a
-	// scroll to a card that is not drawn would look like nothing happened — so
-	// the filters are cleared first, putting the reader in front of what they
-	// just asked for.
+	function clearFilters() {
+		keptKits = [];
+		keptPeople = [];
+		keptStatuses = [];
+	}
+
 	async function chosen(item: ItemType) {
-		if (!held.includes(item.id)) {
-			act(() => createTripItem(household, trip, { item_type: item.id, person: null }));
+		if (!itemIdsInTrip.includes(item.id)) {
+			writeThenReload(() => createTripItem(household, trip, { item_type: item.id, person: null }));
 			return;
 		}
-		if (!groups.some((group) => group.id === item.id)) {
-			kept = [];
-			aimed = [];
-			staged = [];
-		}
+		const hiddenByFilters = !groups.some((group) => group.id === item.id);
+		if (hiddenByFilters) clearFilters();
 		clearTimeout(fading);
 		highlighted = item.id;
 		fading = setTimeout(() => (highlighted = null), 2500);
@@ -320,11 +290,11 @@
 		container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
 	}
 
-	// Turning the interval off is not enough: it stops the timer, while a request
-	// already on its way still lands, and `Reordering.rows` drops its arrangement
-	// as soon as `groups` is a new array — the card would jump out from under the
-	// finger. So the grab cancels the flight too, and does not wait on it: the
-	// card has to follow the finger on this very event.
+	// Stopping the poll leaves a request already on its way, and
+	// `Reordering.rows` drops its arrangement as soon as `groups` is a new array
+	// — the card would jump out from under the finger. The flight is cancelled
+	// without waiting on it: the card has to follow the finger on this very
+	// event.
 	function grab(event: PointerEvent, group: Grouped) {
 		void queryClient.cancelQueries({ queryKey: tripLinesQuery(household, trip).queryKey });
 		dragging.grab(event, group);
@@ -337,47 +307,39 @@
 
 	let ranked = $derived(inHierarchy(statuses));
 
-	// Tapping climbs the hierarchy the statuses screen shows and wraps at the
-	// end, so a status set by mistake is undone by tapping on rather than by
-	// hunting for a picker. A line whose status the household deleted while the
-	// screen was open has no rank to climb from, and starts the cycle over.
+	// A line whose status the household deleted while the screen was open has no
+	// standing to climb from, and starts the cycle over.
 	function advance(line: TripItem) {
-		const at = ranked.findIndex((one) => one.id === line.status.id);
-		const next = at === -1 ? ranked[0] : ranked[(at + 1) % ranked.length];
+		const standing = ranked.findIndex((one) => one.id === line.status.id);
+		const next = standing === -1 ? ranked[0] : ranked[(standing + 1) % ranked.length];
 		if (!next || next.id === line.status.id) return;
 		patching.mutate({ line: { ...line, status: next }, sent: { status: next.id } });
 	}
 
-	// The sheet is the detail of one object, so it reads every line that object
-	// has — not the groups the list shows. Reading the filtered groups would make
-	// it close on the reader the moment a line it holds stopped matching, which
-	// is exactly what advancing a status under a status filter does.
 	let sheet = $derived.by(() => {
-		const shown = opened;
-		if (shown?.kind !== 'sheet') return null;
-		const held = lines.filter((line) => line.item_type.id === shown.item.id);
-		if (held.length === 0) return null;
-		return { id: shown.item.id, item: held[0].item_type, kits: held[0].kits, lines: held };
+		const dialog = opened;
+		if (dialog?.kind !== 'sheet') return null;
+		const itemLines = everyLineFor(dialog.item.id);
+		if (itemLines.length === 0) return null;
+		return {
+			id: dialog.item.id,
+			item: itemLines[0].item_type,
+			kits: itemLines[0].kits,
+			lines: itemLines
+		};
 	});
 
-	// Same reading as the sheet, and for the same reason now that a poll refreshes
-	// the list on its own: the other phone can take the line away under the
-	// confirmation, and confirming would send a DELETE on an id that is gone.
 	let removing = $derived.by(() => {
-		const shown = opened;
-		if (shown?.kind !== 'remove') return null;
-		return lines.some((line) => line.id === shown.line.id) ? shown : null;
+		const dialog = opened;
+		if (dialog?.kind !== 'remove') return null;
+		const stillInTrip = lines.some((line) => line.id === dialog.line.id);
+		return stillInTrip ? dialog : null;
 	});
 
-	// The write returned the object as it now stands, so it goes into the lines
-	// that carry it rather than being asked for again. It is put there without
-	// the invalidation `rewrite` would add: a rename touches no line, the lines
-	// route answers on its own fingerprint, and the refetch would hand back a
-	// body where the old name still stands — undoing what was just learnt.
-	//
-	// A merge is the one case the cache cannot settle alone, since lines move
-	// between objects and some are dropped. There the lines do change, so the
-	// fingerprint moves and asking again is both necessary and truthful.
+	// A rename touches no line, so the lines route answers on the same
+	// fingerprint and asking again would hand back a body where the old name
+	// still stands, undoing what was just learnt. A merge does move lines between
+	// objects, so there the fingerprint moves and asking again is truthful.
 	async function follow(survivor: ItemType) {
 		const absorbed = opened?.kind === 'edit' && survivor.id !== opened.item.id;
 		queryClient.setQueryData<TripItem[]>(tripLinesQuery(household, trip).queryKey, (all) =>
@@ -389,12 +351,11 @@
 		opened = { kind: 'sheet', item: survivor };
 	}
 
-	// The kits served go into the lines that carry the object rather than being
-	// asked for again: no trip line moved, so the lines route answers on the
-	// same fingerprint, and the refetch would hand back a body where the object
-	// belongs to no new kit — undoing what was just learnt and offering the same
-	// kit a second time. They are written even when a refusal cuts the run
-	// short, so that retrying resumes at the kit it stopped on.
+	// No trip line moved, so the lines route answers on the same fingerprint and
+	// a refetch would hand back a body where the object belongs to no new kit,
+	// offering the same kit a second time. The kits served are written even when
+	// a refusal cuts the run short, so that retrying resumes at the kit it
+	// stopped on.
 	function addToKits(group: Grouped, wanted: Kit[]): Promise<boolean> {
 		return stepping
 			.run(async () => {
@@ -424,9 +385,10 @@
 									: line
 							)
 						);
-						// The kit screens read their own queries, where the kit would still
-						// be the one that holds nothing. Waiting on that refetch would hold
-						// the whole trip screen busy for a list this write did not change.
+						// Not awaited: the kit screens read their own queries, where the
+						// kit would still be the one that holds nothing, but waiting on
+						// that refetch would hold the whole trip screen busy for a list
+						// this write did not change.
 						void queryClient.invalidateQueries({ queryKey: kitsQuery(household).queryKey });
 					}
 				}
@@ -436,30 +398,26 @@
 	}
 
 	function addFor(group: Grouped, person: Person | null) {
-		act(() =>
+		writeThenReload(() =>
 			createTripItem(household, trip, { item_type: group.item.id, person: person?.id ?? null })
 		);
 	}
 
-	// A position belongs to a line, not to the object above it, so moving one
-	// card moves every line it holds. Only the lines whose rank actually changes
-	// are sent, and the list is replayed locally to know which those are.
-	//
-	// The drop is read against every line, not the ones on screen: under a filter
-	// the visible cards are islands in a longer list, and ranks counted over the
-	// islands would drag the hidden lines between them. What the gesture states
-	// is an order relative to its visible neighbours, so the moved object lands
-	// just before the card that now follows it — or after the one it now trails.
+	// Under a filter the visible cards are islands in a longer list, and ranks
+	// counted over the islands would drag the hidden lines between them. What the
+	// gesture states is an order relative to its visible neighbours: the moved
+	// object lands just before the card that now follows it, or after the one it
+	// now trails.
 	function landing(moved: Grouped): TripItem[] {
-		const shownNow = dragging.rows;
-		const at = shownNow.findIndex((group) => group.id === moved.id);
-		const held = lines.filter((line) => line.item_type.id === moved.id);
+		const rows = dragging.rows;
+		const at = rows.findIndex((group) => group.id === moved.id);
+		const moving = everyLineFor(moved.id);
 		const rest = lines.filter((line) => line.item_type.id !== moved.id);
-		const following = shownNow[at + 1];
-		const index = following
+		const following = rows[at + 1];
+		const landsAt = following
 			? rest.findIndex((line) => line.item_type.id === following.id)
-			: rest.findLastIndex((line) => line.item_type.id === shownNow[at - 1]?.id) + 1;
-		return [...rest.slice(0, index), ...held, ...rest.slice(index)];
+			: rest.findLastIndex((line) => line.item_type.id === rows[at - 1]?.id) + 1;
+		return [...rest.slice(0, landsAt), ...moving, ...rest.slice(landsAt)];
 	}
 
 	function drop() {
@@ -496,7 +454,7 @@
 			<ItemPicker
 				{household}
 				{items}
-				{held}
+				held={itemIdsInTrip}
 				holding={m.item_in_trip()}
 				busy={stepping.busy}
 				bind:typed
@@ -536,7 +494,7 @@
 			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
 		>
 			{#each shown as group (group.id)}
-				{@const absent = missing(group.id)}
+				{@const absent = whoeverWithoutLine(group.id)}
 				<li
 					data-row={group.id}
 					data-trip-item={group.id}
@@ -598,11 +556,11 @@
 								variant="ghost"
 								size="icon"
 								aria-label={m.trip_line_add_open({ name: group.item.name })}
-								aria-expanded={unfolded === group.id}
-								onclick={() => (unfolded = unfolded === group.id ? null : group.id)}
+								aria-expanded={addRowOn === group.id}
+								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 								class={[
 									'-my-1.5 -mr-1.5 size-11 flex-none',
-									unfolded === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
+									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
 								]}
 							>
 								<UsersIcon class="size-[15px]" aria-hidden="true" />
@@ -643,7 +601,7 @@
 							</li>
 						{/each}
 
-						{#if absent.length > 0 && unfolded === group.id}
+						{#if absent.length > 0 && addRowOn === group.id}
 							<li
 								class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
 							>
@@ -674,12 +632,12 @@
 {#if opened?.kind === 'filters'}
 	<Modal title={m.trip_filters_open()} onclose={() => (opened = null)}>
 		<TripFilters
-			kits={embarked}
+			kits={kitsOnLines}
 			{participants}
-			statuses={worn}
-			bind:kit={kept}
-			bind:person={aimed}
-			bind:status={staged}
+			statuses={statusesOnLines}
+			bind:kit={keptKits}
+			bind:person={keptPeople}
+			bind:status={keptStatuses}
 		/>
 	</Modal>
 {:else if opened?.kind === 'edit'}
@@ -688,9 +646,9 @@
 		{household}
 		item={shownItem}
 		onclose={() => {
-			// Only a cancel puts this object's sheet back: a save has already moved
-			// the state onto whatever the write answered with, which after a merge
-			// is a different object entirely.
+			// A save has already moved the state onto whatever the write answered
+			// with, which after a merge is a different object entirely: only a cancel
+			// puts this sheet back.
 			if (opened?.kind === 'edit') opened = { kind: 'sheet', item: shownItem };
 		}}
 		onsaved={follow}
@@ -706,7 +664,7 @@
 		<Button
 			variant="destructive"
 			disabled={stepping.busy}
-			onclick={() => act(() => deleteTripItem(household, trip, line.id))}
+			onclick={() => writeThenReload(() => deleteTripItem(household, trip, line.id))}
 		>
 			{m.trip_line_remove()}
 		</Button>
@@ -718,7 +676,7 @@
 		kits={shownSheet.kits}
 		offered={kits}
 		lines={shownSheet.lines}
-		absent={missing(shownSheet.id)}
+		absent={whoeverWithoutLine(shownSheet.id)}
 		errors={stepping.errors}
 		busy={stepping.busy}
 		{whoever}
