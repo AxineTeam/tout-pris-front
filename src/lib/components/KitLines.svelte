@@ -54,9 +54,7 @@
 	let typed = $state('');
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
-	// The one card showing its add row, held as an id so opening another closes
-	// the first: the row is a detour off the packing gesture, not a fixture.
-	let unfolded = $state.raw<number | null>(null);
+	let addRowOn = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
@@ -74,21 +72,21 @@
 		return found;
 	});
 
-	let held = $derived(groups.map((group) => group.item.id));
+	let itemIdsInKit = $derived(groups.map((group) => group.item.id));
 	let searching = $derived(typed.trim().length > 0);
 
 	function whoever(person: Person | null): string {
 		return person ? person.name : m.everyone();
 	}
 
-	function missing(item: number): (Person | null)[] {
+	function whoeverWithoutLine(item: number): (Person | null)[] {
 		const taken = kit.items
 			.filter((line) => line.item_type.id === item)
 			.map((line) => line.person?.id ?? null);
 		return [null, ...persons].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
-	function act(call: () => Promise<unknown>) {
+	function writeThenReload(call: () => Promise<unknown>) {
 		submission.run(async () => {
 			await call();
 			opened = null;
@@ -97,20 +95,17 @@
 		});
 	}
 
-	// The unfolded row stands on a card that still has someone to offer, and the
-	// tap that opened it is spent as soon as that card has nobody: left in place,
-	// the id would reopen the row unasked the day the card offers again — the
-	// last line removed, the object put back. What empties the offer is not
-	// always a gesture this component sees, so the state is reconciled against
-	// the kit rather than folded at each call site.
+	// What empties a card's offer is not always a gesture this component sees —
+	// the last line removed, the object put back — so the open add row is
+	// reconciled against the kit rather than folded at each call site.
 	$effect(() => {
-		if (unfolded === null) return;
-		const carried = kit.items.some((line) => line.item_type.id === unfolded);
-		if (!carried || missing(unfolded).length === 0) unfolded = null;
+		if (addRowOn === null) return;
+		const carried = kit.items.some((line) => line.item_type.id === addRowOn);
+		if (!carried || whoeverWithoutLine(addRowOn).length === 0) addRowOn = null;
 	});
 
 	async function chosen(item: ItemType) {
-		if (held.includes(item.id)) {
+		if (itemIdsInKit.includes(item.id)) {
 			clearTimeout(fading);
 			highlighted = item.id;
 			fading = setTimeout(() => (highlighted = null), 2500);
@@ -172,7 +167,7 @@
 	<ItemPicker
 		{household}
 		{items}
-		{held}
+		held={itemIdsInKit}
 		holding={m.item_in_kit()}
 		busy={stepping.busy}
 		bind:typed
@@ -193,7 +188,7 @@
 			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
 		>
 			{#each dragging.rows as group (group.id)}
-				{@const absent = missing(group.id)}
+				{@const absent = whoeverWithoutLine(group.id)}
 				<li
 					data-row={group.id}
 					style:transform={dragging.grabbed?.id === group.id
@@ -230,11 +225,11 @@
 								variant="ghost"
 								size="icon"
 								aria-label={m.kit_line_add_open({ name: group.item.name })}
-								aria-expanded={unfolded === group.id}
-								onclick={() => (unfolded = unfolded === group.id ? null : group.id)}
+								aria-expanded={addRowOn === group.id}
+								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 								class={[
 									'size-11 flex-none',
-									unfolded === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
+									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
 								]}
 							>
 								<UsersIcon class="size-[15px]" aria-hidden="true" />
@@ -273,7 +268,7 @@
 							</li>
 						{/each}
 
-						{#if absent.length > 0 && unfolded === group.id}
+						{#if absent.length > 0 && addRowOn === group.id}
 							<li
 								class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
 							>
@@ -322,7 +317,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => deleteKitItem(household, kit.id, line.id))}
+			onclick={() => writeThenReload(() => deleteKitItem(household, kit.id, line.id))}
 		>
 			{m.delete_it()}
 		</Button>
@@ -336,7 +331,7 @@
 			variant="destructive"
 			disabled={submission.busy}
 			onclick={() =>
-				act(() =>
+				writeThenReload(() =>
 					Promise.all(group.lines.map((line) => deleteKitItem(household, kit.id, line.id)))
 				)}
 		>

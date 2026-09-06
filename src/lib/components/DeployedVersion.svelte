@@ -2,9 +2,9 @@
 	import { apiBuild, build } from '$lib/build.js';
 </script>
 
-<!-- L'API ne donne son commit qu'aux administrateurs (`tout_pris/views.py`,
-     `commit=settings.APP_COMMIT if request.user.is_staff else None`) : le front
-     n'a aucun moyen de le savoir, il se règle donc sur ce qu'elle a bien voulu dire. -->
+<!-- The API gives its commit to administrators only (`tout_pris/views.py`,
+     `commit=settings.APP_COMMIT if request.user.is_staff else None`), so the front
+     has no way to know it and follows what the API was willing to say. -->
 {#snippet front(staff: boolean)}
 	front {build.version}{#if staff}&nbsp;({build.commit}){/if}
 {/snippet}

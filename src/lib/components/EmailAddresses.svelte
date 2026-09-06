@@ -38,7 +38,7 @@
 		submission.run(async () => apply(await listEmails()));
 	}
 
-	function act(call: () => Promise<AuthResponse<EmailAddress[]>>) {
+	function writeThenApply(call: () => Promise<AuthResponse<EmailAddress[]>>) {
 		adding = false;
 		submission.run(async () => {
 			const errors = apply(await call());
@@ -93,7 +93,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(() => resendEmailVerification(address.email))}
+							onclick={() => writeThenApply(() => resendEmailVerification(address.email))}
 						>
 							{m.email_resend_verification()}
 						</Button>
@@ -103,7 +103,7 @@
 							variant="outline"
 							class={rowActionClass}
 							disabled={submission.busy}
-							onclick={() => act(() => makeEmailPrimary(address.email))}
+							onclick={() => writeThenApply(() => makeEmailPrimary(address.email))}
 						>
 							{m.email_make_primary()}
 						</Button>
@@ -152,7 +152,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => removeEmail(address.email))}
+			onclick={() => writeThenApply(() => removeEmail(address.email))}
 		>
 			{m.delete()}
 		</Button>

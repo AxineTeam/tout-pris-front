@@ -78,7 +78,7 @@
 		opened = next;
 	}
 
-	function act(call: () => Promise<unknown>) {
+	function writeThenReload(call: () => Promise<unknown>) {
 		submission.run(async () => {
 			await call();
 			opened = null;
@@ -100,14 +100,14 @@
 		event.preventDefault();
 		const name = typed.trim();
 		if (!name) return;
-		act(() => createPerson(household.id, name));
+		writeThenReload(() => createPerson(household.id, name));
 	}
 
 	function rename(event: SubmitEvent, person: Person) {
 		event.preventDefault();
 		const name = typed.trim();
 		if (!name) return;
-		act(() => renamePerson(household.id, person.id, name));
+		writeThenReload(() => renamePerson(household.id, person.id, name));
 	}
 </script>
 
@@ -203,7 +203,7 @@
 									account.role === 'owner' ? m.role_demote() : m.role_promote(),
 									() => {
 										close();
-										act(() =>
+										writeThenReload(() =>
 											setMemberRole(
 												household.id,
 												account.id,
@@ -265,7 +265,7 @@
 								m.person_remove(),
 								() => {
 									close();
-									act(() => removeMember(household.id, newcomer.id));
+									writeThenReload(() => removeMember(household.id, newcomer.id));
 								},
 								true
 							)}
@@ -317,7 +317,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => deletePerson(household.id, person.id))}
+			onclick={() => writeThenReload(() => deletePerson(household.id, person.id))}
 		>
 			{m.person_remove()}
 		</Button>
@@ -331,7 +331,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => removeMember(household.id, member.id))}
+			onclick={() => writeThenReload(() => removeMember(household.id, member.id))}
 		>
 			{m.member_remove()}
 		</Button>

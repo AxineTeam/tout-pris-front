@@ -57,7 +57,7 @@
 		opened = next;
 	}
 
-	function act(call: () => Promise<unknown>) {
+	function writeThenReload(call: () => Promise<unknown>) {
 		submission.run(async () => {
 			await call();
 			opened = null;
@@ -70,7 +70,7 @@
 		event.preventDefault();
 		const name = typed.trim();
 		if (!name) return;
-		act(() => createItemStatus(household, name, tinted, progress));
+		writeThenReload(() => createItemStatus(household, name, tinted, progress));
 	}
 
 	function save(event: SubmitEvent, status: ItemStatus) {
@@ -78,7 +78,9 @@
 		const name = typed.trim();
 		if (!name) return;
 		const moved = sectioned === status.progress ? {} : { progress: sectioned };
-		act(() => updateItemStatus(household, status.id, { name, color: tinted, ...moved }));
+		writeThenReload(() =>
+			updateItemStatus(household, status.id, { name, color: tinted, ...moved })
+		);
 	}
 
 	function drop() {
@@ -267,7 +269,8 @@
 			<Button
 				variant="outline"
 				disabled={submission.busy}
-				onclick={() => act(() => updateItemStatus(household, status.id, { is_default: true }))}
+				onclick={() =>
+					writeThenReload(() => updateItemStatus(household, status.id, { is_default: true }))}
 			>
 				{m.status_make_default()}
 			</Button>
@@ -283,7 +286,7 @@
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => act(() => deleteItemStatus(household, status.id))}
+			onclick={() => writeThenReload(() => deleteItemStatus(household, status.id))}
 		>
 			{m.delete_it()}
 		</Button>

@@ -38,20 +38,19 @@
 
 	const submission = new Submission();
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
-	// The pasted text, or the empty string when the window was opened to be read
-	// rather than to import. Null is closed.
+	// The pasted text, empty when the window was opened to be read rather than to
+	// import. Null is closed.
 	let importing = $state.raw<string | null>(null);
 
 	let wanted = $derived(typed.trim());
 	let results = $derived(wanted ? search(items, wanted) : []);
 
-	// Only a paste holding several objects is an import. A single name stays
-	// typed text, trailing newline and all — notes and spreadsheets add one —
-	// and so does a paste of nothing but blank lines. Anything past the size cap
-	// is refused by the window rather than parsed to be counted.
+	// A single name stays typed text, trailing newline and all — notes and
+	// spreadsheets add one — and so does a paste of nothing but blank lines.
 	function importList(event: ClipboardEvent) {
 		const list = event.clipboardData?.getData('text/plain') ?? '';
-		if (list.length <= PASTE_LIMIT && parseItems(list).length < 2) return;
+		const oversized = list.length > PASTE_LIMIT;
+		if (!oversized && parseItems(list).length < 2) return;
 		event.preventDefault();
 		importing = list;
 	}
