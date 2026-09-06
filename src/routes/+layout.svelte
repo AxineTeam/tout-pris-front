@@ -17,13 +17,11 @@
 
 	let inShell = $derived(page.route.id?.startsWith('/(app)') ?? false);
 
-	// La session est morte : plus rien du cache ne nous appartient, et il faut
-	// repartir vers la connexion. `invalidateAll()` le faisait indirectement, en
-	// rejouant la garde de `(app)/+layout.ts` ; le dire ici évite d'avoir à
-	// recharger tous les écrans pour obtenir une redirection.
-	// Le 401 tombe le plus souvent dans le `load` de la page demandée, que `page`
-	// ne porte pas encore : c'est `navigating.to` qui la connaît, et c'est là
-	// qu'il faut revenir après reconnexion.
+	// Saying it here rather than through `invalidateAll()`, which reached the
+	// same redirect only by replaying the guard of `(app)/+layout.ts` — reloading
+	// every screen to obtain it. The 401 lands most often in the `load` of the
+	// page asked for, which `page` does not carry yet: `navigating.to` knows it,
+	// and that is where to come back after signing in.
 	onSessionExpired(() => {
 		session.expire();
 		queryClient.clear();

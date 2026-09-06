@@ -31,12 +31,9 @@
 	let sorted = $state<Sorting>('order');
 	let direction = $state<Direction>('up');
 
-	// One button per sort, and the button carries its own direction: pressing the
-	// sort already in force turns it around instead of doing nothing.
-	//
 	// The label states where the list stands, because `aria-pressed` states the
-	// same thing: naming the next tap instead would have a reader announce
-	// "Z to A, pressed" over a list running A to Z.
+	// same thing: naming the next tap instead would have a reader announce “Z to
+	// A, pressed” over a list running A to Z.
 	let sortings = $derived([
 		{
 			key: 'order' as Sorting,

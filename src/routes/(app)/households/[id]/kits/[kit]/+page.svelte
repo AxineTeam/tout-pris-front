@@ -24,14 +24,12 @@
 		await queryClient.invalidateQueries({ queryKey: kitsQuery(data.household.id).queryKey });
 	}
 
-	// Sorti de la liste sans invalider : la clé du détail prolonge celle de la
-	// liste, et une invalidation relancerait un `readKit` sur le kit qu'on vient
-	// de supprimer — un 404 que la requête retenterait trois fois avant de
-	// rendre la main, en retenant la navigation d'autant.
-	// Et seulement si la liste est déjà en cache : `setQueryData` crée l'entrée
-	// quand elle manque, et y poser une liste vide et fraîche viderait l'écran
-	// des kits pour tout le `staleTime`. Arriver directement ici — un F5, un lien
-	// partagé — ne charge pas la liste.
+	// Dropped from the list rather than invalidated: the detail key extends the
+	// list's, and invalidating would fire a `readKit` on the kit just deleted — a
+	// 404 the query retries three times before handing the navigation back. And
+	// only if the list is cached: `setQueryData` would create the entry, and a
+	// fresh empty list there would empty the kits screen for the whole
+	// `staleTime`.
 	function removed() {
 		queryClient.removeQueries({ queryKey: kitQuery(data.household.id, data.kit).queryKey });
 		const listed = kitsQuery(data.household.id).queryKey;
