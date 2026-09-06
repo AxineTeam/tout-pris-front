@@ -20,8 +20,9 @@
 
 	let { data }: PageProps = $props();
 
-	// Le foyer vient de la requête et non du `load` : c'est ici qu'on le renomme,
-	// et sans `invalidateAll` le `load` ne rejoue plus pour rafraîchir son nom.
+	// The household comes from the query and not from the `load`: it is renamed
+	// here, and without `invalidateAll` the `load` no longer replays to refresh
+	// its name.
 	const all = createQuery(() => householdsQuery());
 	let household = $derived(
 		(all.data ?? []).find((known) => known.id === data.household.id) ?? data.household
@@ -41,9 +42,9 @@
 
 	const invitations = createQuery(() => ({ ...invitationsQuery(household.id), enabled: owner }));
 
-	// `people.isSuccess` et pas la liste vide : tant que la requête n'a rien rendu,
-	// une liste vide se lirait « personne », et l'écran annoncerait à un membre
-	// qu'il ne fait pas partie du foyer.
+	// `people.isSuccess` and not the empty list: as long as the query has
+	// answered nothing, an empty list would read as “nobody” and the screen would
+	// tell a member they are not part of the household.
 	let nobody = $derived(
 		!household.personal && people.isSuccess && !persons.some((person) => person.user === me)
 	);
