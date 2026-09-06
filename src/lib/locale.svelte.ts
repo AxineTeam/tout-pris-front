@@ -8,9 +8,9 @@ function spoken(...tags: (string | undefined)[]): Locale | undefined {
 	}
 }
 
-// Un jour sans heure — « 2026-08-12 » — est lu en UTC par `new Date`, donc
-// affiché la veille à l'ouest de Greenwich. Ses trois nombres sont posés tels
-// quels sur un jour local, où un départ du 12 se lit le 12 partout.
+// A day without a time — `2026-08-12` — is read as UTC by `new Date`, hence
+// shown the day before west of Greenwich. Its three numbers are laid on a local
+// day instead.
 function localDate(value: string): Date {
 	const [year, month, day] = value.split('-').map(Number);
 	return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(year, month - 1, day) : new Date(value);
@@ -54,9 +54,8 @@ class AppLocale {
 		return this.#day.format(localDate(moment));
 	}
 
-	// Le pendant de `localDate` : le jour local rendu tel que l'attend un
-	// <input type="date">. `toISOString` le daterait de la veille à l'ouest de
-	// Greenwich.
+	// The counterpart of `localDate`: `toISOString` would date the local day from
+	// the day before west of Greenwich.
 	today(): string {
 		const now = new Date();
 		const month = String(now.getMonth() + 1).padStart(2, '0');

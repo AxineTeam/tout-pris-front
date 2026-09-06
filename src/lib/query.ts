@@ -21,13 +21,13 @@ export const householdsQuery = () =>
 	queryOptions({ queryKey: ['households'], queryFn: listHouseholds });
 
 // The write just returned the authoritative representation: it goes into the
-// cache instead of being asked for again. Asking again would be both fallible —
-// a GET failing after a successful POST would block navigation, and the retry
-// would create a duplicate — and uncertain: `Query.fetch` returns the in-flight
-// promise when it is not given `cancelRefetch`, so the answer could predate the
-// write. The `load`s read with `staleTime: 'static'`, where they would find the
-// old list. The invalidation that follows lets the server reconcile in the
-// background, without the success path depending on it.
+// cache instead of being asked for again. Asking again would be fallible — a
+// GET failing after a successful POST would block navigation — and uncertain:
+// `Query.fetch` returns the in-flight promise when it is not given
+// `cancelRefetch`, so the answer could predate the write. The `load`s read with
+// `staleTime: 'static'` and never refetch a stale entry, so the invalidation
+// that follows reconciles the screens in the background but cannot stand in for
+// this write.
 export function rewrite<T>(key: QueryKey, change: (all: T[]) => T[]): T[] {
 	const next = change(queryClient.getQueryData<T[]>(key) ?? []);
 	queryClient.setQueryData(key, next);
@@ -35,8 +35,9 @@ export function rewrite<T>(key: QueryKey, change: (all: T[]) => T[]): T[] {
 	return next;
 }
 
-// Every key of a household extends its own: a write whose reach is unknown is
-// invalidated in one go, without waking the other households.
+// Every key of a household extends its own, and every detail key extends its
+// list's: a write whose reach is unknown is invalidated in one go, without
+// waking the other households.
 export const householdKey = (household: number) => ['household', household];
 
 export const statusesQuery = (household: number) =>
@@ -51,11 +52,9 @@ export const personsQuery = (household: number) =>
 		queryFn: () => listPersons(household)
 	});
 
-// Persons and members in a single query, because the household screen crosses
-// them: a "newcomer" is a member without a person. As two independent queries,
-// the answers land in two ticks and the screen renders in between a state that
-// never existed — a person already detached from their account whose membership
-// still shows, hence a phantom newcomer.
+// Two independent queries would land in two ticks, and the screen would render
+// in between a state that never existed: a person already detached from their
+// account whose membership still shows, hence a phantom newcomer.
 export const peopleQuery = (household: number) =>
 	queryOptions({
 		queryKey: [...householdKey(household), 'people'],
@@ -74,8 +73,6 @@ export const invitationsQuery = (household: number) =>
 		queryFn: () => listInvitations(household)
 	});
 
-// The detail key extends the list key: a write on a kit changes both, and a
-// single invalidation on `kits` carries them away.
 export const kitsQuery = (household: number) =>
 	queryOptions({
 		queryKey: [...householdKey(household), 'kits'],
@@ -88,8 +85,8 @@ export const kitQuery = (household: number, kit: number) =>
 		queryFn: () => readKit(household, kit)
 	});
 
-// Archiving a trip moves it from one list to the other: both keys extend
-// `tripsKey`, which a single invalidation carries away.
+// Archiving moves a trip from one list to the other, and the detail extends
+// them both: a single invalidation on `tripsKey` carries all three.
 export const tripsKey = (household: number) => [...householdKey(household), 'trips'];
 
 export const tripsQuery = (household: number, archived = false) =>
@@ -98,22 +95,20 @@ export const tripsQuery = (household: number, archived = false) =>
 		queryFn: () => listTrips(household, archived)
 	});
 
-// The detail extends the lists key: archiving a trip changes all three, and a
-// single invalidation on `tripsKey` carries them away.
 export const tripQuery = (household: number, trip: number) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), trip],
 		queryFn: () => readTrip(household, trip)
 	});
 
-// Lines get their own key and their own query. The detail carries them too, but
-// two copies of the same list would drift apart at the first tick. This is also
-// the route that carries the ETag, the one polling reads: the browser revalidates
-// it on its own, so a tick that changed nothing costs a 304 and no parsing.
+// Their own key rather than the copy the detail carries, which would drift
+// apart at the first tick. This is also the route that carries the ETag, the
+// one polling reads: the browser revalidates it on its own, so a tick that
+// changed nothing costs a 304 and no parsing.
 //
-// The screen keeps the poll quiet while a finger holds a card — a response
-// landing mid-gesture re-derives the rows under it — and while a write is in
-// flight, whose answer is the one to wait for.
+// Kept quiet while a finger holds a card — a response landing mid-gesture
+// re-derives the rows under it — and while a write is in flight, whose answer
+// is the one to wait for.
 export const tripLinesQuery = (household: number, trip: number, quiet = false) =>
 	queryOptions({
 		queryKey: [...tripsKey(household), trip, 'lines'],

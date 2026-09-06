@@ -25,10 +25,10 @@ export interface CopyReport {
 	moved: boolean;
 }
 
-// Copied lines all land common — a person belongs to one household and has no
-// counterpart in another — so the three lines an object holds here would become
-// three identical common lines there, which `KitItem` has no unique constraint
-// to refuse. One line per object then, carrying what its lines added up to.
+// A person belongs to one household and has no counterpart in another, so every
+// copied line lands common: the three lines an object holds here would become
+// three identical ones there, which `KitItem` has no unique constraint to
+// refuse.
 export function copiedItems(lines: KitItem[]): CopiedItem[] {
 	const wanted: CopiedItem[] = [];
 	for (const line of lines) {
@@ -58,16 +58,15 @@ export async function copyKit({
 	const wanted = copiedItems(source.items);
 	const report: CopyReport = { copied: 0, refused: [], moved: false };
 	progressed(0, wanted.length);
-	// The only write that stands outside the loop, so the only one the loop's
-	// stop discipline does not cover: leaving during the read would otherwise
-	// drop an empty kit in the other household and say nothing about it.
+	// The only write outside the loop, so the only one its stop check does not
+	// cover: leaving during the read would drop an empty kit in the other
+	// household.
 	if (stopped?.()) return report;
 	const landed = await createKit(destination, source.name, source.description);
-	// A created line goes to the top of its kit, and after the merge every object
-	// is new to the destination: creating them in the source's order would hand
-	// back a kit read upside down.
+	// A created line goes to the top of its kit and every object is new to the
+	// destination, so creating them in the source's order would hand back a kit
+	// read upside down.
 	const backwards = [...wanted].reverse();
-	// Stopping between two objects, never inside one, follows `importItems`.
 	for (const [at, one] of backwards.entries()) {
 		if (stopped?.()) break;
 		try {
@@ -79,16 +78,14 @@ export async function copyKit({
 			});
 			report.copied += 1;
 		} catch (refusal) {
-			// Unshifted, because the loop walks the kit backwards and the recap is
-			// read against the kit.
+			// Unshifted: the loop walks the kit backwards and the recap is read in
+			// the kit's order.
 			report.refused.unshift({ name: one.item.name, message: said(refusal) });
 		}
 		progressed(at + 1, backwards.length);
 	}
-	// The kit only leaves its household once every object has landed in the other
-	// one. A refusal, or a stop that cut the loop short, means something did not
-	// arrive, and that is precisely what deleting the source would destroy.
-	if (move && report.refused.length === 0 && !stopped?.()) {
+	const nothingRefusedNorStopped = () => report.refused.length === 0 && !stopped?.();
+	if (move && nothingRefusedNorStopped()) {
 		await deleteKit(household, kit);
 		report.moved = true;
 	}
