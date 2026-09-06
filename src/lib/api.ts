@@ -1,7 +1,3 @@
-// Client HTTP de l'API Tout Pris (Django + DRF + django-allauth).
-// Le front et l'API sont servis depuis la même origine : en production le
-// reverse proxy nginx route /api vers Django, en dev/preview c'est le proxy
-// Vite (voir vite.config.ts). Pas de CORS, pas d'URL absolue.
 import * as m from '$lib/paraglide/messages.js';
 
 export const API_BASE = '/api';
@@ -205,9 +201,9 @@ export function resetPassword(key: string, password: string): Promise<AuthRespon
 	});
 }
 
-// Les codes de langue de l'API ne sont pas ceux de paraglide : elle connaît
-// « en-us » et « fr » (settings.LANGUAGES), le projet inlang « en » et « fr ».
-// C'est le code de l'API qui part ici, tout autre valeur est refusée en 400.
+// The API's language codes are not paraglide's: it knows `en-us` and `fr`
+// (settings.LANGUAGES) where the inlang project knows `en` and `fr`. Any other
+// value is refused with a 400.
 export type ApiLocale = 'fr' | 'en-us';
 
 export interface Me {

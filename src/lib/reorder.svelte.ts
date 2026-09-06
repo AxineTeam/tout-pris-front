@@ -1,25 +1,22 @@
 import { tick } from 'svelte';
 
-// The gesture states an order; the server holds ranks. Sending every rank would
-// be one request per row for a move of one, so the wanted order is replayed
-// against the current one and only the rows whose rank actually changes are
-// sent — dropping a three-row object below a one-row object costs the single
-// request that moves the latter. The caller says how to send a rank, since each
-// screen has its own route for it.
+// Sending every rank would be one request per row for a move of one, so the
+// wanted order is replayed against the current one and only the rows whose rank
+// actually changes are sent.
 export async function rerank<T extends { id: number }>(
 	wanted: T[],
 	current: T[],
 	rank: (row: T, at: number) => Promise<unknown>
 ): Promise<void> {
-	const held = [...current];
+	const replayed = [...current];
 	for (const [at, row] of wanted.entries()) {
-		if (held[at]?.id === row.id) continue;
+		if (replayed[at]?.id === row.id) continue;
 		await rank(row, at);
-		held.splice(
-			held.findIndex((known) => known.id === row.id),
+		replayed.splice(
+			replayed.findIndex((known) => known.id === row.id),
 			1
 		);
-		held.splice(at, 0, row);
+		replayed.splice(at, 0, row);
 	}
 }
 
@@ -98,9 +95,8 @@ export class Reordering<T extends { id: number }> {
 		this.#arrangement = null;
 	}
 
-	// A rank alone does not say whether the gesture changed anything: the
-	// statuses screen also moves a row between sections, which can leave the
-	// rank where it was. Both ends of the move are handed back, and the caller
+	// The statuses screen also moves a row between sections, which can leave its
+	// rank where it was: both ends of the move are handed back, and the caller
 	// says what counts as a move.
 	drop(): { row: T; from: number; to: number } | null {
 		const moved = this.grabbed;

@@ -4,9 +4,8 @@ import { said } from '$lib/submission.svelte.js';
 
 export const IMPORT_LIMIT = 100;
 
-// A hundred objects weigh about five kilobytes; twenty times that is room to
-// spare and keeps a paste of several megabytes from being turned into as many
-// objects as it has lines before anything can refuse it.
+// A hundred objects weigh about five kilobytes: twenty times that, and a paste
+// of several megabytes is refused before it becomes one object per line.
 export const PASTE_LIMIT = 100_000;
 
 export interface PastedItem {
@@ -66,9 +65,9 @@ export async function importItems({
 	const taken = new Set(held);
 	try {
 		for (const [at, one] of wanted.entries()) {
-			// Between two objects and never inside one: giving up between the
-			// catalog entry and the line it deserves would leave behind exactly the
-			// half-done state that stopping is meant to spare.
+			// Between two objects and never inside one: giving up between the catalog
+			// entry and the line it deserves would leave the half-done state stopping
+			// is meant to spare.
 			if (stopped?.()) break;
 			try {
 				const { item, created } = await createItemType(household, one.name);
@@ -77,8 +76,9 @@ export async function importItems({
 					await adopt(item);
 					taken.add(item.id);
 				}
-				// Counted last: a line the collection refused is a refusal, not a
-				// creation, and the three counts have to add up to what was pasted.
+				// Counted after the adoption: a line the collection refused is a
+				// refusal, not a creation, and the three counts have to add up to what
+				// was pasted.
 				if (created) report.created += 1;
 				else report.reused += 1;
 			} catch (refusal) {

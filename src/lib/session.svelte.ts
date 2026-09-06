@@ -42,8 +42,9 @@ class Session {
 		return this.#apply(await verifyEmail(key));
 	}
 
-	// L'API ne rend ici que {id, email, language} : fusionner le champ plutôt que
-	// remplacer l'utilisateur, sinon `display` et `has_usable_password` disparaissent.
+	// The API answers here with `{ id, email, language }` alone, so the field is
+	// merged rather than the user replaced: `display` and `has_usable_password`
+	// would vanish.
 	async changeLanguage(language: ApiLocale): Promise<void> {
 		const me = await updateMe(language);
 		if (this.user) this.user = { ...this.user, language: me.language };
