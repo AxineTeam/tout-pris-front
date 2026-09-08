@@ -238,12 +238,14 @@ describe('ItemPicker', () => {
 		expect(screen.getByTestId('item-field')).toHaveFocus();
 	});
 
-	it('laisse le champ actif pendant que l’ajout part', async () => {
+	it('garde le focus dans le champ pendant que l’ajout part', async () => {
+		const user = userEvent.setup();
 		const { rerender } = show();
 
+		await user.click(screen.getByRole('combobox'));
 		await rerender({ busy: true });
 
-		expect(screen.getByTestId('item-field')).toBeEnabled();
+		expect(screen.getByTestId('item-field')).toHaveFocus();
 	});
 
 	it('dit sous quel nom l’API a rangé la saisie quand elle réutilise une entrée', async () => {
