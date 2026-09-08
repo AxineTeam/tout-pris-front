@@ -37,6 +37,7 @@
 	} = $props();
 
 	const submission = new Submission();
+	let field = $state.raw<HTMLInputElement | null>(null);
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
 	// The pasted text, or the empty string when the window was opened to be read
 	// rather than to import. Null is closed.
@@ -53,6 +54,7 @@
 		const list = event.clipboardData?.getData('text/plain') ?? '';
 		if (list.length <= PASTE_LIMIT && parseItems(list).length < 2) return;
 		event.preventDefault();
+		if (busy) return;
 		importing = list;
 	}
 
@@ -66,12 +68,14 @@
 		reused = null;
 		typed = '';
 		submission.errors = [];
+		field?.focus();
 		onchosen(item);
 	}
 
 	function create() {
 		const asked = wanted;
 		if (!asked || submission.busy) return;
+		field?.focus();
 		submission.run(async () => {
 			const { item, created } = await createItemType(household, asked);
 			rewriteItems(household, (all) => remember(all, item));
@@ -93,13 +97,13 @@
 					class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
 				/>
 				<Command.Input bind:value={typed}>
-					{#snippet child({ props: field })}
+					{#snippet child({ props: input })}
 						<Input
-							{...field}
+							{...input}
+							bind:ref={field}
 							bind:value={typed}
 							onkeydown={forget}
 							onpaste={importList}
-							disabled={busy}
 							aria-expanded={wanted.length > 0}
 							aria-label={m.item_field_label()}
 							placeholder={m.item_field_label()}
