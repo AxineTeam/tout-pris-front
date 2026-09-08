@@ -12,7 +12,7 @@ const echarpe = { id: 2, name: 'Écharpe', description: 'la rouge que Tom perd' 
 
 function show(held: number[] = []) {
 	const onchosen = vi.fn();
-	render(ItemPicker, {
+	const { rerender } = render(ItemPicker, {
 		props: {
 			household: 7,
 			items: [chapeau, echarpe],
@@ -23,7 +23,7 @@ function show(held: number[] = []) {
 			onrefresh: vi.fn().mockResolvedValue(undefined)
 		}
 	});
-	return onchosen;
+	return { onchosen, rerender };
 }
 
 async function paste(user: ReturnType<typeof userEvent.setup>, text: string) {
@@ -123,7 +123,7 @@ describe('ItemPicker', () => {
 
 	it('rend l’objet choisi sans rien créer', async () => {
 		const user = userEvent.setup();
-		const onchosen = show();
+		const { onchosen } = show();
 
 		await type(user, 'chap');
 		await user.click(screen.getAllByRole('option')[0]);
@@ -138,7 +138,7 @@ describe('ItemPicker', () => {
 			item: { id: 3, name: 'Bob', description: '' },
 			created: true
 		});
-		const onchosen = show();
+		const { onchosen } = show();
 
 		await type(user, 'Bob');
 		await user.click(screen.getByTestId('item-create'));
@@ -212,6 +212,38 @@ describe('ItemPicker', () => {
 
 		expect(await screen.findByTestId('item-import')).toBeInTheDocument();
 		expect(screen.queryByTestId('item-import-start')).not.toBeInTheDocument();
+	});
+
+	it('garde le focus dans le champ après avoir choisi un objet', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await type(user, 'chap');
+		await user.click(screen.getAllByRole('option')[0]);
+
+		expect(screen.getByTestId('item-field')).toHaveFocus();
+	});
+
+	it('garde le focus dans le champ après avoir créé un objet', async () => {
+		const user = userEvent.setup();
+		createItemType.mockResolvedValue({
+			item: { id: 3, name: 'Bob', description: '' },
+			created: true
+		});
+		show();
+
+		await type(user, 'Bob');
+		await user.click(screen.getByTestId('item-create'));
+
+		expect(screen.getByTestId('item-field')).toHaveFocus();
+	});
+
+	it('laisse le champ actif pendant que l’ajout part', async () => {
+		const { rerender } = show();
+
+		await rerender({ busy: true });
+
+		expect(screen.getByTestId('item-field')).toBeEnabled();
 	});
 
 	it('dit sous quel nom l’API a rangé la saisie quand elle réutilise une entrée', async () => {

@@ -37,6 +37,7 @@
 	} = $props();
 
 	const submission = new Submission();
+	let field = $state.raw<HTMLInputElement | null>(null);
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
 	// The pasted text, empty when the window was opened to be read rather than to
 	// import. Null is closed.
@@ -65,6 +66,7 @@
 		reused = null;
 		typed = '';
 		submission.errors = [];
+		field?.focus();
 		onchosen(item);
 	}
 
@@ -76,6 +78,7 @@
 			rewriteItems(household, (all) => remember(all, item));
 			reused = created ? null : { asked, name: item.name };
 			if (typed.trim() === asked) typed = '';
+			field?.focus();
 			onchosen(item);
 			return [];
 		});
@@ -92,13 +95,13 @@
 					class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
 				/>
 				<Command.Input bind:value={typed}>
-					{#snippet child({ props: field })}
+					{#snippet child({ props: input })}
 						<Input
-							{...field}
+							{...input}
+							bind:ref={field}
 							bind:value={typed}
 							onkeydown={forget}
 							onpaste={importList}
-							disabled={busy}
 							aria-expanded={wanted.length > 0}
 							aria-label={m.item_field_label()}
 							placeholder={m.item_field_label()}
