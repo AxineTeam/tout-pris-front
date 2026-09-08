@@ -53,6 +53,7 @@
 		const oversized = list.length > PASTE_LIMIT;
 		if (!oversized && parseItems(list).length < 2) return;
 		event.preventDefault();
+		if (busy) return;
 		importing = list;
 	}
 
@@ -73,12 +74,12 @@
 	function create() {
 		const asked = wanted;
 		if (!asked || submission.busy) return;
+		field?.focus();
 		submission.run(async () => {
 			const { item, created } = await createItemType(household, asked);
 			rewriteItems(household, (all) => remember(all, item));
 			reused = created ? null : { asked, name: item.name };
 			if (typed.trim() === asked) typed = '';
-			field?.focus();
 			onchosen(item);
 			return [];
 		});
