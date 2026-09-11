@@ -69,6 +69,7 @@
 	"item_description_hint": "Elle suit l’objet dans tous les kits et tous les voyages du foyer.",
 	"item_description_label": "Description de l’objet",
 	"item_edit": "Modifier l’objet « {name} »",
+	"item_field_clear": "Vider la recherche",
 	"item_field_label": "Ajouter ou chercher un objet",
 	"item_import_created": "Créés : {count}",
 	"item_import_detected": "Objets détectés : {count}",

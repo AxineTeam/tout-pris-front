@@ -204,6 +204,63 @@ describe('ItemPicker', () => {
 		expect(screen.queryByTestId('item-import')).not.toBeInTheDocument();
 	});
 
+	it('ne propose de vider le champ que lorsqu’il porte quelque chose', async () => {
+		const user = userEvent.setup();
+		show();
+
+		expect(screen.queryByTestId('item-field-clear')).not.toBeInTheDocument();
+
+		await type(user, 'chap');
+
+		expect(screen.getByRole('button', { name: 'Vider la recherche' })).toBeInTheDocument();
+	});
+
+	it('vide le champ et ses propositions d’un geste', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await type(user, 'chap');
+		await user.click(screen.getByTestId('item-field-clear'));
+
+		expect(screen.getByTestId('item-field')).toHaveValue('');
+		expect(screen.queryAllByRole('option')).toHaveLength(0);
+	});
+
+	it('rend le bouton d’import une fois le champ vidé', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await type(user, 'chap');
+
+		expect(screen.queryByTestId('item-import-open')).not.toBeInTheDocument();
+
+		await user.click(screen.getByTestId('item-field-clear'));
+
+		expect(screen.getByTestId('item-import-open')).toBeInTheDocument();
+	});
+
+	it('garde le focus dans le champ après l’avoir vidé', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await type(user, 'chap');
+		await user.click(screen.getByTestId('item-field-clear'));
+
+		expect(screen.getByTestId('item-field')).toHaveFocus();
+	});
+
+	it('rend le focus sans emmener la vue avec lui, après un vidage', async () => {
+		const user = userEvent.setup();
+		const focus = vi.spyOn(HTMLInputElement.prototype, 'focus');
+		show();
+
+		await type(user, 'chap');
+		await user.click(screen.getByTestId('item-field-clear'));
+
+		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+		focus.mockRestore();
+	});
+
 	it('ouvre la même fenêtre en explication depuis le bouton du champ', async () => {
 		const user = userEvent.setup();
 		show();
