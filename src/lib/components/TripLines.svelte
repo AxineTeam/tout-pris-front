@@ -524,7 +524,7 @@
 							type="button"
 							aria-label={m.trip_item_open({ name: group.item.name })}
 							onclick={() => (opened = { kind: 'sheet', item: group.item })}
-							class="focus-visible:ring-ring/50 grid min-w-0 flex-auto content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
+							class="focus-visible:ring-ring/50 grid min-w-0 content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
 						>
 							<span class="flex min-w-0 items-center gap-0.5">
 								<span class="truncate text-sm font-semibold">{group.item.name}</span>
@@ -540,17 +540,15 @@
 								</span>
 							{/if}
 						</button>
-						{#if group.kits.length > 0}
-							<span class="flex min-w-0 max-w-[40%] gap-1 overflow-hidden">
-								{#each group.kits as kit (kit.id)}
-									<span
-										class="bg-accent text-primary flex-none rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
-									>
-										{kit.name}
-									</span>
-								{/each}
-							</span>
-						{/if}
+						<span class="flex min-w-0 flex-1 basis-0 gap-1 overflow-hidden">
+							{#each group.kits as kit (kit.id)}
+								<span
+									class="bg-accent text-primary flex-none rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
+								>
+									{kit.name}
+								</span>
+							{/each}
+						</span>
 						{#if absent.length > 0}
 							<Button
 								variant="ghost"
