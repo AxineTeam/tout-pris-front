@@ -69,6 +69,7 @@
 	"item_description_hint": "It follows the item through every kit and every trip of the household.",
 	"item_description_label": "Item description",
 	"item_edit": "Edit the item “{name}”",
+	"item_field_clear": "Clear the search",
 	"item_field_label": "Add or search for an item",
 	"item_import_created": "Created: {count}",
 	"item_import_detected": "Items detected: {count}",

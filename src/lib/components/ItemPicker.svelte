@@ -1,6 +1,7 @@
 <script lang="ts">
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import SearchIcon from '@lucide/svelte/icons/search';
+	import XIcon from '@lucide/svelte/icons/x';
 	import { Command } from 'bits-ui';
 	import { createItemType, type ItemType } from '$lib/api.js';
 	import { remember, rewriteItems, search } from '$lib/catalog.js';
@@ -36,6 +37,9 @@
 		onrefresh: () => Promise<void>;
 	} = $props();
 
+	const edgeButton =
+		'text-muted-foreground absolute top-1/2 right-0 size-11 -translate-y-1/2 rounded-full';
+
 	const submission = new Submission();
 	let field = $state.raw<HTMLInputElement | null>(null);
 	let reused = $state.raw<{ asked: string; name: string } | null>(null);
@@ -61,6 +65,11 @@
 		if (event.key !== 'Escape' || !wanted) return;
 		event.stopPropagation();
 		typed = '';
+	}
+
+	function clear() {
+		typed = '';
+		field?.focus({ preventScroll: true });
 	}
 
 	// Keeping the focus keeps the soft keyboard up, and the browser holds a
@@ -121,17 +130,30 @@
 						/>
 					{/snippet}
 				</Command.Input>
-				<Button
-					variant="ghost"
-					size="icon"
-					aria-label={m.item_import_open()}
-					disabled={busy}
-					onclick={() => (importing = '')}
-					class="text-muted-foreground absolute top-1/2 right-0 size-11 -translate-y-1/2 rounded-full"
-					data-testid="item-import-open"
-				>
-					<InfoIcon class="size-[18px]" aria-hidden="true" />
-				</Button>
+				{#if typed}
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label={m.item_field_clear()}
+						onclick={clear}
+						class={edgeButton}
+						data-testid="item-field-clear"
+					>
+						<XIcon class="size-[18px]" aria-hidden="true" />
+					</Button>
+				{:else}
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label={m.item_import_open()}
+						disabled={busy}
+						onclick={() => (importing = '')}
+						class={edgeButton}
+						data-testid="item-import-open"
+					>
+						<InfoIcon class="size-[18px]" aria-hidden="true" />
+					</Button>
+				{/if}
 			</div>
 
 			<FormErrors errors={submission.errors} />
