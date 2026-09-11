@@ -265,6 +265,7 @@
 	"trip_empty": "Aucun objet dans ce voyage.",
 	"trip_filter_all": "Tous",
 	"trip_filter_kits": "Kits",
+	"trip_filter_no_kit": "Dans aucun kit",
 	"trip_filter_people": "Personnes",
 	"trip_filter_statuses": "Statuts",
 	"trip_filtered_empty": "Aucun objet ne passe ce filtre.",

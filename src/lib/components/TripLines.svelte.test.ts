@@ -356,6 +356,109 @@ describe('TripLines', () => {
 		expect(names()).toEqual(['Tente']);
 	});
 
+	it('n’offre pas « dans aucun kit » quand chaque objet porte un kit', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo, { kits: [holiday] })]);
+
+		await openFilters(user);
+
+		expect(
+			within(filterRow('Kits')).queryByRole('button', { name: 'Dans aucun kit' })
+		).not.toBeInTheDocument();
+	});
+
+	it('n’offre pas « dans aucun kit » quand aucun objet n’en porte', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo), line(socks, todo)]);
+
+		await openFilters(user);
+
+		expect(screen.queryByRole('group', { name: 'Kits' })).not.toBeInTheDocument();
+	});
+
+	it('offre « dans aucun kit » dès qu’un objet en porte un et un autre pas', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await openFilters(user);
+
+		expect(within(filterRow('Kits')).getByRole('button', { name: 'Dans aucun kit' })).toBeVisible();
+	});
+
+	it('ne garde que les objets sans kit, et compte le choix sur le bouton', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await filterBy(user, 'Kits', 'Dans aucun kit');
+
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+	});
+
+	it('réunit le kit choisi et les objets sans kit', async () => {
+		const user = userEvent.setup();
+		show([
+			line(tent, todo, { kits: [camping] }),
+			line(socks, todo, { kits: [holiday] }),
+			line(map, todo)
+		]);
+
+		await openFilters(user);
+		await user.click(within(filterRow('Kits')).getByRole('button', { name: 'Camping' }));
+		await user.click(within(filterRow('Kits')).getByRole('button', { name: 'Dans aucun kit' }));
+		await closeFilters(user);
+
+		expect(names()).toEqual(['Tente', 'Carte']);
+	});
+
+	it('cesse de compter « dans aucun kit » quand le dernier objet sans kit en gagne un', async () => {
+		const user = userEvent.setup();
+		const props = {
+			household: 7,
+			trip: 3,
+			lines: [line(tent, todo, { kits: [camping] }), line(socks, todo)],
+			participants: [alice],
+			items: [],
+			kits: [camping],
+			statuses: catalogue,
+			onchanged
+		};
+		const { rerender } = render(TripLines, { props });
+
+		await filterBy(user, 'Kits', 'Dans aucun kit');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+
+		await rerender({
+			lines: [line(tent, todo, { kits: [camping] }), line(socks, todo, { kits: [holiday] })]
+		});
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+	});
+
+	it('cesse de compter « dans aucun kit » quand la rangée des kits s’en va', async () => {
+		const user = userEvent.setup();
+		const props = {
+			household: 7,
+			trip: 3,
+			lines: [line(tent, todo, { kits: [camping] }), line(socks, todo)],
+			participants: [alice],
+			items: [],
+			kits: [camping],
+			statuses: catalogue,
+			onchanged
+		};
+		const { rerender } = render(TripLines, { props });
+
+		await filterBy(user, 'Kits', 'Dans aucun kit');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+
+		await rerender({ lines: [line(socks, todo)] });
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(names()).toEqual(['Chaussettes']);
+	});
+
 	it('garde les lignes communes quand on filtre sur une personne', async () => {
 		const user = userEvent.setup();
 		show([

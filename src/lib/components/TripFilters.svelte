@@ -1,3 +1,9 @@
+<script module lang="ts">
+	// Kit ids come from the API and are positive, so the row can carry "in no
+	// kit" as one more entry of the same list rather than as a flag beside it.
+	export const NO_KIT = -1;
+</script>
+
 <script lang="ts">
 	import type { ItemStatus, Kit, Person } from '$lib/api.js';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
@@ -6,6 +12,7 @@
 
 	let {
 		kits,
+		noKitOffered,
 		participants,
 		statuses,
 		kit = $bindable([]),
@@ -13,6 +20,7 @@
 		status = $bindable([])
 	}: {
 		kits: Kit[];
+		noKitOffered: boolean;
 		participants: Person[];
 		statuses: ItemStatus[];
 		kit?: number[];
@@ -55,6 +63,18 @@
 					<span class={[pill, 'px-2.5', kit.includes(one.id) ? on : off]}>{one.name}</span>
 				</button>
 			{/each}
+			{#if noKitOffered}
+				<button
+					type="button"
+					aria-pressed={kit.includes(NO_KIT)}
+					onclick={() => (kit = toggle(kit, NO_KIT))}
+					class={tap}
+				>
+					<span class={[pill, 'px-2.5', kit.includes(NO_KIT) ? on : off]}>
+						{m.trip_filter_no_kit()}
+					</span>
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}

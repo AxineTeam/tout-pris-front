@@ -265,6 +265,7 @@
 	"trip_empty": "Nothing in this trip yet.",
 	"trip_filter_all": "All",
 	"trip_filter_kits": "Kits",
+	"trip_filter_no_kit": "In no kit",
 	"trip_filter_people": "People",
 	"trip_filter_statuses": "Statuses",
 	"trip_filtered_empty": "No item matches this filter.",
