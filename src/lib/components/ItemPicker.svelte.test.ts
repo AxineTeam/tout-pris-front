@@ -238,6 +238,34 @@ describe('ItemPicker', () => {
 		expect(screen.getByTestId('item-field')).toHaveFocus();
 	});
 
+	it('rend le focus sans emmener la vue avec lui, après un choix', async () => {
+		const user = userEvent.setup();
+		const focus = vi.spyOn(HTMLInputElement.prototype, 'focus');
+		show();
+
+		await type(user, 'chap');
+		await user.click(screen.getAllByRole('option')[0]);
+
+		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+		focus.mockRestore();
+	});
+
+	it('rend le focus sans emmener la vue avec lui, après une création', async () => {
+		const user = userEvent.setup();
+		createItemType.mockResolvedValue({
+			item: { id: 3, name: 'Bob', description: '' },
+			created: true
+		});
+		const focus = vi.spyOn(HTMLInputElement.prototype, 'focus');
+		show();
+
+		await type(user, 'Bob');
+		await user.click(screen.getByTestId('item-create'));
+
+		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+		focus.mockRestore();
+	});
+
 	it('garde le focus dans le champ pendant que l’ajout part', async () => {
 		const user = userEvent.setup();
 		const { rerender } = show();

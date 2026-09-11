@@ -67,14 +67,14 @@
 		reused = null;
 		typed = '';
 		submission.errors = [];
-		field?.focus();
+		field?.focus({ preventScroll: true });
 		onchosen(item);
 	}
 
 	function create() {
 		const asked = wanted;
 		if (!asked || submission.busy) return;
-		field?.focus();
+		field?.focus({ preventScroll: true });
 		submission.run(async () => {
 			const { item, created } = await createItemType(household, asked);
 			rewriteItems(household, (all) => remember(all, item));
