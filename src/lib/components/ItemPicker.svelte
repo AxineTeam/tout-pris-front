@@ -63,11 +63,20 @@
 		typed = '';
 	}
 
+	// Keeping the focus keeps the soft keyboard up, and the browser holds a
+	// focused field in view whatever `preventScroll` says — which fights the jump
+	// to an object the list already carries. So the field only keeps the focus
+	// when the next gesture is another name.
+	function focusUnlessJumping(item: ItemType) {
+		if (held.includes(item.id)) field?.blur();
+		else field?.focus({ preventScroll: true });
+	}
+
 	function choose(item: ItemType) {
 		reused = null;
 		typed = '';
 		submission.errors = [];
-		field?.focus({ preventScroll: true });
+		focusUnlessJumping(item);
 		onchosen(item);
 	}
 
@@ -80,6 +89,7 @@
 			rewriteItems(household, (all) => remember(all, item));
 			reused = created ? null : { asked, name: item.name };
 			if (typed.trim() === asked) typed = '';
+			focusUnlessJumping(item);
 			onchosen(item);
 			return [];
 		});
