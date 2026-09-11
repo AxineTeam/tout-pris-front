@@ -341,10 +341,10 @@ describe('TripLines', () => {
 		expect(screen.getByText('Tout le monde')).toBeInTheDocument();
 	});
 
-	it('montre les kits de l’objet', () => {
+	it('laisse les kits de l’objet hors de sa carte, où le nom passe avant', () => {
 		show([line(tent, todo, { kits: [camping] })]);
 
-		expect(within(card('Tente')).getByText('Camping')).toBeInTheDocument();
+		expect(within(card('Tente')).queryByText('Camping')).not.toBeInTheDocument();
 	});
 
 	it('ne garde que les objets du kit choisi', async () => {
