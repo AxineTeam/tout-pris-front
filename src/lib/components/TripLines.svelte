@@ -29,7 +29,7 @@
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
-	import TripFilters from '$lib/components/TripFilters.svelte';
+	import TripFilters, { NO_KIT } from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
@@ -113,26 +113,39 @@
 		return inHierarchy(found);
 	});
 
+	// Between a trip whose every line carries a kit and one where none does, the
+	// chip would take everything or nothing: it is only worth a tap when the two
+	// kinds of line sit side by side.
+	let noKitOffered = $derived(
+		kitsOnLines.length > 0 && lines.some((line) => line.kits.length === 0)
+	);
+
 	// A choice outlives what offered it: the last line carrying a kit can leave
 	// the trip, and the row that offered that kit goes with it. Applying such a
 	// choice would empty the list, and counting it on the button would point at a
 	// chip nobody can find to unpress — hence `active` counting the chosen and
 	// not the kept. It is remembered rather than applied: the kit coming back
 	// brings the choice back with it.
-	let chosenKits = $derived(keptKits.filter((id) => kitsOnLines.some((kit) => kit.id === id)));
+	let chosenKits = $derived(
+		keptKits.filter((id) =>
+			id === NO_KIT ? noKitOffered : kitsOnLines.some((kit) => kit.id === id)
+		)
+	);
 	let chosenPeople = $derived(keptPeople.filter((id) => participants.some((one) => one.id === id)));
 	let chosenStatuses = $derived(
 		keptStatuses.filter((id) => statusesOnLines.some((one) => one.id === id))
 	);
 
 	function matchesFilters(line: TripItem): boolean {
-		const carriesChosenKit =
-			chosenKits.length === 0 || line.kits.some((kit) => chosenKits.includes(kit.id));
+		const inChosenKitOrWithoutKit =
+			chosenKits.length === 0 ||
+			line.kits.some((kit) => chosenKits.includes(kit.id)) ||
+			(chosenKits.includes(NO_KIT) && line.kits.length === 0);
 		const commonOrForChosenPerson =
 			chosenPeople.length === 0 || line.person === null || chosenPeople.includes(line.person.id);
 		const wearsChosenStatus =
 			chosenStatuses.length === 0 || chosenStatuses.includes(line.status.id);
-		return carriesChosenKit && commonOrForChosenPerson && wearsChosenStatus;
+		return inChosenKitOrWithoutKit && commonOrForChosenPerson && wearsChosenStatus;
 	}
 
 	let filtered = $derived(lines.filter(matchesFilters));
@@ -633,6 +646,7 @@
 	<Modal title={m.trip_filters_open()} onclose={() => (opened = null)}>
 		<TripFilters
 			kits={kitsOnLines}
+			{noKitOffered}
 			{participants}
 			statuses={statusesOnLines}
 			bind:kit={keptKits}
