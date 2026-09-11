@@ -266,6 +266,16 @@ describe('ItemPicker', () => {
 		focus.mockRestore();
 	});
 
+	it('lâche le focus quand l’objet choisi est déjà dans la liste', async () => {
+		const user = userEvent.setup();
+		show([chapeau.id]);
+
+		await type(user, 'chap');
+		await user.click(screen.getAllByRole('option')[0]);
+
+		expect(screen.getByTestId('item-field')).not.toHaveFocus();
+	});
+
 	it('garde le focus dans le champ pendant que l’ajout part', async () => {
 		const user = userEvent.setup();
 		const { rerender } = show();
