@@ -540,6 +540,17 @@
 								</span>
 							{/if}
 						</button>
+						{#if group.kits.length > 0}
+							<span class="flex min-w-0 gap-1 overflow-hidden">
+								{#each group.kits as kit (kit.id)}
+									<span
+										class="bg-accent text-primary flex-none rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
+									>
+										{kit.name}
+									</span>
+								{/each}
+							</span>
+						{/if}
 						{#if absent.length > 0}
 							<Button
 								variant="ghost"
