@@ -347,6 +347,64 @@ describe('TripLines', () => {
 		expect(within(card('Tente')).getByText('Camping')).toBeInTheDocument();
 	});
 
+	it('ne nomme qu’un kit et compte les autres', () => {
+		show([line(tent, todo, { kits: [camping, holiday, seaside] })]);
+
+		const kits = within(card('Tente')).getByRole('button', { name: /^Kits de « Tente »/ });
+
+		expect(within(kits).getByText('Camping')).toBeInTheDocument();
+		expect(within(kits).getByText('+2')).toBeInTheDocument();
+		expect(within(kits).queryByText('Vacances')).not.toBeInTheDocument();
+		expect(within(kits).queryByText('Bord de mer')).not.toBeInTheDocument();
+	});
+
+	it('nomme quand même tous les kits à qui ne voit pas la carte', () => {
+		show([line(tent, todo, { kits: [camping, holiday, seaside] })]);
+
+		expect(
+			within(card('Tente')).getByRole('button', {
+				name: 'Kits de « Tente » : Camping, Vacances, Bord de mer'
+			})
+		).toBeInTheDocument();
+	});
+
+	it('nomme le premier kit de l’objet, quel que soit l’ordre reçu', () => {
+		show([line(tent, todo, { kits: [seaside, camping] })]);
+
+		const kits = within(card('Tente')).getByRole('button', { name: /^Kits de « Tente »/ });
+
+		expect(within(kits).getByText('Bord de mer')).toBeInTheDocument();
+		expect(within(kits).getByText('+1')).toBeInTheDocument();
+	});
+
+	it('ne pose aucun bouton de kits sur un objet qui n’en a aucun', () => {
+		show([line(socks, todo)]);
+
+		expect(
+			within(card('Chaussettes')).queryByRole('button', { name: /^Kits de/ })
+		).not.toBeInTheDocument();
+	});
+
+	it('ne compte rien quand l’objet n’appartient qu’à un kit', () => {
+		show([line(tent, todo, { kits: [camping] })]);
+
+		const kits = within(card('Tente')).getByRole('button', { name: /^Kits de « Tente »/ });
+
+		expect(within(kits).queryByText(/^\+/)).not.toBeInTheDocument();
+	});
+
+	it('ouvre la fiche de l’objet depuis ses kits, qui les nomme tous', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping, holiday] })]);
+
+		await user.click(within(card('Tente')).getByRole('button', { name: /^Kits de « Tente »/ }));
+
+		const sheet = await screen.findByRole('dialog');
+		expect(within(sheet).getByRole('heading', { name: 'Tente' })).toBeInTheDocument();
+		expect(within(sheet).getByText('Camping')).toBeInTheDocument();
+		expect(within(sheet).getByText('Vacances')).toBeInTheDocument();
+	});
+
 	it('ne garde que les objets du kit choisi', async () => {
 		const user = userEvent.setup();
 		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);

@@ -553,15 +553,30 @@
 								</span>
 							{/if}
 						</button>
-						<span class="flex min-w-0 flex-1 basis-0 gap-1 overflow-hidden">
-							{#each group.kits as kit (kit.id)}
+						{#if group.kits.length > 0}
+							<button
+								type="button"
+								aria-label={m.trip_item_kits({
+									name: group.item.name,
+									kits: group.kits.map((kit) => kit.name).join(', ')
+								})}
+								onclick={() => (opened = { kind: 'sheet', item: group.item })}
+								class="focus-visible:ring-ring/50 flex min-w-6 flex-1 items-center gap-1 overflow-hidden rounded-full outline-none focus-visible:ring-[3px]"
+							>
 								<span
-									class="bg-accent text-primary flex-none rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
+									class="bg-accent text-primary min-w-0 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium"
 								>
-									{kit.name}
+									{group.kits[0].name}
 								</span>
-							{/each}
-						</span>
+								{#if group.kits.length > 1}
+									<span
+										class="bg-accent text-primary flex-none rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+									>
+										{m.trip_item_kits_more({ count: group.kits.length - 1 })}
+									</span>
+								{/if}
+							</button>
+						{/if}
 						{#if absent.length > 0}
 							<Button
 								variant="ghost"
@@ -570,7 +585,7 @@
 								aria-expanded={addRowOn === group.id}
 								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 								class={[
-									"relative size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
+									"relative ml-auto size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
 									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
 								]}
 							>
