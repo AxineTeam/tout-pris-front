@@ -1,19 +1,7 @@
 {
-	"enabledPlugins": {
-		"svelte@svelte": true,
-		"typescript-lsp@claude-plugins-official": true,
-		"front-skills@local-skills": true
-	},
-	"hooks": {
-		"SessionStart": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
-					}
-				]
-			}
-		]
-	}
+  "enabledPlugins": {
+    "svelte@svelte": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "front-skills@local-skills": true
+  }
 }
