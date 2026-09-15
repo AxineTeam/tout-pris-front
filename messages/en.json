@@ -274,6 +274,8 @@
 	"trip_filters_open": "Filters",
 	"trip_going": "Take {name} along",
 	"trip_going_explains": "Dropping someone takes them out of the trip's filters, but their lines stay: remove them one by one from the object.",
+	"trip_item_kits": "Kits of “{name}”: {kits}",
+	"trip_item_kits_more": "+{count}",
 	"trip_item_open": "Open “{name}”",
 	"trip_kits_explains": "A kit lays its lines into the trip when you save. Taking them out afterwards is done line by line.",
 	"trip_kits_label": "Kits to take",
