@@ -1,7 +1,8 @@
 {
 	"enabledPlugins": {
-		"code-simplifier@claude-plugins-official": true,
-		"superpowers@claude-plugins-official": true
+		"svelte@svelte": true,
+		"typescript-lsp@claude-plugins-official": true,
+		"front-skills@local-skills": true
 	},
 	"hooks": {
 		"SessionStart": [

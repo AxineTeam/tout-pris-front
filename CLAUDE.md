@@ -26,9 +26,10 @@ Frontend SvelteKit du projet Tout Pris. Sois extrêmement concis.
 
 ## Skills
 
-- Les skills du dépôt sont dans `.claude/skills/` et sont à utiliser, pas seulement à lister
-- `svelte-code-writer` et `svelte-core-bestpractices` (officiels, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts` — relire une PR est une analyse — et à suivre en entier, les instructions et exemples du skill, pas seulement l'autofixer
-- `code-reviewer`, `debugging-wizard`, `security-reviewer`, `test-master`, `typescript-pro` : mêmes skills génériques que l'API
+- Les skills viennent de la machine, plus du dépôt : `.claude/settings.json` déclare les plugins qui les portent, et l'agent tourne en local avec ce que la machine a installé. Rien à copier ici
+- `svelte@svelte` (officiel, [sveltejs/ai-tools](https://github.com/sveltejs/ai-tools)) porte `svelte-code-writer` et `svelte-core-bestpractices`, le serveur MCP de documentation, le LSP et l'agent `svelte-file-editor` : à charger avant toute création, modification ou analyse d'un `.svelte` / `.svelte.ts` — relire une PR est une analyse — et à suivre en entier, les instructions et exemples du skill, pas seulement l'autofixer
+- `front-skills` porte `typescript-pro`, `javascript-pro` et `playwright-expert`
+- `code-reviewer`, `debugging-wizard`, `security-reviewer` et `test-master` sont actifs au niveau utilisateur, donc disponibles sans que ce dépôt les déclare
 - Ne compte pas sur le chargement automatique : Claude Code ne charge un skill que si sa `description` accroche la tâche, et « relis cette PR » n'accroche rien — charge-les explicitement en début de tâche, avant de lire le diff
 - Relire une PR, c'est charger `code-reviewer`, plus les skills Svelte dès que le diff touche un `.svelte` / `.svelte.ts`, plus `security-reviewer` s'il touche l'authentification, les cookies ou les entrées utilisateur
 - Un hook `SessionStart` (`.claude/hooks/session-start.sh`) installe la toolchain dans les sessions Claude Code web
