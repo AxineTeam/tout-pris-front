@@ -528,7 +528,7 @@
 								aria-hidden="true"
 								data-testid="trip-item-handle-{group.id}"
 								onpointerdown={(event) => !stepping.busy && grab(event, group)}
-								class="text-muted-foreground -mt-1.5 -ml-1 flex size-11 flex-none touch-none items-center justify-center"
+								class="text-muted-foreground relative flex size-7 flex-none touch-none items-center justify-center after:absolute after:-inset-2 after:content-['']"
 							>
 								<GripHorizontalIcon size={16} />
 							</span>
@@ -570,7 +570,7 @@
 								aria-expanded={addRowOn === group.id}
 								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 								class={[
-									'-my-1.5 -mr-1.5 size-11 flex-none',
+									"relative size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
 									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
 								]}
 							>
