@@ -57,6 +57,7 @@
 	let addRowOn = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
+	let solePerson = $derived(persons.length === 1 ? persons[0].id : null);
 
 	function anchored(node: HTMLElement) {
 		container = node;
@@ -113,7 +114,7 @@
 			container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
 			return;
 		}
-		addLine(item.id, null);
+		addLine(item.id, solePerson);
 	}
 
 	function editItem(group: Grouped) {
@@ -172,7 +173,7 @@
 		busy={stepping.busy}
 		bind:typed
 		onchosen={chosen}
-		onadopt={(item) => createKitItem(household, kit.id, { item_type: item.id, person: null })}
+		onadopt={(item) => createKitItem(household, kit.id, { item_type: item.id, person: solePerson })}
 		onrefresh={onchanged}
 	/>
 

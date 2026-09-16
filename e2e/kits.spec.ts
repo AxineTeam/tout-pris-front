@@ -241,7 +241,7 @@ async function pasteInField(page: Page, list: string) {
 test('une liste collée dans le champ remplit le catalogue et le kit d’un coup', async ({
 	page
 }) => {
-	await openAsShared(page);
+	const me = (await openAsShared(page)).split('@')[0];
 	const shared = await createShared(page, name('import'));
 	await openKits(page);
 
@@ -277,8 +277,10 @@ test('une liste collée dans le champ remplit le catalogue et le kit d’un coup
 	await expect(page.locator('[data-row]')).toHaveCount(3);
 	await expect(group(page, 'Tente')).toBeVisible();
 	await expect(group(page, 'Sac à dos')).toBeVisible();
-	// Le kit ne porte pas deux fois l'objet que le foyer connaissait déjà.
-	await expect(lineOf(page, 'Gourde', 'Tout le monde')).toHaveCount(1);
+	// Le kit ne porte pas deux fois l'objet que le foyer connaissait déjà, et
+	// seul au foyer, c'est à soi qu'il revient plutôt qu'à tout le monde.
+	await expect(lineOf(page, 'Gourde', me)).toHaveCount(1);
+	await expect(lineOf(page, 'Gourde', 'Tout le monde')).toHaveCount(0);
 
 	await page.reload();
 	await expect(page.locator('[data-row]')).toHaveCount(3);

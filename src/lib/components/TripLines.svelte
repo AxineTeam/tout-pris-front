@@ -132,6 +132,7 @@
 		)
 	);
 	let chosenPeople = $derived(keptPeople.filter((id) => participants.some((one) => one.id === id)));
+	let soleParticipant = $derived(participants.length === 1 ? participants[0].id : null);
 	let chosenStatuses = $derived(
 		keptStatuses.filter((id) => statusesOnLines.some((one) => one.id === id))
 	);
@@ -291,7 +292,9 @@
 
 	async function chosen(item: ItemType) {
 		if (!itemIdsInTrip.includes(item.id)) {
-			writeThenReload(() => createTripItem(household, trip, { item_type: item.id, person: null }));
+			writeThenReload(() =>
+				createTripItem(household, trip, { item_type: item.id, person: soleParticipant })
+			);
 			return;
 		}
 		const hiddenByFilters = !groups.some((group) => group.id === item.id);
@@ -472,7 +475,8 @@
 				busy={stepping.busy}
 				bind:typed
 				onchosen={chosen}
-				onadopt={(item) => createTripItem(household, trip, { item_type: item.id, person: null })}
+				onadopt={(item) =>
+					createTripItem(household, trip, { item_type: item.id, person: soleParticipant })}
 				onrefresh={onchanged}
 			/>
 		</div>
