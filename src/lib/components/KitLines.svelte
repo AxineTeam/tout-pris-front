@@ -12,15 +12,17 @@
 		type KitItem,
 		type Person
 	} from '$lib/api.js';
+	import FiltersButton from '$lib/components/FiltersButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
+	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { Reordering, rerank } from '$lib/reorder.svelte.js';
+	import { orderAfterDrop, Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
 
 	interface Grouped {
@@ -32,7 +34,8 @@
 	type Opened =
 		| { kind: 'edit'; group: Grouped }
 		| { kind: 'remove-line'; group: Grouped; line: KitItem }
-		| { kind: 'remove-item'; group: Grouped };
+		| { kind: 'remove-item'; group: Grouped }
+		| { kind: 'filters' };
 
 	let {
 		household,
@@ -52,6 +55,7 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
+	let keptPeople = $state.raw<number[]>([]);
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let addRowOn = $state.raw<number | null>(null);
@@ -63,9 +67,24 @@
 		container = node;
 	}
 
+	let peopleOnLines = $derived(
+		persons.filter((person) => kit.items.some((line) => line.person?.id === person.id))
+	);
+
+	let chosenPeople = $derived(
+		keptPeople.filter((id) => peopleOnLines.some((one) => one.id === id))
+	);
+
+	let filtered = $derived(
+		kit.items.filter(
+			(line) =>
+				chosenPeople.length === 0 || line.person === null || chosenPeople.includes(line.person.id)
+		)
+	);
+
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
-		for (const line of kit.items) {
+		for (const line of filtered) {
 			const group = found.find((known) => known.item.id === line.item_type.id);
 			if (group) group.lines.push(line);
 			else found.push({ id: line.item_type.id, item: line.item_type, lines: [line] });
@@ -73,7 +92,7 @@
 		return found;
 	});
 
-	let itemIdsInKit = $derived(groups.map((group) => group.item.id));
+	let itemIdsInKit = $derived([...new Set(kit.items.map((line) => line.item_type.id))]);
 	let searching = $derived(typed.trim().length > 0);
 
 	function whoever(person: Person | null): string {
@@ -84,7 +103,9 @@
 		const taken = kit.items
 			.filter((line) => line.item_type.id === item)
 			.map((line) => line.person?.id ?? null);
-		return [null, ...persons].filter((person) => !taken.includes(person?.id ?? null));
+		const offered =
+			chosenPeople.length === 0 ? persons : persons.filter((one) => chosenPeople.includes(one.id));
+		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
 	function writeThenReload(call: () => Promise<unknown>) {
@@ -107,6 +128,8 @@
 
 	async function chosen(item: ItemType) {
 		if (itemIdsInKit.includes(item.id)) {
+			const hiddenByFilters = !groups.some((group) => group.id === item.id);
+			if (hiddenByFilters) keptPeople = [];
 			clearTimeout(fading);
 			highlighted = item.id;
 			fading = setTimeout(() => (highlighted = null), 2500);
@@ -133,7 +156,12 @@
 	function drop() {
 		const move = dragging.drop();
 		if (!move || move.to === move.from) return;
-		const wanted = dragging.rows.flatMap((group) => group.lines);
+		const wanted = orderAfterDrop(
+			dragging.rows,
+			move.row.id,
+			kit.items,
+			(line) => line.item_type.id
+		);
 		stepping.run(async () => {
 			try {
 				await rerank(wanted, kit.items, (line, at) =>
@@ -165,17 +193,25 @@
 />
 
 <div {@attach anchored} class="grid gap-2.5">
-	<ItemPicker
-		{household}
-		{items}
-		held={itemIdsInKit}
-		holding={m.item_in_kit()}
-		busy={stepping.busy}
-		bind:typed
-		onchosen={chosen}
-		onadopt={(item) => createKitItem(household, kit.id, { item_type: item.id, person: solePerson })}
-		onrefresh={onchanged}
-	/>
+	<div class="flex items-start gap-2">
+		<div class="min-w-0 flex-1">
+			<ItemPicker
+				{household}
+				{items}
+				held={itemIdsInKit}
+				holding={m.item_in_kit()}
+				busy={stepping.busy}
+				bind:typed
+				onchosen={chosen}
+				onadopt={(item) =>
+					createKitItem(household, kit.id, { item_type: item.id, person: solePerson })}
+				onrefresh={onchanged}
+			/>
+		</div>
+		{#if !searching}
+			<FiltersButton active={chosenPeople.length} onclick={() => (opened = { kind: 'filters' })} />
+		{/if}
+	</div>
 
 	<FormErrors errors={stepping.errors} />
 
@@ -297,7 +333,17 @@
 	{/if}
 </div>
 
-{#if opened?.kind === 'edit'}
+{#if opened?.kind === 'filters'}
+	<Modal title={m.trip_filters_open()} onclose={() => (opened = null)}>
+		<TripFilters
+			kits={[]}
+			noKitOffered={false}
+			participants={peopleOnLines}
+			statuses={[]}
+			bind:person={keptPeople}
+		/>
+	</Modal>
+{:else if opened?.kind === 'edit'}
 	{@const group = opened.group}
 	<ItemEditor {household} item={group.item} onclose={() => (opened = null)} onsaved={onchanged}>
 		{#snippet extra()}
