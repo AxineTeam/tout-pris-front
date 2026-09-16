@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TripLines, { type Direction, type Sorting } from './TripLines.svelte';
 import {
+	createItemType,
 	createKitItem,
 	createTripItem,
 	deleteTripItem,
@@ -21,6 +22,7 @@ import { queryClient, tripLinesQuery } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
+	createItemType: vi.fn(),
 	createKitItem: vi.fn(),
 	createTripItem: vi.fn(),
 	updateTripItem: vi.fn(),
@@ -157,6 +159,22 @@ async function filterBy(user: User, kind: string, name: string) {
 
 async function unfoldAdd(user: User, name: string) {
 	await user.click(screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` }));
+}
+
+async function chooseFromSearch(user: User, name: string) {
+	await user.click(screen.getByRole('combobox'));
+	await user.keyboard(name);
+	await user.click(screen.getAllByRole('option')[0]);
+}
+
+async function importAlongside(user: User, item: ItemType, held: ItemType) {
+	vi.mocked(createItemType)
+		.mockResolvedValueOnce({ item, created: true })
+		.mockResolvedValueOnce({ item: held, created: false });
+	await user.click(screen.getByRole('combobox'));
+	await user.paste(`${item.name}\n${held.name}`);
+	await user.click(await screen.findByTestId('item-import-start'));
+	await screen.findByTestId('item-import-created');
 }
 
 beforeEach(() => {
@@ -713,11 +731,38 @@ describe('TripLines', () => {
 		const user = userEvent.setup();
 		show([line(socks, todo)]);
 
-		await user.click(screen.getByRole('combobox'));
-		await user.keyboard('Tente');
-		await user.click(screen.getAllByRole('option')[0]);
+		await chooseFromSearch(user, 'Tente');
 
 		expect(createTripItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: null });
+	});
+
+	it('attribue à l’unique participant la ligne ajoutée depuis la recherche', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)], 'order', [alice]);
+
+		await chooseFromSearch(user, 'Tente');
+
+		expect(createTripItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: alice.id });
+	});
+
+	it('laisse commune la ligne ajoutée depuis la recherche à un voyage sans participant', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)], 'order', []);
+
+		await chooseFromSearch(user, 'Tente');
+
+		expect(createTripItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: null });
+	});
+
+	it('attribue à l’unique participant les objets importés', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)], 'order', [alice]);
+
+		await importAlongside(user, tent, socks);
+
+		expect(vi.mocked(createTripItem).mock.calls).toEqual([
+			[7, 3, { item_type: tent.id, person: alice.id }]
+		]);
 	});
 
 	it('déplace toutes les lignes de l’objet attrapé, et seulement les rangs changés', async () => {
