@@ -33,7 +33,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
-	import { Reordering, rerank } from '$lib/reorder.svelte.js';
+	import { orderAfterDrop, Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { inHierarchy } from '$lib/statuses.js';
 	import { failure, Submission } from '$lib/submission.svelte.js';
 
@@ -419,27 +419,10 @@
 		);
 	}
 
-	// Under a filter the visible cards are islands in a longer list, and ranks
-	// counted over the islands would drag the hidden lines between them. What the
-	// gesture states is an order relative to its visible neighbours: the moved
-	// object lands just before the card that now follows it, or after the one it
-	// now trails.
-	function landing(moved: Grouped): TripItem[] {
-		const rows = dragging.rows;
-		const at = rows.findIndex((group) => group.id === moved.id);
-		const moving = everyLineFor(moved.id);
-		const rest = lines.filter((line) => line.item_type.id !== moved.id);
-		const following = rows[at + 1];
-		const landsAt = following
-			? rest.findIndex((line) => line.item_type.id === following.id)
-			: rest.findLastIndex((line) => line.item_type.id === rows[at - 1]?.id) + 1;
-		return [...rest.slice(0, landsAt), ...moving, ...rest.slice(landsAt)];
-	}
-
 	function drop() {
 		const move = dragging.drop();
 		if (!move || move.to === move.from) return;
-		const wanted = landing(move.row);
+		const wanted = orderAfterDrop(dragging.rows, move.row.id, lines, (line) => line.item_type.id);
 		stepping.run(async () => {
 			try {
 				await rerank(wanted, lines, (line, at) =>

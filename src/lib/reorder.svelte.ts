@@ -20,6 +20,27 @@ export async function rerank<T extends { id: number }>(
 	}
 }
 
+// Under a filter the visible rows are islands in a longer list, and ranks
+// counted over the islands would drag the hidden lines between them. What the
+// gesture states is an order relative to its visible neighbours: the moved
+// group lands just before the row that now follows it, or after the one it now
+// trails.
+export function orderAfterDrop<L>(
+	visible: { id: number }[],
+	moved: number,
+	all: L[],
+	groupOf: (line: L) => number
+): L[] {
+	const at = visible.findIndex((row) => row.id === moved);
+	const moving = all.filter((line) => groupOf(line) === moved);
+	const rest = all.filter((line) => groupOf(line) !== moved);
+	const following = visible[at + 1];
+	const landsAt = following
+		? rest.findIndex((line) => groupOf(line) === following.id)
+		: rest.findLastIndex((line) => groupOf(line) === visible[at - 1]?.id) + 1;
+	return [...rest.slice(0, landsAt), ...moving, ...rest.slice(landsAt)];
+}
+
 export class Reordering<T extends { id: number }> {
 	#source: () => T[];
 	#anchor: HTMLElement | undefined;
