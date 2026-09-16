@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,7 @@ import KitLines from './KitLines.svelte';
 import {
 	createItemType,
 	createKitItem,
+	updateKitItem,
 	type ItemType,
 	type KitDetail,
 	type KitItem,
@@ -23,6 +24,7 @@ vi.mock('$lib/api.js', async (importOriginal) => ({
 
 const tent: ItemType = { id: 1, name: 'Tente', description: 'Deux places' };
 const socks: ItemType = { id: 2, name: 'Chaussettes', description: '' };
+const map: ItemType = { id: 3, name: 'Carte', description: '' };
 
 const alice: Person = { id: 1, name: 'Alice', user: null };
 const bob: Person = { id: 2, name: 'Bob', user: null };
@@ -38,13 +40,42 @@ function bag(lines: KitItem[]): KitDetail {
 }
 
 function show(lines: KitItem[], persons: Person[] = [alice]) {
-	render(KitLines, {
-		props: { household: 7, kit: bag(lines), persons, items: [tent, socks], onchanged }
+	return render(KitLines, {
+		props: { household: 7, kit: bag(lines), persons, items: [tent, socks, map], onchanged }
 	});
 }
 
 function card(name: string): HTMLElement {
 	return screen.getByText(name).closest('li[data-row]') as HTMLElement;
+}
+
+function names(): string[] {
+	return screen.getAllByTestId('kit-item-name').map((one) => one.textContent?.trim() ?? '');
+}
+
+type User = ReturnType<typeof userEvent.setup>;
+
+async function openFilters(user: User) {
+	await user.click(screen.getByTestId('trip-filters-open'));
+	await screen.findByRole('dialog');
+}
+
+async function closeFilters(user: User) {
+	await user.click(screen.getByRole('button', { name: 'Fermer' }));
+	await vi.waitFor(() => {
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(document.body.style.pointerEvents).not.toBe('none');
+	});
+}
+
+function filterRow(title: string): HTMLElement {
+	return screen.getByRole('group', { name: title });
+}
+
+async function filterBy(user: User, name: string) {
+	await openFilters(user);
+	await user.click(within(filterRow('Personnes')).getByRole('button', { name }));
+	await closeFilters(user);
 }
 
 function unfoldAdd(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -216,6 +247,145 @@ describe('KitLines', () => {
 
 		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Tente »' }));
 		expect(screen.getByRole('dialog')).toBeInTheDocument();
+	});
+});
+
+describe('KitLines : filtre par personne', () => {
+	it('range la seule rangée des personnes derrière un bouton', async () => {
+		const user = userEvent.setup();
+		show([line(tent), line(socks, { person: alice })], [alice, bob]);
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(screen.getByRole('button', { name: 'Filtres' })).toBeVisible();
+		expect(screen.queryByRole('group', { name: 'Personnes' })).not.toBeInTheDocument();
+
+		await openFilters(user);
+
+		expect(filterRow('Personnes')).toBeVisible();
+		expect(screen.queryByRole('group', { name: 'Kits' })).not.toBeInTheDocument();
+		expect(screen.queryByRole('group', { name: 'Statuts' })).not.toBeInTheDocument();
+	});
+
+	it('ne propose que les personnes qu’une ligne du kit nomme', async () => {
+		const user = userEvent.setup();
+		show([line(tent), line(socks, { person: alice })], [alice, bob]);
+
+		await openFilters(user);
+
+		const row = filterRow('Personnes');
+		expect(within(row).getByRole('button', { name: 'Tous' })).toBeVisible();
+		expect(within(row).getByRole('button', { name: 'Alice' })).toBeVisible();
+		expect(within(row).queryByRole('button', { name: 'Bob' })).not.toBeInTheDocument();
+	});
+
+	it('cache le bouton des filtres pendant une recherche', async () => {
+		const user = userEvent.setup();
+		show([line(socks, { person: alice })]);
+
+		await user.click(screen.getByRole('combobox'));
+		await user.keyboard('Tente');
+
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
+	});
+
+	it('ne garde que les lignes de la personne retenue et les communes', async () => {
+		const user = userEvent.setup();
+		show(
+			[
+				line(socks, { person: alice }),
+				line(socks, { id: 21, person: bob }),
+				line(tent),
+				line(map, { person: bob })
+			],
+			[alice, bob]
+		);
+
+		await filterBy(user, 'Alice');
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(within(card('Chaussettes')).getByText('Alice')).toBeVisible();
+		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+		expect(screen.getByRole('button', { name: 'Filtres — actifs : 1' })).toBeInTheDocument();
+	});
+
+	it('cesse de compter un choix dont la personne n’a plus de ligne, et le retrouve avec elle', async () => {
+		const user = userEvent.setup();
+		const forAlice = line(socks, { person: alice });
+		const forBob = line(tent, { person: bob });
+		const { rerender } = show([forAlice, forBob], [alice, bob]);
+
+		await filterBy(user, 'Alice');
+		expect(names()).toEqual(['Chaussettes']);
+
+		await rerender({ kit: bag([forBob]) });
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(names()).toEqual(['Tente']);
+		expect(screen.queryByTestId('kit-empty')).not.toBeInTheDocument();
+
+		await rerender({ kit: bag([forAlice, forBob]) });
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+		expect(names()).toEqual(['Chaussettes']);
+	});
+
+	it('ne propose d’ajouter une ligne qu’aux personnes retenues', async () => {
+		const user = userEvent.setup();
+		show([line(socks, { person: alice }), line(tent, { person: bob })], [alice, bob]);
+
+		await filterBy(user, 'Alice');
+		await unfoldAdd(user, 'Chaussettes');
+
+		const row = card('Chaussettes');
+		expect(
+			within(row).getByRole('button', { name: 'Ajouter une ligne pour Tout le monde' })
+		).toBeVisible();
+		expect(
+			within(row).queryByRole('button', { name: 'Ajouter une ligne pour Bob' })
+		).not.toBeInTheDocument();
+	});
+
+	it('ne propose pas de recréer un objet qu’un filtre cache', async () => {
+		const user = userEvent.setup();
+		show([line(tent, { person: alice }), line(socks, { person: bob })], [alice, bob]);
+
+		await filterBy(user, 'Alice');
+		expect(names()).toEqual(['Tente']);
+
+		await choose('Chaussettes');
+
+		expect(createKitItem).not.toHaveBeenCalled();
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+		expect(card('Chaussettes')).toHaveClass('border-primary');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+	});
+
+	it('ne déplace pas les lignes qu’un filtre cache', async () => {
+		const ROW = 100;
+		const hidden = line(map, { person: bob });
+		const tentOne = line(tent, { person: alice });
+		const socksOne = line(socks, { person: alice });
+		show([hidden, tentOne, socksOne], [alice, bob]);
+
+		const user = userEvent.setup();
+		await filterBy(user, 'Alice');
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+
+		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+			this: Element
+		) {
+			const row = this.getAttribute('data-row');
+			if (!row) return new DOMRect(0, 0, 0, 0);
+			return new DOMRect(0, (row === String(tent.id) ? 0 : 1) * ROW, 300, ROW);
+		});
+
+		await fireEvent.pointerDown(screen.getByTestId(`kit-item-handle-${socks.id}`), {
+			pointerId: 1
+		});
+		await fireEvent.pointerMove(window, { pointerId: 1, clientY: ROW * 0.1 });
+		await fireEvent.pointerUp(window, { pointerId: 1 });
+
+		expect(vi.mocked(updateKitItem).mock.calls).toEqual([[7, 3, socksOne.id, { position: 1 }]]);
+		vi.restoreAllMocks();
 	});
 });
 
