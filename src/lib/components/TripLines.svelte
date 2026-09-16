@@ -6,7 +6,6 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import { tick } from 'svelte';
 	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
@@ -21,6 +20,7 @@
 		type Person,
 		type TripItem
 	} from '$lib/api.js';
+	import FiltersButton from '$lib/components/FiltersButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
@@ -477,19 +477,7 @@
 			/>
 		</div>
 		{#if !searching}
-			<Button
-				variant="outline"
-				size="icon"
-				aria-label={active > 0 ? m.trip_filters_active({ count: active }) : m.trip_filters_open()}
-				onclick={() => (opened = { kind: 'filters' })}
-				class="h-11 w-auto min-w-11 flex-none gap-1.5 px-2.5"
-				data-testid="trip-filters-open"
-			>
-				<SlidersHorizontalIcon class="size-[18px]" aria-hidden="true" />
-				{#if active > 0}
-					<span class="text-[13px] font-semibold">{active}</span>
-				{/if}
-			</Button>
+			<FiltersButton {active} onclick={() => (opened = { kind: 'filters' })} />
 		{/if}
 	</div>
 
