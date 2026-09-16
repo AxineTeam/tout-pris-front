@@ -6,7 +6,6 @@
 <script lang="ts">
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import { tick } from 'svelte';
 	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
@@ -21,6 +20,7 @@
 		type Person,
 		type TripItem
 	} from '$lib/api.js';
+	import FiltersButton from '$lib/components/FiltersButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
@@ -33,7 +33,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
-	import { Reordering, rerank } from '$lib/reorder.svelte.js';
+	import { orderAfterDrop, Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { inHierarchy } from '$lib/statuses.js';
 	import { failure, Submission } from '$lib/submission.svelte.js';
 
@@ -416,27 +416,10 @@
 		);
 	}
 
-	// Under a filter the visible cards are islands in a longer list, and ranks
-	// counted over the islands would drag the hidden lines between them. What the
-	// gesture states is an order relative to its visible neighbours: the moved
-	// object lands just before the card that now follows it, or after the one it
-	// now trails.
-	function landing(moved: Grouped): TripItem[] {
-		const rows = dragging.rows;
-		const at = rows.findIndex((group) => group.id === moved.id);
-		const moving = everyLineFor(moved.id);
-		const rest = lines.filter((line) => line.item_type.id !== moved.id);
-		const following = rows[at + 1];
-		const landsAt = following
-			? rest.findIndex((line) => line.item_type.id === following.id)
-			: rest.findLastIndex((line) => line.item_type.id === rows[at - 1]?.id) + 1;
-		return [...rest.slice(0, landsAt), ...moving, ...rest.slice(landsAt)];
-	}
-
 	function drop() {
 		const move = dragging.drop();
 		if (!move || move.to === move.from) return;
-		const wanted = landing(move.row);
+		const wanted = orderAfterDrop(dragging.rows, move.row.id, lines, (line) => line.item_type.id);
 		stepping.run(async () => {
 			try {
 				await rerank(wanted, lines, (line, at) =>
@@ -477,19 +460,7 @@
 			/>
 		</div>
 		{#if !searching}
-			<Button
-				variant="outline"
-				size="icon"
-				aria-label={active > 0 ? m.trip_filters_active({ count: active }) : m.trip_filters_open()}
-				onclick={() => (opened = { kind: 'filters' })}
-				class="h-11 w-auto min-w-11 flex-none gap-1.5 px-2.5"
-				data-testid="trip-filters-open"
-			>
-				<SlidersHorizontalIcon class="size-[18px]" aria-hidden="true" />
-				{#if active > 0}
-					<span class="text-[13px] font-semibold">{active}</span>
-				{/if}
-			</Button>
+			<FiltersButton {active} onclick={() => (opened = { kind: 'filters' })} />
 		{/if}
 	</div>
 
