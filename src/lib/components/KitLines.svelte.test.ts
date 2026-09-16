@@ -5,6 +5,7 @@ import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import KitLines from './KitLines.svelte';
 import {
+	createItemType,
 	createKitItem,
 	type ItemType,
 	type KitDetail,
@@ -14,6 +15,7 @@ import {
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
+	createItemType: vi.fn(),
 	createKitItem: vi.fn(),
 	updateKitItem: vi.fn(),
 	deleteKitItem: vi.fn()
@@ -23,6 +25,7 @@ const tent: ItemType = { id: 1, name: 'Tente', description: 'Deux places' };
 const socks: ItemType = { id: 2, name: 'Chaussettes', description: '' };
 
 const alice: Person = { id: 1, name: 'Alice', user: null };
+const bob: Person = { id: 2, name: 'Bob', user: null };
 
 const onchanged = vi.fn().mockResolvedValue(undefined);
 
@@ -34,9 +37,9 @@ function bag(lines: KitItem[]): KitDetail {
 	return { id: 3, name: 'Sac à langer', description: '', position: 1, items: lines };
 }
 
-function show(lines: KitItem[]) {
+function show(lines: KitItem[], persons: Person[] = [alice]) {
 	render(KitLines, {
-		props: { household: 7, kit: bag(lines), persons: [alice], items: [tent, socks], onchanged }
+		props: { household: 7, kit: bag(lines), persons, items: [tent, socks], onchanged }
 	});
 }
 
@@ -55,14 +58,43 @@ async function choose(name: string) {
 	await user.click(screen.getAllByRole('option')[0]);
 }
 
+async function importAlongside(item: ItemType, held: ItemType) {
+	const user = userEvent.setup();
+	vi.mocked(createItemType)
+		.mockResolvedValueOnce({ item, created: true })
+		.mockResolvedValueOnce({ item: held, created: false });
+	await user.click(screen.getByRole('combobox'));
+	await user.paste(`${item.name}\n${held.name}`);
+	await user.click(await screen.findByTestId('item-import-start'));
+	await screen.findByTestId('item-import-created');
+}
+
 describe('KitLines', () => {
-	it('ajoute une ligne pour tout le monde dès qu’un objet est choisi, sans rien demander', async () => {
+	it('attribue à l’unique personne du foyer l’objet choisi, sans rien demander', async () => {
 		show([line(socks)]);
 
 		await choose('Tente');
 
-		expect(createKitItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: null });
+		expect(createKitItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: alice.id });
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('ajoute pour tout le monde l’objet choisi dès que le foyer compte deux personnes', async () => {
+		show([line(socks)], [alice, bob]);
+
+		await choose('Tente');
+
+		expect(createKitItem).toHaveBeenCalledWith(7, 3, { item_type: tent.id, person: null });
+	});
+
+	it('attribue à l’unique personne du foyer les objets importés', async () => {
+		show([line(socks)]);
+
+		await importAlongside(tent, socks);
+
+		expect(vi.mocked(createKitItem).mock.calls).toEqual([
+			[7, 3, { item_type: tent.id, person: alice.id }]
+		]);
 	});
 
 	it('pointe l’objet déjà dans le kit au lieu de le rajouter', async () => {
