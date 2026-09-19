@@ -1828,4 +1828,31 @@ describe('TripLines : carte à une seule ligne', () => {
 		expect(within(sheet).getByTestId('sheet-add-2')).toBeVisible();
 		expect(within(sheet).getByTestId('sheet-add-common')).toBeVisible();
 	});
+
+	it('ne propose pas de rangée des personnes à un voyage à un participant', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { person: alice })], 'order', [alice]);
+
+		await openFilters(user);
+
+		expect(screen.queryByRole('group', { name: 'Personnes' })).not.toBeInTheDocument();
+		expect(filterRow('Statuts')).toBeVisible();
+	});
+
+	it('cesse de compter la personne filtrée quand le voyage n’a plus qu’un participant', async () => {
+		const user = userEvent.setup();
+		const { rerender } = show([
+			line(tent, todo, { person: alice }),
+			line(socks, todo, { person: bob })
+		]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+		expect(names()).toEqual(['Tente']);
+
+		await rerender({ participants: [alice] });
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+	});
 });
