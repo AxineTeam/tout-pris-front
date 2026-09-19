@@ -21,6 +21,7 @@
 		kits,
 		offered,
 		lines,
+		nameless = false,
 		absent,
 		errors,
 		busy = false,
@@ -39,6 +40,7 @@
 		kits: Kit[];
 		offered: Kit[];
 		lines: TripItem[];
+		nameless?: boolean;
 		absent: (Person | null)[];
 		errors: AuthError[];
 		busy?: boolean;
@@ -169,9 +171,13 @@
 					style:background-color="color-mix(in oklab, {line.status.color} 9%, transparent)"
 					class="flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2"
 				>
-					<PersonAvatar person={line.person} small />
+					{#if !nameless}
+						<PersonAvatar person={line.person} small />
+					{/if}
 					<span class="grid min-w-0 flex-1 justify-items-start gap-1">
-						<span class="truncate text-[13.5px] font-semibold">{whoever(line.person)}</span>
+						{#if !nameless}
+							<span class="truncate text-[13.5px] font-semibold">{whoever(line.person)}</span>
+						{/if}
 						<StatusPill
 							status={line.status}
 							label={m.trip_status_pill({
