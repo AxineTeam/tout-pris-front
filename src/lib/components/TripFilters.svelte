@@ -79,7 +79,7 @@
 	</div>
 {/if}
 
-{#if participants.length > 0}
+{#if participants.length > 1}
 	<div class={section}>
 		<p id="trip-filter-people" class={heading}>{m.trip_filter_people()}</p>
 		<div role="group" aria-labelledby="trip-filter-people" class={row}>

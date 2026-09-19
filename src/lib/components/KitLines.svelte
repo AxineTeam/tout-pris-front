@@ -72,6 +72,8 @@
 		persons.filter((person) => kit.items.some((line) => line.person?.id === person.id))
 	);
 
+	let filterable = $derived(peopleOnLines.length > 1);
+
 	let chosenPeople = $derived(
 		keptPeople.filter((id) => peopleOnLines.some((one) => one.id === id))
 	);
@@ -215,7 +217,7 @@
 				onrefresh={onchanged}
 			/>
 		</div>
-		{#if !searching}
+		{#if !searching && filterable}
 			<FiltersButton active={chosenPeople.length} onclick={() => (opened = { kind: 'filters' })} />
 		{/if}
 	</div>

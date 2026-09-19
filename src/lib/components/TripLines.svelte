@@ -179,7 +179,11 @@
 			id === NO_KIT ? noKitOffered : kitsOnLines.some((kit) => kit.id === id)
 		)
 	);
-	let chosenPeople = $derived(keptPeople.filter((id) => participants.some((one) => one.id === id)));
+	let chosenPeople = $derived(
+		participants.length > 1
+			? keptPeople.filter((id) => participants.some((one) => one.id === id))
+			: []
+	);
 	let soleParticipant = $derived(participants.length === 1 ? participants[0].id : null);
 	let chosenStatuses = $derived(
 		keptStatuses.filter((id) => statusesOnLines.some((one) => one.id === id))

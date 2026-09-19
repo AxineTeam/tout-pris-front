@@ -28,6 +28,7 @@ const map: ItemType = { id: 3, name: 'Carte', description: '' };
 
 const alice: Person = { id: 1, name: 'Alice', user: null };
 const bob: Person = { id: 2, name: 'Bob', user: null };
+const chloe: Person = { id: 3, name: 'Chloé', user: null };
 
 const onchanged = vi.fn().mockResolvedValue(undefined);
 
@@ -253,7 +254,7 @@ describe('KitLines', () => {
 describe('KitLines : filtre par personne', () => {
 	it('range la seule rangée des personnes derrière un bouton', async () => {
 		const user = userEvent.setup();
-		show([line(tent), line(socks, { person: alice })], [alice, bob]);
+		show([line(tent), line(socks, { person: alice }), line(map, { person: bob })], [alice, bob]);
 
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
 		expect(screen.getByRole('button', { name: 'Filtres' })).toBeVisible();
@@ -268,14 +269,38 @@ describe('KitLines : filtre par personne', () => {
 
 	it('ne propose que les personnes qu’une ligne du kit nomme', async () => {
 		const user = userEvent.setup();
-		show([line(tent), line(socks, { person: alice })], [alice, bob]);
+		show(
+			[line(tent), line(socks, { person: alice }), line(map, { person: bob })],
+			[alice, bob, chloe]
+		);
 
 		await openFilters(user);
 
 		const row = filterRow('Personnes');
 		expect(within(row).getByRole('button', { name: 'Tous' })).toBeVisible();
 		expect(within(row).getByRole('button', { name: 'Alice' })).toBeVisible();
-		expect(within(row).queryByRole('button', { name: 'Bob' })).not.toBeInTheDocument();
+		expect(within(row).getByRole('button', { name: 'Bob' })).toBeVisible();
+		expect(within(row).queryByRole('button', { name: 'Chloé' })).not.toBeInTheDocument();
+	});
+
+	it('ne propose pas de filtres quand une seule personne est nommée', () => {
+		show([line(tent), line(socks, { person: alice })], [alice, bob]);
+
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
+	});
+
+	it('retire le bouton et oublie le choix quand la rangée ne nomme plus qu’une personne', async () => {
+		const user = userEvent.setup();
+		const forAlice = line(socks, { person: alice });
+		const forBob = line(tent, { person: bob });
+		const { rerender } = show([forAlice, forBob], [alice, bob]);
+
+		await filterBy(user, 'Alice');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+
+		await rerender({ kit: bag([forAlice, line(map)]) });
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
+		expect(names()).toEqual(['Chaussettes', 'Carte']);
 	});
 
 	it('cache le bouton des filtres pendant une recherche', async () => {
@@ -319,7 +344,7 @@ describe('KitLines : filtre par personne', () => {
 		expect(names()).toEqual(['Chaussettes']);
 
 		await rerender({ kit: bag([forBob]) });
-		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
 		expect(names()).toEqual(['Tente']);
 		expect(screen.queryByTestId('kit-empty')).not.toBeInTheDocument();
 
