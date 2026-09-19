@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
 import TripLines, { type Direction, type Sorting } from './TripLines.svelte';
 import {
 	createItemType,
@@ -1339,5 +1340,121 @@ describe('TripLines', () => {
 		show([]);
 
 		expect(screen.getByTestId('trip-empty')).toBeInTheDocument();
+	});
+});
+
+// Le sursis se joue entre deux versions des lignes : la tape écrit dans le
+// cache, et la page redonne les lignes au composant au tick suivant. Ici c'est
+// `rerender` qui joue la page.
+describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
+	const leaving = () => screen.queryByRole('img', { name: 'Quitte la liste dans un instant' });
+
+	function keep(lines: TripItem[], statuses = catalogue) {
+		vi.useFakeTimers();
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		const { rerender } = render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines,
+				participants: [alice, bob],
+				items: [tent, socks, map],
+				kits: [camping, holiday, seaside],
+				statuses,
+				onchanged
+			}
+		});
+		const advance = async (who: RegExp, served: TripItem[]) => {
+			await user.click(screen.getByRole('button', { name: who }));
+			await rerender({ lines: served });
+		};
+		const elapse = async (ms: number) => {
+			vi.advanceTimersByTime(ms);
+			await tick();
+		};
+		return { user, advance, elapse, rerender };
+	}
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('garde la ligne sous les yeux, puis la laisse partir', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		const { user, advance, elapse } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(leaving()).toBeInTheDocument();
+
+		await elapse(3900);
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+
+		await elapse(100);
+		expect(names()).toEqual(['Tente']);
+		expect(leaving()).not.toBeInTheDocument();
+	});
+
+	it('remet le disque à plein quand la ligne est retouchée avant l’échéance', async () => {
+		const first = line(socks, unprepared, { person: alice });
+		const other = line(tent, unprepared);
+		const { user, advance, elapse } = keep([first, other], jumbled);
+		await filterBy(user, 'Statuts', 'Pas préparé');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: pulled }, other]);
+		await elapse(3000);
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: out }, other]);
+		await elapse(3000);
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(leaving()).toBeInTheDocument();
+
+		await elapse(1000);
+		expect(names()).toEqual(['Tente']);
+	});
+
+	it('retire le disque et garde la ligne quand elle revient dans le filtre', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		const { user, advance, elapse } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+		await advance(/Chaussettes pour Alice/, [first, other]);
+
+		expect(leaving()).not.toBeInTheDocument();
+
+		await elapse(5000);
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+	});
+
+	it('fait partir tout de suite la ligne retenue quand le filtre change', async () => {
+		const first = line(socks, unprepared, { person: alice });
+		const done = line(tent, bagged);
+		const other = line(map, unprepared);
+		const { user, advance } = keep([first, done, other], jumbled);
+		await filterBy(user, 'Statuts', 'Pas préparé');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: pulled }, done, other]);
+		expect(names()).toEqual(['Chaussettes', 'Carte']);
+
+		await filterBy(user, 'Statuts', 'Dans les sacs');
+
+		expect(names()).toEqual(['Tente', 'Carte']);
+		expect(leaving()).not.toBeInTheDocument();
+	});
+
+	it('ne dessine aucun disque sans filtre de statut', async () => {
+		const first = line(socks, todo, { person: alice });
+		const { advance, elapse } = keep([first, line(tent, todo)]);
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, line(tent, todo)]);
+
+		expect(leaving()).not.toBeInTheDocument();
+		await elapse(5000);
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
 	});
 });

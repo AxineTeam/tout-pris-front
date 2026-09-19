@@ -7,7 +7,8 @@
 	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import UsersIcon from '@lucide/svelte/icons/users';
-	import { tick } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
 	import {
 		createKitItem,
@@ -91,6 +92,40 @@
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
+	// A tap that takes a line out of the status filter would pull the list from
+	// under the finger, so the line is held for a moment under a draining disc.
+	// The lines come from the query cache and are replaced at every poll, so
+	// the hold lives here, by line id, rather than on the line. Each restart
+	// replaces the entry, which is what remounts the disc.
+	const GRACE_MS = 4000;
+	const graced = new SvelteMap<number, { timer: ReturnType<typeof setTimeout> }>();
+
+	function release(id: number) {
+		const hold = graced.get(id);
+		if (!hold) return;
+		clearTimeout(hold.timer);
+		graced.delete(id);
+	}
+
+	function releaseAll() {
+		for (const hold of graced.values()) clearTimeout(hold.timer);
+		graced.clear();
+	}
+
+	function grace(id: number) {
+		release(id);
+		graced.set(id, { timer: setTimeout(() => graced.delete(id), GRACE_MS) });
+	}
+
+	// Only a line the filter was showing gets a grace: one hidden by a kit and
+	// advanced from the sheet has nothing to leave.
+	function reconsider(before: TripItem, after: TripItem) {
+		if (matchesFilters(after)) release(after.id);
+		else if (graced.has(after.id) || matchesFilters(before)) grace(after.id);
+	}
+
+	onDestroy(releaseAll);
+
 	function anchored(node: HTMLElement) {
 		container = node;
 	}
@@ -149,7 +184,7 @@
 		return inChosenKitOrWithoutKit && commonOrForChosenPerson && wearsChosenStatus;
 	}
 
-	let filtered = $derived(lines.filter(matchesFilters));
+	let filtered = $derived(lines.filter((line) => matchesFilters(line) || graced.has(line.id)));
 
 	let groups = $derived.by(() => {
 		const found: Grouped[] = [];
@@ -240,6 +275,8 @@
 				// the whole list would also undo every tap that landed since.
 				onMutate: async ({ line }: Patch) => {
 					stepping.errors = [];
+					const known = lines.find((one) => one.id === line.id);
+					if (known) reconsider(known, line);
 					await queryClient.cancelQueries({ queryKey: key });
 					const before = queryClient
 						.getQueryData<TripItem[]>(key)
@@ -288,10 +325,17 @@
 		if (!carried || whoeverWithoutLine(addRowOn).length === 0) addRowOn = null;
 	});
 
+	// Changing the status filter is a deliberate rereading of the list: nothing
+	// the previous filter was holding survives it.
+	function keepStatuses(chosen: number[]) {
+		keptStatuses = chosen;
+		releaseAll();
+	}
+
 	function clearFilters() {
 		keptKits = [];
 		keptPeople = [];
-		keptStatuses = [];
+		keepStatuses([]);
 	}
 
 	type NewLine = { person: number | null; status?: number };
@@ -624,6 +668,28 @@
 									tight
 									onadvance={() => advance(line)}
 								/>
+								{#if graced.has(line.id)}
+									{#key graced.get(line.id)}
+										<svg
+											role="img"
+											aria-label={m.trip_line_leaving()}
+											viewBox="0 0 16 16"
+											style:--grace="{GRACE_MS}ms"
+											class="text-muted-foreground size-4 flex-none -rotate-90"
+										>
+											<circle
+												cx="8"
+												cy="8"
+												r="6"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2.5"
+												pathLength="1"
+												class="draining"
+											/>
+										</svg>
+									{/key}
+								{/if}
 							</li>
 						{/each}
 
@@ -664,7 +730,7 @@
 			statuses={statusesOnLines}
 			bind:kit={keptKits}
 			bind:person={keptPeople}
-			bind:status={keptStatuses}
+			bind:status={() => keptStatuses, keepStatuses}
 		/>
 	</Modal>
 {:else if opened?.kind === 'edit'}
@@ -717,3 +783,22 @@
 		onaddtokits={(wanted) => addToKits(shownSheet, wanted)}
 	/>
 {/if}
+
+<style>
+	.draining {
+		stroke-dasharray: 1;
+		animation: drain var(--grace) linear forwards;
+	}
+
+	@keyframes drain {
+		to {
+			stroke-dashoffset: -1;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.draining {
+			animation: none;
+		}
+	}
+</style>

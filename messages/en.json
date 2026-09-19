@@ -284,6 +284,7 @@
 	"trip_line_add": "Add",
 	"trip_line_add_for": "Add a line for {who}",
 	"trip_line_add_open": "Add a line to “{name}”",
+	"trip_line_leaving": "Leaving the list in a moment",
 	"trip_line_remove": "Remove the line",
 	"trip_line_remove_explains": "The item stays in the catalogue and in its kits. Only this trip line goes.",
 	"trip_line_remove_title": "Remove “{name}” for {who}",
