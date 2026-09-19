@@ -99,7 +99,14 @@
 		return person ? person.name : m.everyone();
 	}
 
+	function fusedLine(lines: KitItem[]): KitItem | null {
+		if (lines.length !== 1) return null;
+		const only = lines[0];
+		return only.person === null || only.person.id === solePerson ? only : null;
+	}
+
 	function whoeverWithoutLine(item: number): (Person | null)[] {
+		if (persons.length <= 1) return [];
 		const taken = kit.items
 			.filter((line) => line.item_type.id === item)
 			.map((line) => line.person?.id ?? null);
@@ -241,6 +248,7 @@
 					grabbed={dragging.grabbed?.id === group.id}
 					offset={dragging.offset}
 					highlighted={highlighted === group.id}
+					fused={fusedLine(group.lines) !== null}
 					unfolded={addRowOn === group.id}
 					busy={stepping.busy}
 					ongrab={(event) => dragging.grab(event, group)}
