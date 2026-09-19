@@ -152,7 +152,8 @@
 
 	let statusesOnLines = $derived.by(() => {
 		const found: ItemStatus[] = [];
-		const worn = [...lines.map((line) => line.status), ...graced.values().map((hold) => hold.wore)];
+		const worn = lines.map((line) => line.status);
+		for (const hold of graced.values()) worn.push(hold.wore);
 		for (const status of worn) {
 			if (!found.some((known) => known.id === status.id)) found.push(status);
 		}
