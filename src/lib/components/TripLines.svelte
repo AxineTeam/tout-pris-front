@@ -230,6 +230,15 @@
 		return person ? person.name : m.everyone();
 	}
 
+	// A card with one line naming nobody in particular — common, or for the
+	// trip's sole participant — has nothing its title does not already say, so
+	// the line's controls go up on the title and the line itself is not drawn.
+	function fusedLine(lines: TripItem[]): TripItem | null {
+		if (lines.length !== 1) return null;
+		const only = lines[0];
+		return only.person === null || only.person.id === soleParticipant ? only : null;
+	}
+
 	function everyLineFor(item: number): TripItem[] {
 		return lines.filter((line) => line.item_type.id === item);
 	}
@@ -238,7 +247,10 @@
 		return everyLineFor(item).map((line) => line.person?.id ?? null);
 	}
 
+	// A trip with one participant or none has nobody else to add a line for,
+	// the common line included.
 	function whoeverWithoutLine(item: number): (Person | null)[] {
+		if (participants.length <= 1) return [];
 		const taken = takenFor(item);
 		const offered =
 			chosenPeople.length === 0
@@ -559,6 +571,55 @@
 	onpointercancel={() => dragging.cancel()}
 />
 
+{#snippet controls(group: Grouped, line: TripItem, tight: boolean)}
+	<QuantityStepper
+		quantity={line.quantity}
+		less={m.trip_quantity_less({ who: whoever(line.person) })}
+		more={m.trip_quantity_more({ who: whoever(line.person) })}
+		busy={stepping.busy}
+		{tight}
+		onless={() =>
+			line.quantity > 1
+				? step(line, -1)
+				: (opened = { kind: 'remove', item: group.item, line, back: null })}
+		onmore={() => step(line, 1)}
+	/>
+	<StatusPill
+		status={line.status}
+		label={m.trip_status_pill({
+			name: group.item.name,
+			who: whoever(line.person),
+			status: line.status.name
+		})}
+		busy={stepping.busy}
+		{tight}
+		onadvance={() => advance(line)}
+		onpick={() => pickFrom(line)}
+	/>
+	{#if graced.has(line.id)}
+		{#key graced.get(line.id)}
+			<svg
+				role="img"
+				aria-label={m.trip_line_leaving()}
+				viewBox="0 0 16 16"
+				style:--grace="{GRACE_MS}ms"
+				class="text-muted-foreground size-4 flex-none -rotate-90"
+			>
+				<circle
+					cx="8"
+					cy="8"
+					r="6"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					pathLength="1"
+					class="draining"
+				/>
+			</svg>
+		{/key}
+	{/if}
+{/snippet}
+
 <div {@attach anchored} class="grid gap-2.5">
 	<!-- Beside the field, not inside it: its right edge already carries the
 	import icon. Top-aligned so the results list cannot push the button down. -->
@@ -599,6 +660,8 @@
 		>
 			{#each shown as group (group.id)}
 				{@const absent = whoeverWithoutLine(group.id)}
+				{@const fused = fusedLine(group.lines)}
+				{@const unfolded = absent.length > 0 && addRowOn === group.id}
 				<li
 					data-row={group.id}
 					data-trip-item={group.id}
@@ -668,6 +731,11 @@
 								{/if}
 							</button>
 						{/if}
+						{#if fused}
+							<span class="ml-auto flex flex-none items-center gap-2">
+								{@render controls(group, fused, false)}
+							</span>
+						{/if}
 						{#if absent.length > 0}
 							<Button
 								variant="ghost"
@@ -676,7 +744,8 @@
 								aria-expanded={addRowOn === group.id}
 								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 								class={[
-									"relative ml-auto size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
+									"relative size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
+									!fused && 'ml-auto',
 									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
 								]}
 							>
@@ -685,84 +754,43 @@
 						{/if}
 					</div>
 
-					<ul class="grid min-w-0">
-						{#each group.lines as line (line.id)}
-							<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
-								<PersonAvatar person={line.person} small />
-								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-									{whoever(line.person)}
-								</span>
-								<QuantityStepper
-									quantity={line.quantity}
-									less={m.trip_quantity_less({ who: whoever(line.person) })}
-									more={m.trip_quantity_more({ who: whoever(line.person) })}
-									busy={stepping.busy}
-									tight
-									onless={() =>
-										line.quantity > 1
-											? step(line, -1)
-											: (opened = { kind: 'remove', item: group.item, line, back: null })}
-									onmore={() => step(line, 1)}
-								/>
-								<StatusPill
-									status={line.status}
-									label={m.trip_status_pill({
-										name: group.item.name,
-										who: whoever(line.person),
-										status: line.status.name
-									})}
-									busy={stepping.busy}
-									tight
-									onadvance={() => advance(line)}
-									onpick={() => pickFrom(line)}
-								/>
-								{#if graced.has(line.id)}
-									{#key graced.get(line.id)}
-										<svg
-											role="img"
-											aria-label={m.trip_line_leaving()}
-											viewBox="0 0 16 16"
-											style:--grace="{GRACE_MS}ms"
-											class="text-muted-foreground size-4 flex-none -rotate-90"
-										>
-											<circle
-												cx="8"
-												cy="8"
-												r="6"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2.5"
-												pathLength="1"
-												class="draining"
-											/>
-										</svg>
-									{/key}
-								{/if}
-							</li>
-						{/each}
-
-						{#if absent.length > 0 && addRowOn === group.id}
-							<li
-								class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
-							>
-								<span class="text-muted-foreground flex-none pr-0.5 text-xs">
-									{m.trip_line_add()}
-								</span>
-								{#each absent as person (person?.id ?? 'everyone')}
-									<button
-										type="button"
-										aria-label={m.trip_line_add_for({ who: whoever(person) })}
-										disabled={stepping.busy}
-										onclick={() => addFor(group, person)}
-										class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
-									>
-										<PersonAvatar {person} small />
-										<span class="truncate text-xs font-medium">{whoever(person)}</span>
-									</button>
+					{#if !fused || unfolded}
+						<ul class="grid min-w-0">
+							{#if !fused}
+								{#each group.lines as line (line.id)}
+									<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
+										<PersonAvatar person={line.person} small />
+										<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
+											{whoever(line.person)}
+										</span>
+										{@render controls(group, line, true)}
+									</li>
 								{/each}
-							</li>
-						{/if}
-					</ul>
+							{/if}
+
+							{#if unfolded}
+								<li
+									class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
+								>
+									<span class="text-muted-foreground flex-none pr-0.5 text-xs">
+										{m.trip_line_add()}
+									</span>
+									{#each absent as person (person?.id ?? 'everyone')}
+										<button
+											type="button"
+											aria-label={m.trip_line_add_for({ who: whoever(person) })}
+											disabled={stepping.busy}
+											onclick={() => addFor(group, person)}
+											class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
+										>
+											<PersonAvatar {person} small />
+											<span class="truncate text-xs font-medium">{whoever(person)}</span>
+										</button>
+									{/each}
+								</li>
+							{/if}
+						</ul>
+					{/if}
 				</li>
 			{/each}
 		</ul>

@@ -123,12 +123,16 @@ function objectNames(page: Page) {
 		.evaluateAll((rows) => rows.map((row) => row.querySelector('span')!.textContent!.trim()));
 }
 
+// A card with one line that names nobody in particular folds it into its
+// title: the line is then the card itself, and comes last in document order
+// only when there is no row under it.
 function lineOf(page: Page, item: string, who: string) {
 	return page
 		.locator('li[data-trip-item]')
 		.filter({ hasText: item })
-		.getByRole('listitem')
-		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
+		.locator('xpath=descendant-or-self::li')
+		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) })
+		.last();
 }
 
 async function openFilters(page: Page) {
@@ -206,7 +210,9 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	// La feuille de l'objet porte toutes ses lignes, et son crayon le renomme.
 	await page.getByRole('button', { name: 'Ouvrir « Tente »' }).click();
-	await expect(sheet(page)).toContainText('Tout le monde');
+	await expect(
+		sheet(page).getByRole('button', { name: /^Tente pour Tout le monde/ })
+	).toBeVisible();
 	await sheet(page).getByRole('button', { name: 'Modifier l’objet « Tente »' }).click();
 	await sheet(page).getByLabel('Description de l’objet').fill('Deux places');
 	await sheet(page).getByRole('button', { name: 'Enregistrer' }).click();
