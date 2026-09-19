@@ -1305,6 +1305,23 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		expect(leaving()).not.toBeInTheDocument();
 	});
 
+	it('ne rallume pas tout le voyage quand la dernière ligne du statut filtré avance', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, packed);
+		const { user, advance } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+		await openFilters(user);
+		expect(within(filterRow('Statuts')).getByRole('button', { name: 'À prendre' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+	});
+
 	it('ne dessine aucun disque sans filtre de statut', async () => {
 		const first = line(socks, todo, { person: alice });
 		const { advance, elapse } = keep([first, line(tent, todo)]);

@@ -96,9 +96,14 @@
 	// under the finger, so the line is held for a moment under a draining disc.
 	// The lines come from the query cache and are replaced at every poll, so
 	// the hold lives here, by line id, rather than on the line. Each restart
-	// replaces the entry, which is what remounts the disc.
+	// replaces the entry, which is what remounts the disc. The status the line
+	// wore when the hold began is what the filter matched, and it keeps that
+	// status offered until the hold ends.
 	const GRACE_MS = 4000;
-	const graced = new SvelteMap<number, { timer: ReturnType<typeof setTimeout> }>();
+	const graced = new SvelteMap<
+		number,
+		{ wore: ItemStatus; timer: ReturnType<typeof setTimeout> }
+	>();
 
 	function release(id: number) {
 		const hold = graced.get(id);
@@ -112,16 +117,18 @@
 		graced.clear();
 	}
 
-	function grace(id: number) {
+	function grace(id: number, wore: ItemStatus) {
 		release(id);
-		graced.set(id, { timer: setTimeout(() => graced.delete(id), GRACE_MS) });
+		graced.set(id, { wore, timer: setTimeout(() => graced.delete(id), GRACE_MS) });
 	}
 
 	// Only a line the filter was showing gets a grace: one hidden by a kit and
 	// advanced from the sheet has nothing to leave.
 	function reconsider(before: TripItem, after: TripItem) {
+		const held = graced.get(after.id);
 		if (matchesFilters(after)) release(after.id);
-		else if (graced.has(after.id) || matchesFilters(before)) grace(after.id);
+		else if (held) grace(after.id, held.wore);
+		else if (matchesFilters(before)) grace(after.id, before.status);
 	}
 
 	onDestroy(releaseAll);
@@ -142,8 +149,9 @@
 
 	let statusesOnLines = $derived.by(() => {
 		const found: ItemStatus[] = [];
-		for (const line of lines) {
-			if (!found.some((known) => known.id === line.status.id)) found.push(line.status);
+		const worn = [...lines.map((line) => line.status), ...graced.values().map((hold) => hold.wore)];
+		for (const status of worn) {
+			if (!found.some((known) => known.id === status.id)) found.push(status);
 		}
 		return inHierarchy(found);
 	});
