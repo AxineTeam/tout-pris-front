@@ -1464,11 +1464,62 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		);
 	});
 
+	it('remet le disque à plein quand la quantité d’une ligne retenue bouge', async () => {
+		const first = line(socks, todo, { person: alice, quantity: 2 });
+		const other = line(tent, todo);
+		const { user, advance, elapse, rerender } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+		await elapse(3000);
+		await user.click(screen.getByRole('button', { name: 'Un de plus pour Alice' }));
+		await rerender({ lines: [{ ...first, status: packed, quantity: 3 }, other] });
+		await elapse(3000);
+
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(leaving()).toBeInTheDocument();
+	});
+
+	it('retire le disque quand l’écriture refusée remet la ligne dans le filtre', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		queryClient.setQueryData(tripLinesQuery(7, 3).queryKey, [first, other]);
+		vi.mocked(updateTripItem).mockRejectedValue(new Error('refus'));
+		const { user, advance, elapse, rerender } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+		await vi.waitFor(() => expect(cached()?.[0].status).toEqual(todo));
+		await rerender({ lines: [first, other] });
+
+		expect(leaving()).not.toBeInTheDocument();
+		await elapse(5000);
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+	});
+
+	it('ne retient pas une ligne qu’un kit cachait, avancée depuis la feuille', async () => {
+		const first = line(socks, unprepared, { person: alice, kits: [camping] });
+		const hidden = line(socks, out, { person: bob });
+		const { user, rerender } = keep([first, hidden], jumbled);
+		await filterBy(user, 'Kits', 'Camping');
+		await filterBy(user, 'Statuts', 'Pas préparé');
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		const sheet = screen.getByRole('dialog');
+		await user.click(within(sheet).getByRole('button', { name: /Chaussettes pour Bob/ }));
+		await rerender({ lines: [first, { ...hidden, status: bagged }] });
+		await closeFilters(user);
+
+		expect(leaving()).not.toBeInTheDocument();
+		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
+	});
+
 	it('ne dessine aucun disque sans filtre de statut', async () => {
 		const first = line(socks, todo, { person: alice });
-		const { advance, elapse } = keep([first, line(tent, todo)]);
+		const other = line(tent, todo);
+		const { advance, elapse } = keep([first, other]);
 
-		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, line(tent, todo)]);
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
 
 		expect(leaving()).not.toBeInTheDocument();
 		await elapse(5000);
