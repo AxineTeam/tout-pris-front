@@ -94,6 +94,7 @@
 	let addRowOn = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
+	let searchRow = $state.raw<HTMLElement>();
 
 	// The lines come from the query cache and are replaced at every poll, so a
 	// hold lives here, by line id, rather than on the line. Each restart
@@ -384,7 +385,10 @@
 		highlighted = item.id;
 		fading = setTimeout(() => (highlighted = null), 2500);
 		await tick();
-		container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
+		const row = container?.querySelector<HTMLElement>(`[data-row="${item.id}"]`);
+		if (!row || !searchRow) return;
+		row.style.scrollMarginTop = `${searchRow.offsetHeight}px`;
+		row.scrollIntoView({ block: 'nearest' });
 	}
 
 	// Stopping the poll leaves a request already on its way, and
@@ -552,7 +556,10 @@
 <div {@attach anchored} class="grid gap-2.5">
 	<!-- Beside the field, not inside it: its right edge already carries the
 	import icon. Top-aligned so the results list cannot push the button down. -->
-	<div class="flex items-start gap-2">
+	<div
+		bind:this={searchRow}
+		class="bg-background sticky top-0 z-20 -mx-4 -my-2.5 flex items-start gap-2 px-4 py-2.5"
+	>
 		<div class="min-w-0 flex-1">
 			<ItemPicker
 				{household}
