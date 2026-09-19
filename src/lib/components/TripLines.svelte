@@ -95,10 +95,8 @@
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 
-	// A tap that takes a line out of the status filter would pull the list from
-	// under the finger, so the line is held for a moment under a draining disc.
-	// The lines come from the query cache and are replaced at every poll, so
-	// the hold lives here, by line id, rather than on the line. Each restart
+	// The lines come from the query cache and are replaced at every poll, so a
+	// hold lives here, by line id, rather than on the line. Each restart
 	// replaces the entry, which is what remounts the disc. The status the line
 	// wore when the hold began is what the filter matched, and it keeps that
 	// status offered until the hold ends.
@@ -298,12 +296,13 @@
 					);
 					return { before };
 				},
-				onError: (cause: unknown, _patch: Patch, context: { before?: TripItem } | undefined) => {
+				onError: (cause: unknown, patch: Patch, context: { before?: TripItem } | undefined) => {
 					const before = context?.before;
 					if (before) {
 						queryClient.setQueryData<TripItem[]>(key, (all) =>
 							(all ?? []).map((one) => (one.id === before.id ? before : one))
 						);
+						reconsider(patch.line, before);
 					}
 					stepping.errors = failure(cause);
 				},
