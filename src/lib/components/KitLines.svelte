@@ -61,6 +61,7 @@
 	let addRowOn = $state.raw<number | null>(null);
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
+	let searchRow = $state.raw<HTMLElement>();
 	let solePerson = $derived(persons.length === 1 ? persons[0].id : null);
 
 	function anchored(node: HTMLElement) {
@@ -134,7 +135,10 @@
 			highlighted = item.id;
 			fading = setTimeout(() => (highlighted = null), 2500);
 			await tick();
-			container?.querySelector(`[data-row="${item.id}"]`)?.scrollIntoView({ block: 'nearest' });
+			const row = container?.querySelector<HTMLElement>(`[data-row="${item.id}"]`);
+			if (!row || !searchRow) return;
+			row.style.scrollMarginTop = `${searchRow.offsetHeight}px`;
+			row.scrollIntoView({ block: 'nearest' });
 			return;
 		}
 		addLine(item.id, solePerson);
@@ -193,7 +197,10 @@
 />
 
 <div {@attach anchored} class="grid gap-2.5">
-	<div class="flex items-start gap-2">
+	<div
+		bind:this={searchRow}
+		class="bg-background sticky top-0 z-20 -mx-4 -my-2.5 flex items-start gap-2 px-4 py-2.5"
+	>
 		<div class="min-w-0 flex-1">
 			<ItemPicker
 				{household}
