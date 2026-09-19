@@ -5,9 +5,6 @@
 
 <script lang="ts">
 	import CheckIcon from '@lucide/svelte/icons/check';
-	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
-	import UsersIcon from '@lucide/svelte/icons/users';
 	import { onDestroy, tick } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { createMutation, useIsMutating } from '@tanstack/svelte-query';
@@ -27,8 +24,7 @@
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
-	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
+	import ObjectCard from '$lib/components/ObjectCard.svelte';
 	import RowCard from '$lib/components/RowCard.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
@@ -575,23 +571,11 @@
 	onpointercancel={() => dragging.cancel()}
 />
 
-{#snippet controls(group: Grouped, line: TripItem, tight: boolean)}
-	<QuantityStepper
-		quantity={line.quantity}
-		less={m.trip_quantity_less({ who: whoever(line.person) })}
-		more={m.trip_quantity_more({ who: whoever(line.person) })}
-		busy={stepping.busy}
-		{tight}
-		onless={() =>
-			line.quantity > 1
-				? step(line, -1)
-				: (opened = { kind: 'remove', item: group.item, line, back: null })}
-		onmore={() => step(line, 1)}
-	/>
+{#snippet controls(line: TripItem, tight: boolean)}
 	<StatusPill
 		status={line.status}
 		label={m.trip_status_pill({
-			name: group.item.name,
+			name: line.item_type.name,
 			who: whoever(line.person),
 			status: line.status.name
 		})}
@@ -663,54 +647,31 @@
 			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
 		>
 			{#each shown as group (group.id)}
-				{@const absent = whoeverWithoutLine(group.id)}
-				{@const fused = fusedLine(group.lines)}
-				{@const unfolded = absent.length > 0 && addRowOn === group.id}
-				<li
-					data-row={group.id}
-					data-trip-item={group.id}
-					style:transform={dragging.grabbed?.id === group.id
-						? `translateY(${dragging.offset}px)`
-						: undefined}
-					class={[
-						'border-border bg-card grid min-w-0 gap-0.5 rounded-xl border pt-2 pr-3 pb-1 transition-colors',
-						movable ? 'pl-1' : 'pl-3',
-						(highlighted === group.id || dragging.grabbed?.id === group.id) &&
-							'border-primary bg-accent',
-						dragging.grabbed?.id === group.id && 'relative z-10 shadow-lg'
-					]}
+				<ObjectCard
+					item={group.item}
+					lines={group.lines}
+					absent={whoeverWithoutLine(group.id)}
+					{whoever}
+					testid="trip-item"
+					{movable}
+					grabbed={dragging.grabbed?.id === group.id}
+					offset={dragging.offset}
+					highlighted={highlighted === group.id}
+					fused={fusedLine(group.lines) !== null}
+					unfolded={addRowOn === group.id}
+					busy={stepping.busy}
+					ongrab={(event) => grab(event, group)}
+					onopen={() => (opened = { kind: 'sheet', item: group.item })}
+					onunfold={() => (addRowOn = addRowOn === group.id ? null : group.id)}
+					onadd={(person) => addFor(group, person)}
+					onless={(line) =>
+						line.quantity > 1
+							? step(line, -1)
+							: (opened = { kind: 'remove', item: group.item, line, back: null })}
+					onmore={(line) => step(line, 1)}
+					{controls}
 				>
-					<div class="flex min-h-9 min-w-0 items-start gap-2">
-						{#if movable}
-							<span
-								aria-hidden="true"
-								data-testid="trip-item-handle-{group.id}"
-								onpointerdown={(event) => !stepping.busy && grab(event, group)}
-								class="text-muted-foreground relative flex size-7 flex-none touch-none items-center justify-center after:absolute after:-inset-2 after:content-['']"
-							>
-								<GripHorizontalIcon size={16} />
-							</span>
-						{/if}
-						<button
-							type="button"
-							aria-label={m.trip_item_open({ name: group.item.name })}
-							onclick={() => (opened = { kind: 'sheet', item: group.item })}
-							class="focus-visible:ring-ring/50 grid min-w-0 content-center rounded-md text-left outline-none focus-visible:ring-[3px]"
-						>
-							<span class="flex min-w-0 items-center gap-0.5">
-								<span class="truncate text-sm font-semibold">{group.item.name}</span>
-								<ChevronRightIcon
-									size={15}
-									aria-hidden="true"
-									class="text-muted-foreground flex-none"
-								/>
-							</span>
-							{#if group.item.description}
-								<span class="text-muted-foreground truncate text-xs">
-									{group.item.description}
-								</span>
-							{/if}
-						</button>
+					{#snippet beside()}
 						{#if group.kits.length > 0}
 							<button
 								type="button"
@@ -735,67 +696,8 @@
 								{/if}
 							</button>
 						{/if}
-						{#if fused}
-							<span class="ml-auto flex flex-none items-center gap-2">
-								{@render controls(group, fused, false)}
-							</span>
-						{/if}
-						{#if absent.length > 0}
-							<Button
-								variant="ghost"
-								size="icon"
-								aria-label={m.trip_line_add_open({ name: group.item.name })}
-								aria-expanded={addRowOn === group.id}
-								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
-								class={[
-									"relative size-8 flex-none after:absolute after:-inset-1.5 after:content-['']",
-									!fused && 'ml-auto',
-									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
-								]}
-							>
-								<UsersIcon class="size-[15px]" aria-hidden="true" />
-							</Button>
-						{/if}
-					</div>
-
-					{#if !fused || unfolded}
-						<ul class="grid min-w-0">
-							{#if !fused}
-								{#each group.lines as line (line.id)}
-									<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
-										<PersonAvatar person={line.person} small />
-										<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-											{whoever(line.person)}
-										</span>
-										{@render controls(group, line, true)}
-									</li>
-								{/each}
-							{/if}
-
-							{#if unfolded}
-								<li
-									class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
-								>
-									<span class="text-muted-foreground flex-none pr-0.5 text-xs">
-										{m.trip_line_add()}
-									</span>
-									{#each absent as person (person?.id ?? 'everyone')}
-										<button
-											type="button"
-											aria-label={m.trip_line_add_for({ who: whoever(person) })}
-											disabled={stepping.busy}
-											onclick={() => addFor(group, person)}
-											class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
-										>
-											<PersonAvatar {person} small />
-											<span class="truncate text-xs font-medium">{whoever(person)}</span>
-										</button>
-									{/each}
-								</li>
-							{/if}
-						</ul>
-					{/if}
-				</li>
+					{/snippet}
+				</ObjectCard>
 			{/each}
 		</ul>
 	{/if}
