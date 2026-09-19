@@ -167,6 +167,10 @@ async function chooseFromSearch(user: User, name: string) {
 	await user.click(screen.getAllByRole('option')[0]);
 }
 
+function sent(): Parameters<typeof createTripItem>[2][] {
+	return vi.mocked(createTripItem).mock.calls.map(([, , body]) => body);
+}
+
 async function importAlongside(user: User, item: ItemType, held: ItemType) {
 	vi.mocked(createItemType)
 		.mockResolvedValueOnce({ item, created: true })
@@ -762,6 +766,144 @@ describe('TripLines', () => {
 
 		expect(vi.mocked(createTripItem).mock.calls).toEqual([
 			[7, 3, { item_type: tent.id, person: alice.id }]
+		]);
+	});
+
+	it('crée la ligne ajoutée depuis la recherche pour la personne filtrée', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: alice.id }]);
+	});
+
+	it('crée une ligne par personne filtrée, puis ne recharge qu’une fois', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		await filterBy(user, 'Personnes', 'Bob');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([
+			{ item_type: tent.id, person: alice.id },
+			{ item_type: tent.id, person: bob.id }
+		]);
+		expect(onchanged).toHaveBeenCalledTimes(1);
+	});
+
+	it('crée la ligne dans le seul statut filtré', async () => {
+		const user = userEvent.setup();
+		show([line(socks, packed)]);
+
+		await filterBy(user, 'Statuts', 'Rangé');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: null, status: packed.id }]);
+	});
+
+	it('laisse le statut au serveur quand deux statuts sont filtrés', async () => {
+		const user = userEvent.setup();
+		show([line(socks, packed), line(map, todo)]);
+
+		await filterBy(user, 'Statuts', 'Rangé');
+		await filterBy(user, 'Statuts', 'À prendre');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: null }]);
+		expect(sent()[0].status).toBeUndefined();
+	});
+
+	it('ne tient pas compte du filtre kit à la création', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { kits: [camping] })]);
+
+		await filterBy(user, 'Kits', 'Camping');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: null }]);
+		expect(createKitItem).not.toHaveBeenCalled();
+	});
+
+	it('complète les lignes qui manquent aux personnes filtrées d’un objet déjà là', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		await filterBy(user, 'Personnes', 'Bob');
+		await chooseFromSearch(user, 'Chaussettes');
+
+		expect(sent()).toEqual([{ item_type: socks.id, person: bob.id }]);
+		expect(card('Chaussettes')).toHaveClass('border-primary');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('2');
+	});
+
+	it('garde le filtre quand la ligne complétée y fait entrer l’objet', async () => {
+		const user = userEvent.setup();
+		const forAlice = line(socks, todo, { person: alice });
+		const forBob = line(socks, todo, { person: bob });
+		let served = [forAlice, line(tent, todo)];
+		const reload = vi.fn(async () => {
+			await rerender({ lines: served });
+		});
+		const { rerender } = render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines: served,
+				participants: [alice, bob],
+				items: [tent, socks, map],
+				kits: [],
+				statuses: catalogue,
+				onchanged: reload
+			}
+		});
+
+		await filterBy(user, 'Personnes', 'Bob');
+		expect(names()).toEqual(['Tente']);
+		served = [forAlice, forBob, line(tent, todo)];
+		await chooseFromSearch(user, 'Chaussettes');
+
+		expect(sent()).toEqual([{ item_type: socks.id, person: bob.id }]);
+		expect(names()).toEqual(['Chaussettes', 'Tente']);
+		expect(card('Chaussettes')).toHaveClass('border-primary');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+	});
+
+	it('ajoute la ligne de la personne filtrée à côté de la ligne commune', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo)]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		await chooseFromSearch(user, 'Chaussettes');
+
+		expect(sent()).toEqual([{ item_type: socks.id, person: alice.id }]);
+	});
+
+	it('ne recrée rien pour un objet déjà là quand aucune personne n’est filtrée', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await filterBy(user, 'Statuts', 'À prendre');
+		await chooseFromSearch(user, 'Chaussettes');
+
+		expect(createTripItem).not.toHaveBeenCalled();
+	});
+
+	it('importe les objets pour les personnes et le statut filtrés', async () => {
+		const user = userEvent.setup();
+		show([line(socks, packed, { person: alice })]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+		await filterBy(user, 'Personnes', 'Bob');
+		await filterBy(user, 'Statuts', 'Rangé');
+		await importAlongside(user, tent, socks);
+
+		expect(sent()).toEqual([
+			{ item_type: tent.id, person: alice.id, status: packed.id },
+			{ item_type: tent.id, person: bob.id, status: packed.id }
 		]);
 	});
 

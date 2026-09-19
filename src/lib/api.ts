@@ -588,7 +588,7 @@ export function listTripItems(household: number, trip: number): Promise<TripItem
 export function createTripItem(
 	household: number,
 	trip: number,
-	line: { item_type: number; person?: number | null; quantity?: number }
+	line: { item_type: number; person?: number | null; quantity?: number; status?: number }
 ): Promise<TripItem> {
 	return request(`/households/${household}/trips/${trip}/items/`, {
 		method: 'POST',

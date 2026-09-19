@@ -186,8 +186,12 @@
 		return lines.filter((line) => line.item_type.id === item);
 	}
 
+	function takenFor(item: number): (number | null)[] {
+		return everyLineFor(item).map((line) => line.person?.id ?? null);
+	}
+
 	function whoeverWithoutLine(item: number): (Person | null)[] {
-		const taken = everyLineFor(item).map((line) => line.person?.id ?? null);
+		const taken = takenFor(item);
 		const offered =
 			chosenPeople.length === 0
 				? participants
@@ -207,8 +211,8 @@
 	// repeated dozens of times over one trip, the status and the quantity, take
 	// the optimistic path below: it costs a rollback to write, which only pays
 	// off on a gesture repeated that often.
-	function writeThenReload(call: () => Promise<unknown>) {
-		stepping.run(async () => {
+	function writeThenReload(call: () => Promise<unknown>): Promise<void> {
+		return stepping.run(async () => {
 			await call();
 			await onchanged();
 			settleDialog();
@@ -290,13 +294,35 @@
 		keptStatuses = [];
 	}
 
-	async function chosen(item: ItemType) {
-		if (!itemIdsInTrip.includes(item.id)) {
-			writeThenReload(() =>
-				createTripItem(household, trip, { item_type: item.id, person: soleParticipant })
-			);
-			return;
+	type NewLine = { person: number | null; status?: number };
+
+	// The kit row is left out on purpose: adding to a kit rewrites the
+	// household's kit for every trip to come, not this trip's list.
+	function linesToCreate(item: number): NewLine[] {
+		const status = chosenStatuses.length === 1 ? chosenStatuses[0] : undefined;
+		const taken = takenFor(item);
+		if (chosenPeople.length === 0) {
+			return taken.length === 0 ? [{ person: soleParticipant, status }] : [];
 		}
+		return chosenPeople
+			.filter((person) => !taken.includes(person))
+			.map((person) => ({ person, status }));
+	}
+
+	async function createLines(item: number, wanted: NewLine[]) {
+		for (const one of wanted) {
+			await createTripItem(household, trip, { item_type: item, ...one });
+		}
+	}
+
+	// Pointed at once the lines it was owed are back: judged before the reload,
+	// the card would still look hidden and the filters would be cleared for
+	// nothing.
+	async function chosen(item: ItemType) {
+		const present = itemIdsInTrip.includes(item.id);
+		const wanted = linesToCreate(item.id);
+		if (wanted.length > 0) await writeThenReload(() => createLines(item.id, wanted));
+		if (!present) return;
 		const hiddenByFilters = !groups.some((group) => group.id === item.id);
 		if (hiddenByFilters) clearFilters();
 		clearTimeout(fading);
@@ -458,8 +484,7 @@
 				busy={stepping.busy}
 				bind:typed
 				onchosen={chosen}
-				onadopt={(item) =>
-					createTripItem(household, trip, { item_type: item.id, person: soleParticipant })}
+				onadopt={(item) => createLines(item.id, linesToCreate(item.id))}
 				onrefresh={onchanged}
 			/>
 		</div>
