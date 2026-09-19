@@ -1,7 +1,5 @@
 <script lang="ts">
-	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
-	import UsersIcon from '@lucide/svelte/icons/users';
 	import { tick } from 'svelte';
 	import {
 		createKitItem,
@@ -17,8 +15,7 @@
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
-	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
+	import ObjectCard from '$lib/components/ObjectCard.svelte';
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -234,109 +231,37 @@
 			class={['grid min-w-0 gap-2', dragging.grabbed && 'select-none']}
 		>
 			{#each dragging.rows as group (group.id)}
-				{@const absent = whoeverWithoutLine(group.id)}
-				<li
-					data-row={group.id}
-					style:transform={dragging.grabbed?.id === group.id
-						? `translateY(${dragging.offset}px)`
-						: undefined}
-					class={[
-						'border-border bg-card grid min-w-0 gap-1 rounded-xl border py-1 pr-3 pl-1 transition-colors',
-						(highlighted === group.id || dragging.grabbed?.id === group.id) &&
-							'border-primary bg-accent',
-						dragging.grabbed?.id === group.id && 'relative z-10 shadow-lg'
-					]}
+				<ObjectCard
+					item={group.item}
+					lines={group.lines}
+					absent={whoeverWithoutLine(group.id)}
+					{whoever}
+					testid="kit-item"
+					movable
+					grabbed={dragging.grabbed?.id === group.id}
+					offset={dragging.offset}
+					highlighted={highlighted === group.id}
+					unfolded={addRowOn === group.id}
+					busy={stepping.busy}
+					ongrab={(event) => dragging.grab(event, group)}
+					onunfold={() => (addRowOn = addRowOn === group.id ? null : group.id)}
+					onadd={(person) => addLine(group.item.id, person?.id ?? null)}
+					onless={(line) =>
+						line.quantity > 1 ? step(line, -1) : (opened = { kind: 'remove-line', group, line })}
+					onmore={(line) => step(line, 1)}
 				>
-					<div class="flex min-w-0 items-center gap-1">
-						<span
-							aria-hidden="true"
-							data-testid="kit-item-handle-{group.id}"
-							onpointerdown={(event) => !stepping.busy && dragging.grab(event, group)}
-							class="text-muted-foreground -ml-1 flex size-11 flex-none touch-none items-center justify-center"
-						>
-							<GripHorizontalIcon size={16} />
-						</span>
-						<div class="grid min-h-11 min-w-0 flex-1 content-center pr-2">
-							<span data-testid="kit-item-name" class="truncate text-sm font-semibold">
-								{group.item.name}
-							</span>
-							{#if group.item.description}
-								<span class="text-muted-foreground truncate text-xs">
-									{group.item.description}
-								</span>
-							{/if}
-						</div>
-						{#if absent.length > 0}
-							<Button
-								variant="ghost"
-								size="icon"
-								aria-label={m.kit_line_add_open({ name: group.item.name })}
-								aria-expanded={addRowOn === group.id}
-								onclick={() => (addRowOn = addRowOn === group.id ? null : group.id)}
-								class={[
-									'size-11 flex-none',
-									addRowOn === group.id ? 'bg-accent text-primary' : 'text-muted-foreground'
-								]}
-							>
-								<UsersIcon class="size-[15px]" aria-hidden="true" />
-							</Button>
-						{/if}
+					{#snippet trailing()}
 						<Button
 							variant="ghost"
 							size="icon"
 							aria-label={m.item_edit({ name: group.item.name })}
 							onclick={() => editItem(group)}
-							class="text-muted-foreground size-11 flex-none"
+							class="text-muted-foreground relative size-8 flex-none after:absolute after:-inset-1.5 after:content-['']"
 						>
 							<PencilIcon class="size-[15px]" aria-hidden="true" />
 						</Button>
-					</div>
-
-					<ul class="ml-10 grid min-w-0">
-						{#each group.lines as line (line.id)}
-							<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
-								<PersonAvatar person={line.person} small />
-								<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-									{whoever(line.person)}
-								</span>
-								<QuantityStepper
-									quantity={line.quantity}
-									less={m.kit_quantity_less({ who: whoever(line.person) })}
-									more={m.kit_quantity_more({ who: whoever(line.person) })}
-									busy={stepping.busy}
-									tight
-									onless={() =>
-										line.quantity > 1
-											? step(line, -1)
-											: (opened = { kind: 'remove-line', group, line })}
-									onmore={() => step(line, 1)}
-								/>
-							</li>
-						{/each}
-
-						{#if absent.length > 0 && addRowOn === group.id}
-							<li
-								class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
-							>
-								<span class="text-muted-foreground flex-none pr-0.5 text-xs">
-									{m.kit_line_add()}
-								</span>
-								{#each absent as person (person?.id ?? 'everyone')}
-									<button
-										type="button"
-										aria-label={m.kit_line_add_for({ who: whoever(person) })}
-										disabled={stepping.busy}
-										onclick={() => addLine(group.item.id, person?.id ?? null)}
-										class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
-									>
-										<PersonAvatar {person} small />
-										<span class="truncate text-xs font-medium">{whoever(person)}</span>
-									</button>
-								{/each}
-							</li>
-						{/if}
-					</ul>
-				</li>
+					{/snippet}
+				</ObjectCard>
 			{/each}
 		</ul>
 	{/if}
