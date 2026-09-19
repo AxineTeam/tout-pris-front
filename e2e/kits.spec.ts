@@ -32,6 +32,13 @@ function lineOf(page: Page, item: string, who: string) {
 		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
 }
 
+// Le compteur d'une ligne fondue dans le titre : le stepper qui porte son +.
+function fusedQuantity(page: Page, item: string, who: string) {
+	return group(page, item)
+		.getByRole('button', { name: `Un de plus pour ${who}` })
+		.locator('xpath=..');
+}
+
 // La rangée « Ajouter » de la carte ne se montre qu'appelée par le + du titre.
 async function addLineFor(page: Page, item: string, who: string) {
 	await expect(
@@ -123,9 +130,14 @@ test('un kit se remplit d’objets, se partage entre les personnes, puis se supp
 	await raise(page, 'Couches taille 4', 'Tom', 3);
 	await expect(lineOf(page, 'Couches taille 4', 'Tom')).toContainText('4');
 
+	// Seule et commune, la ligne des lingettes est fondue dans le titre de la
+	// carte : sa quantité se tape sur la carte, sans ligne dessous.
 	await addItem(page, 'Lingettes');
-	await raise(page, 'Lingettes', 'Tout le monde', 1);
-	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toContainText('2');
+	await expect(group(page, 'Lingettes').getByRole('listitem')).toHaveCount(0);
+	await group(page, 'Lingettes')
+		.getByRole('button', { name: 'Un de plus pour Tout le monde' })
+		.click();
+	await expect(fusedQuantity(page, 'Lingettes', 'Tout le monde')).toHaveText('2');
 
 	await page.getByTestId('item-field').fill('couch');
 	await expect(page.getByRole('option').first()).toContainText('Couches taille 4');
@@ -279,8 +291,13 @@ test('une liste collée dans le champ remplit le catalogue et le kit d’un coup
 	await expect(group(page, 'Sac à dos')).toBeVisible();
 	// Le kit ne porte pas deux fois l'objet que le foyer connaissait déjà, et
 	// seul au foyer, c'est à soi qu'il revient plutôt qu'à tout le monde.
-	await expect(lineOf(page, 'Gourde', me)).toHaveCount(1);
-	await expect(lineOf(page, 'Gourde', 'Tout le monde')).toHaveCount(0);
+	await expect(
+		group(page, 'Gourde').getByRole('button', { name: `Un de plus pour ${me}` })
+	).toHaveCount(1);
+	await expect(
+		group(page, 'Gourde').getByRole('button', { name: 'Un de plus pour Tout le monde' })
+	).toHaveCount(0);
+	await expect(group(page, 'Gourde').getByRole('listitem')).toHaveCount(0);
 
 	await page.reload();
 	await expect(page.locator('[data-row]')).toHaveCount(3);
@@ -352,10 +369,11 @@ test('un kit se copie dans un autre foyer, ses lignes fondues en lignes communes
 	await expect(page.getByTestId('subtitle')).toHaveText('Pour la salle de bain');
 	await expect.poll(() => itemNames(page)).toEqual(['Lingettes', 'Couches']);
 	// Léa n'existe pas ici : ses trois couches ont rejoint la ligne commune, et
-	// c'est la seule que l'objet porte.
-	await expect(lineOf(page, 'Couches', 'Tout le monde')).toContainText('5');
-	await expect(group(page, 'Couches').getByRole('listitem')).toHaveCount(1);
-	await expect(lineOf(page, 'Lingettes', 'Tout le monde')).toContainText('1');
+	// c'est la seule que l'objet porte, fondue dans son titre.
+	await expect(group(page, 'Couches').getByRole('listitem')).toHaveCount(0);
+	await expect(fusedQuantity(page, 'Couches', 'Tout le monde')).toHaveText('5');
+	await expect(group(page, 'Lingettes').getByRole('listitem')).toHaveCount(0);
+	await expect(fusedQuantity(page, 'Lingettes', 'Tout le monde')).toHaveText('1');
 
 	await deleteShared(page, home);
 	await deleteShared(page, away);
