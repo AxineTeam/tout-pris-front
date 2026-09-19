@@ -1346,8 +1346,68 @@ describe('TripLines', () => {
 // Le sursis se joue entre deux versions des lignes : la tape écrit dans le
 // cache, et la page redonne les lignes au composant au tick suivant. Ici c'est
 // `rerender` qui joue la page.
+describe('TripLines : lignes filtrées remontées à la page', () => {
+	const onfiltered = vi.fn();
+
+	function watch(lines: TripItem[]) {
+		const user = userEvent.setup();
+		render(TripLines, {
+			props: {
+				household: 7,
+				trip: 3,
+				lines,
+				participants: [alice, bob],
+				items: [tent, socks, map],
+				kits: [camping, holiday, seaside],
+				statuses: catalogue,
+				onfiltered,
+				onchanged
+			}
+		});
+		return user;
+	}
+
+	it('remonte toutes les lignes sans filtre', () => {
+		const all = [line(socks, todo, { person: alice }), line(tent, packed)];
+		watch(all);
+
+		expect(onfiltered).toHaveBeenLastCalledWith(all);
+	});
+
+	it('remonte les lignes de la personne retenue et les communes', async () => {
+		const hers = line(socks, todo, { person: alice });
+		const his = line(socks, todo, { person: bob });
+		const common = line(tent, packed);
+		const user = watch([hers, his, common]);
+
+		await filterBy(user, 'Personnes', 'Alice');
+
+		expect(onfiltered).toHaveBeenLastCalledWith([hers, common]);
+	});
+
+	it('remonte seulement les lignes du statut retenu', async () => {
+		const pending = line(socks, todo, { person: alice });
+		const done = line(tent, packed);
+		const user = watch([pending, done]);
+
+		await filterBy(user, 'Statuts', 'Rangé');
+
+		expect(onfiltered).toHaveBeenLastCalledWith([done]);
+	});
+
+	it('remonte une liste vide quand le filtre ne laisse rien', async () => {
+		const user = watch([line(socks, todo, { person: alice })]);
+
+		await filterBy(user, 'Personnes', 'Bob');
+
+		expect(onfiltered).toHaveBeenLastCalledWith([]);
+	});
+});
+
 describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 	const leaving = () => screen.queryByRole('img', { name: 'Quitte la liste dans un instant' });
+
+	const onfiltered = vi.fn();
 
 	function keep(lines: TripItem[], statuses = catalogue) {
 		vi.useFakeTimers();
@@ -1361,6 +1421,7 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 				items: [tent, socks, map],
 				kits: [camping, holiday, seaside],
 				statuses,
+				onfiltered,
 				onchanged
 			}
 		});
@@ -1396,6 +1457,20 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		await elapse(100);
 		expect(names()).toEqual(['Tente']);
 		expect(leaving()).not.toBeInTheDocument();
+	});
+
+	it('compte la ligne retenue dans les lignes remontées jusqu’à l’échéance', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		const { user, advance, elapse } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+
+		expect(onfiltered).toHaveBeenLastCalledWith([{ ...first, status: packed }, other]);
+
+		await elapse(4000);
+		expect(onfiltered).toHaveBeenLastCalledWith([other]);
 	});
 
 	it('remet le disque à plein quand la ligne est retouchée avant l’échéance', async () => {
