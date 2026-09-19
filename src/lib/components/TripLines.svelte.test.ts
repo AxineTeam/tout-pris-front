@@ -1475,3 +1475,193 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		expect(names()).toEqual(['Chaussettes', 'Tente']);
 	});
 });
+
+describe('TripLines : choix direct du statut', () => {
+	const pill = () => screen.getByRole('button', { name: /Tente pour Tout le monde/ });
+
+	function pickerRows(): HTMLElement[] {
+		return within(screen.getByRole('dialog'))
+			.getAllByRole('button')
+			.filter((one) => one.hasAttribute('aria-pressed'));
+	}
+
+	async function hold(target: HTMLElement, duration: number) {
+		await fireEvent.pointerDown(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		vi.advanceTimersByTime(duration);
+		await fireEvent.pointerUp(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		await fireEvent.click(target);
+	}
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('avance d’un cran quand on relâche avant une seconde', async () => {
+		const only = line(tent, unprepared);
+		show([only], 'order', [], jumbled);
+
+		await hold(pill(), 400);
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: pulled.id });
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('ouvre la liste des statuts après une seconde, sans avancer', async () => {
+		const only = line(tent, out);
+		show([only], 'order', [], jumbled);
+
+		await hold(pill(), 1000);
+
+		expect(updateTripItem).not.toHaveBeenCalled();
+		expect(
+			within(screen.getByRole('dialog')).getByRole('heading', {
+				name: 'Statut de « Tente » pour Tout le monde'
+			})
+		).toBeInTheDocument();
+	});
+
+	it('range la liste dans l’ordre des sections et marque le statut courant', async () => {
+		show([line(tent, out)], 'order', [], jumbled);
+
+		await hold(pill(), 1000);
+
+		expect(pickerRows().map((one) => one.textContent?.trim())).toEqual([
+			'Pas préparé',
+			'À sortir',
+			'Sorti du placard',
+			'Dans les sacs'
+		]);
+		expect(pickerRows().map((one) => one.getAttribute('aria-pressed'))).toEqual([
+			'false',
+			'false',
+			'true',
+			'false'
+		]);
+	});
+
+	it('écrit le statut choisi et ferme la liste', async () => {
+		const only = line(tent, bagged);
+		show([only], 'order', [], jumbled);
+
+		await hold(pill(), 1000);
+		await fireEvent.click(
+			within(screen.getByRole('dialog')).getByRole('button', { name: /À sortir/ })
+		);
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: pulled.id });
+		await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+	});
+
+	it('n’ouvre rien quand le doigt bouge pendant l’appui', async () => {
+		show([line(tent, unprepared)], 'order', [], jumbled);
+
+		const target = pill();
+		await fireEvent.pointerDown(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		await fireEvent.pointerMove(target, { pointerId: 1, clientX: 30, clientY: 10 });
+		vi.advanceTimersByTime(1000);
+		await fireEvent.pointerUp(target, { pointerId: 1, button: 0, clientX: 30, clientY: 10 });
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(updateTripItem).not.toHaveBeenCalled();
+	});
+
+	it('n’ouvre rien quand le navigateur interrompt l’appui', async () => {
+		show([line(tent, unprepared)], 'order', [], jumbled);
+
+		const target = pill();
+		await fireEvent.pointerDown(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		await fireEvent.pointerCancel(target, { pointerId: 1 });
+		vi.advanceTimersByTime(1000);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('ouvre la liste sur le menu contextuel, sans avancer', async () => {
+		show([line(tent, unprepared)], 'order', [], jumbled);
+
+		const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+		await fireEvent(pill(), event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+		expect(updateTripItem).not.toHaveBeenCalled();
+	});
+
+	it('avance à nouveau d’une tape après un appui long', async () => {
+		const only = line(tent, unprepared);
+		show([only], 'order', [], jumbled);
+
+		await hold(pill(), 1000);
+		await fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+		await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+		expect(updateTripItem).not.toHaveBeenCalled();
+
+		await hold(pill(), 100);
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: pulled.id });
+	});
+
+	it('avance à la touche Entrée après une liste ouverte au clavier', async () => {
+		const only = line(tent, unprepared);
+		show([only], 'order', [], jumbled);
+
+		await fireEvent.contextMenu(pill());
+		await fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+		await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+		await fireEvent.click(pill());
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: pulled.id });
+	});
+
+	it('n’ouvre rien quand la souris quitte la pastille pendant l’appui', async () => {
+		show([line(tent, unprepared)], 'order', [], jumbled);
+
+		const target = pill();
+		await fireEvent.pointerDown(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		await fireEvent.pointerLeave(target, { pointerId: 1 });
+		vi.advanceTimersByTime(1000);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('n’ouvre rien quand un second doigt relance l’appui et que les deux relâchent', async () => {
+		show([line(tent, unprepared)], 'order', [], jumbled);
+
+		const target = pill();
+		await fireEvent.pointerDown(target, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+		vi.advanceTimersByTime(500);
+		await fireEvent.pointerDown(target, { pointerId: 2, button: 0, clientX: 12, clientY: 12 });
+		vi.advanceTimersByTime(400);
+		await fireEvent.pointerUp(target, { pointerId: 2, button: 0 });
+		vi.advanceTimersByTime(1000);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+	});
+
+	it('ouvre la liste depuis la feuille et y revient après le choix', async () => {
+		const only = line(socks, out, { person: alice });
+		show([only], 'order', [alice], jumbled);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Ouvrir « Chaussettes »' }));
+		const sheet = screen.getByRole('dialog');
+		await hold(within(sheet).getByRole('button', { name: /Chaussettes pour Alice/ }), 1000);
+
+		const picker = screen.getByRole('dialog');
+		expect(
+			within(picker).getByRole('heading', { name: 'Statut de « Chaussettes » pour Alice' })
+		).toBeInTheDocument();
+		await fireEvent.click(within(picker).getByRole('button', { name: /Dans les sacs/ }));
+
+		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: bagged.id });
+		await vi.waitFor(() =>
+			expect(
+				within(screen.getByRole('dialog')).getByRole('heading', { name: 'Chaussettes' })
+			).toBeInTheDocument()
+		);
+	});
+});

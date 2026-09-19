@@ -27,6 +27,7 @@
 		whoever,
 		onclose,
 		onadvance,
+		onpick,
 		onstep,
 		onremove,
 		onadd,
@@ -44,6 +45,7 @@
 		whoever: (person: Person | null) => string;
 		onclose: () => void;
 		onadvance: (line: TripItem) => void;
+		onpick: (line: TripItem) => void;
 		onstep: (line: TripItem, by: number) => void;
 		onremove: (line: TripItem) => void;
 		onadd: (person: Person | null) => void;
@@ -172,13 +174,14 @@
 						<span class="truncate text-[13.5px] font-semibold">{whoever(line.person)}</span>
 						<StatusPill
 							status={line.status}
-							label={m.trip_status_advance({
+							label={m.trip_status_pill({
 								name: item.name,
 								who: whoever(line.person),
 								status: line.status.name
 							})}
 							{busy}
 							onadvance={() => onadvance(line)}
+							onpick={() => onpick(line)}
 						/>
 					</span>
 					<QuantityStepper

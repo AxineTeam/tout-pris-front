@@ -4,8 +4,9 @@
 </script>
 
 <script lang="ts">
-	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
+	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import GripHorizontalIcon from '@lucide/svelte/icons/grip-horizontal';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import { onDestroy, tick } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -28,6 +29,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import PersonAvatar from '$lib/components/PersonAvatar.svelte';
 	import QuantityStepper from '$lib/components/QuantityStepper.svelte';
+	import RowCard from '$lib/components/RowCard.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
 	import TripFilters, { NO_KIT } from '$lib/components/TripFilters.svelte';
@@ -42,6 +44,7 @@
 		| { kind: 'sheet'; item: ItemType }
 		| { kind: 'edit'; item: ItemType }
 		| { kind: 'remove'; item: ItemType; line: TripItem; back: Opened | null }
+		| { kind: 'pick'; item: ItemType; line: TripItem; back: Opened | null }
 		| { kind: 'filters' };
 
 	interface Grouped {
@@ -243,7 +246,7 @@
 	}
 
 	function settleDialog() {
-		const unwound = opened?.kind === 'remove' ? opened.back : opened;
+		const unwound = opened?.kind === 'remove' || opened?.kind === 'pick' ? opened.back : opened;
 		if (!unwound || unwound.kind === 'filters') opened = unwound;
 		else opened = everyLineFor(unwound.item.id).length > 0 ? unwound : null;
 	}
@@ -407,7 +410,21 @@
 		const standing = ranked.findIndex((one) => one.id === line.status.id);
 		const next = standing === -1 ? ranked[0] : ranked[(standing + 1) % ranked.length];
 		if (!next || next.id === line.status.id) return;
-		patching.mutate({ line: { ...line, status: next }, sent: { status: next.id } });
+		setStatus(line, next);
+	}
+
+	function setStatus(line: TripItem, status: ItemStatus) {
+		patching.mutate({ line: { ...line, status }, sent: { status: status.id } });
+	}
+
+	function pickFrom(line: TripItem) {
+		opened = { kind: 'pick', item: line.item_type, line, back: opened };
+	}
+
+	function picked(line: TripItem, status: ItemStatus) {
+		if (opened?.kind !== 'pick') return;
+		if (status.id !== line.status.id) setStatus(line, status);
+		opened = opened.back;
 	}
 
 	let sheet = $derived.by(() => {
@@ -421,6 +438,15 @@
 			kits: itemLines[0].kits,
 			lines: itemLines
 		};
+	});
+
+	// The line held by the dialog is the one the hold landed on; the one written
+	// and marked is the line as the trip carries it now.
+	let picking = $derived.by(() => {
+		const dialog = opened;
+		if (dialog?.kind !== 'pick') return null;
+		const line = lines.find((one) => one.id === dialog.line.id);
+		return line ? { line, back: dialog.back } : null;
 	});
 
 	let removing = $derived.by(() => {
@@ -667,7 +693,7 @@
 								/>
 								<StatusPill
 									status={line.status}
-									label={m.trip_status_advance({
+									label={m.trip_status_pill({
 										name: group.item.name,
 										who: whoever(line.person),
 										status: line.status.name
@@ -675,6 +701,7 @@
 									busy={stepping.busy}
 									tight
 									onadvance={() => advance(line)}
+									onpick={() => pickFrom(line)}
 								/>
 								{#if graced.has(line.id)}
 									{#key graced.get(line.id)}
@@ -770,6 +797,36 @@
 			{m.trip_line_remove()}
 		</Button>
 	</Modal>
+{:else if picking}
+	{@const { line, back } = picking}
+	<Modal
+		title={m.trip_status_pick_title({ name: line.item_type.name, who: whoever(line.person) })}
+		onclose={() => (opened = back)}
+	>
+		<ul class="grid gap-1.5">
+			{#each ranked as one (one.id)}
+				{@const current = one.id === line.status.id}
+				<li>
+					<RowCard
+						aria-pressed={current}
+						disabled={stepping.busy}
+						onclick={() => picked(line, one)}
+						class={current ? 'border-primary bg-accent' : undefined}
+					>
+						<span
+							aria-hidden="true"
+							class="size-[9px] flex-none rounded-full"
+							style:background-color={one.color}
+						></span>
+						<span class="min-w-0 flex-1 truncate text-sm font-medium">{one.name}</span>
+						{#if current}
+							<CheckIcon size={16} aria-hidden="true" class="text-primary flex-none" />
+						{/if}
+					</RowCard>
+				</li>
+			{/each}
+		</ul>
+	</Modal>
 {:else if sheet}
 	{@const shownSheet = sheet}
 	<TripItemSheet
@@ -783,6 +840,7 @@
 		{whoever}
 		onclose={() => (opened = null)}
 		onadvance={advance}
+		onpick={pickFrom}
 		onstep={step}
 		onremove={(line) => (opened = { kind: 'remove', item: shownSheet.item, line, back: opened })}
 		onadd={(person) => addFor(shownSheet, person)}
