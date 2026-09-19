@@ -284,6 +284,7 @@
 	"trip_line_add": "Ajouter",
 	"trip_line_add_for": "Ajouter une ligne pour {who}",
 	"trip_line_add_open": "Ajouter une ligne à « {name} »",
+	"trip_line_leaving": "Quitte la liste dans un instant",
 	"trip_line_remove": "Retirer la ligne",
 	"trip_line_remove_explains": "L’objet reste au catalogue et dans ses kits. Seule cette ligne du voyage disparaît.",
 	"trip_line_remove_title": "Retirer « {name} » pour {who}",
