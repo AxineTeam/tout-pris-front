@@ -7,6 +7,7 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import type { TripItem } from '$lib/api.js';
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import TripLines, { type Direction, type Sorting } from '$lib/components/TripLines.svelte';
 	import TripProgress from '$lib/components/TripProgress.svelte';
@@ -60,15 +61,16 @@
 	}
 
 	let known = $derived(lines.data ?? []);
+	let filtered = $state.raw<TripItem[]>([]);
 	let going = $derived((trip.data?.participants ?? []).map((one) => one.person));
-	let ready = $derived(known.filter((line) => line.status.progress === 'done').length);
+	let ready = $derived(filtered.filter((line) => line.status.progress === 'done').length);
 
 	let back = $derived(resolve('/(app)/households/[id]/trips', { id: String(data.household.id) }));
 
 	let subtitle = $derived(
 		trip.data
-			? known.length > 0
-				? m.trip_subtitle({ date: locale.day(trip.data.date), done: ready, total: known.length })
+			? filtered.length > 0
+				? m.trip_subtitle({ date: locale.day(trip.data.date), done: ready, total: filtered.length })
 				: locale.day(trip.data.date)
 			: undefined
 	);
@@ -120,7 +122,7 @@
 	{/snippet}
 </ScreenHeader>
 
-<TripProgress lines={known} />
+<TripProgress lines={filtered} />
 
 <TripLines
 	household={data.household.id}
@@ -133,5 +135,6 @@
 	{sorted}
 	{direction}
 	onbusy={(held) => (busy = held)}
+	onfiltered={(lines) => (filtered = lines)}
 	onchanged={reload}
 />

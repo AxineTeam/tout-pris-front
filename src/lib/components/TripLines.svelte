@@ -65,6 +65,7 @@
 		sorted = 'order',
 		direction = 'up',
 		onbusy,
+		onfiltered,
 		onchanged
 	}: {
 		household: number;
@@ -77,6 +78,7 @@
 		sorted?: Sorting;
 		direction?: Direction;
 		onbusy?: (busy: boolean) => void;
+		onfiltered?: (lines: TripItem[]) => void;
 		onchanged: () => Promise<void>;
 	} = $props();
 
@@ -322,10 +324,14 @@
 	const writing = useIsMutating({ mutationKey: patchKey }, queryClient);
 
 	// A component cannot export a derived, and `$bindable` moves the assignment
-	// to the parent rather than removing it: reporting this upwards has no
+	// to the parent rather than removing it: reporting these upwards has no
 	// simpler shape in runes.
 	$effect(() => {
 		onbusy?.(dragging.grabbed !== null || stepping.busy || writing.current > 0);
+	});
+
+	$effect(() => {
+		onfiltered?.(filtered);
 	});
 
 	// What empties a card's offer is not always a gesture this component sees — a
