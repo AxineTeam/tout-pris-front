@@ -1866,4 +1866,41 @@ describe('TripLines : carte à une seule ligne', () => {
 		).toBeVisible();
 		expect(within(card('Tente')).queryByText('Tout le monde')).not.toBeInTheDocument();
 	});
+
+	it('ne nomme personne sur la fiche d’une carte fondue', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { person: alice })], 'order', [alice]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Tente »' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).queryByText('Alice')).not.toBeInTheDocument();
+		expect(within(sheet).queryByText('A')).not.toBeInTheDocument();
+		expect(within(sheet).getByRole('button', { name: /Tente pour Alice/ })).toBeVisible();
+	});
+
+	it('propose sur la fiche d’une carte fondue les personnes d’un voyage à plusieurs', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo)]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Tente »' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).queryByText('Tout le monde')).not.toBeInTheDocument();
+		expect(within(sheet).queryByText('∗')).not.toBeInTheDocument();
+		expect(within(sheet).getByTestId('sheet-add-1')).toBeVisible();
+		expect(within(sheet).getByTestId('sheet-add-2')).toBeVisible();
+	});
+
+	it('nomme la personne sur la fiche d’une carte nominative dans un voyage à plusieurs', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { person: alice })]);
+
+		await user.click(screen.getByRole('button', { name: 'Ouvrir « Tente »' }));
+
+		const sheet = screen.getByRole('dialog');
+		expect(within(sheet).getByText('Alice')).toBeVisible();
+		expect(within(sheet).getByTestId('sheet-add-2')).toBeVisible();
+		expect(within(sheet).getByTestId('sheet-add-common')).toBeVisible();
+	});
 });

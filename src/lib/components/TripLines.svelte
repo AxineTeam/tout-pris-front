@@ -875,6 +875,7 @@
 		kits={shownSheet.kits}
 		offered={kits}
 		lines={shownSheet.lines}
+		nameless={fusedLine(shownSheet.lines) !== null}
 		absent={whoeverWithoutLine(shownSheet.id)}
 		errors={stepping.errors}
 		busy={stepping.busy}
