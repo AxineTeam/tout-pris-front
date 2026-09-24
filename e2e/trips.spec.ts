@@ -7,6 +7,8 @@ import {
 	deleteShared,
 	inDays,
 	name,
+	newTrip,
+	openKits,
 	openTrips,
 	sheet,
 	trip
@@ -31,23 +33,6 @@ async function visitDetail(
 async function act(page: Page, holds: string, action: string) {
 	await trip(page, holds).getByRole('button').click();
 	await page.getByRole('menu').getByRole('menuitem', { name: action }).click();
-}
-
-// Creating a trip is a screen of its own now, not a dialog: it carries the
-// participants and the kits, which no bottom sheet had room for.
-async function newTrip(page: Page, wanted: string, date: string, going: string[] = []) {
-	await page.getByRole('button', { name: 'Nouveau voyage' }).click();
-	await expect(page.getByTestId('screen-title')).toHaveText('Nouveau voyage');
-	await expect(page.getByLabel('Date de départ')).toHaveValue(inDays(0));
-	await page.getByLabel('Nom du voyage').fill(wanted);
-	await page.getByLabel('Date de départ').fill(date);
-	for (const who of going) {
-		await page.getByRole('button', { name: `Fait partir ${who}` }).click();
-	}
-	await page.getByRole('button', { name: 'Créer' }).click();
-	await expect(page.getByTestId('screen-title')).toHaveText(wanted);
-	await page.getByRole('link', { name: 'Retour' }).click();
-	await expect(trip(page, wanted)).toBeVisible();
 }
 
 test('un voyage se crée, s’archive, se duplique, puis se supprime', async ({ page }) => {
@@ -124,16 +109,12 @@ function objectNames(page: Page) {
 		.evaluateAll((rows) => rows.map((row) => row.querySelector('span')!.textContent!.trim()));
 }
 
-// A card with one line that names nobody in particular folds it into its
-// title: the line is then the card itself, and comes last in document order
-// only when there is no row under it.
 function lineOf(page: Page, item: string, who: string) {
 	return page
 		.locator('li[data-trip-item]')
 		.filter({ hasText: item })
-		.locator('xpath=descendant-or-self::li')
-		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) })
-		.last();
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('button', { name: `Un de plus pour ${who}` }) });
 }
 
 async function openFilters(page: Page) {
@@ -315,13 +296,6 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	await deleteShared(page, shared);
 });
-
-function openKits(page: Page) {
-	return page
-		.getByRole('navigation', { name: 'Navigation principale' })
-		.getByRole('link', { name: 'Kits' })
-		.click();
-}
 
 function kitLineOf(page: Page, item: string, who: string) {
 	return page

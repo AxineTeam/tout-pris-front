@@ -246,13 +246,13 @@
 		return person ? person.name : m.everyone();
 	}
 
-	// A card with one line naming nobody in particular — common, or for the
-	// trip's sole participant — has nothing its title does not already say, so
-	// the line's controls go up on the title and the line itself is not drawn.
-	function fusedLine(lines: TripItem[]): TripItem | null {
-		if (lines.length !== 1) return null;
+	// One line naming nobody in particular — common, or for the trip's sole
+	// participant — has an avatar that tells nothing apart and a name the sheet's
+	// title already carries, so the sheet draws that line without either.
+	function namesNobody(lines: TripItem[]): boolean {
+		if (lines.length !== 1) return false;
 		const only = lines[0];
-		return only.person === null || only.person.id === soleParticipant ? only : null;
+		return only.person === null || only.person.id === soleParticipant;
 	}
 
 	function everyLineFor(item: number): TripItem[] {
@@ -606,7 +606,7 @@
 	onpointercancel={() => dragging.cancel()}
 />
 
-{#snippet controls(line: TripItem, tight: boolean)}
+{#snippet controls(line: TripItem)}
 	<StatusPill
 		status={line.status}
 		label={m.trip_status_pill({
@@ -615,7 +615,7 @@
 			status: line.status.name
 		})}
 		busy={stepping.busy}
-		{tight}
+		tight
 		onadvance={() => advance(line)}
 		onpick={() => pickFrom(line)}
 	/>
@@ -692,7 +692,6 @@
 					grabbed={dragging.grabbed?.id === group.id}
 					offset={dragging.offset}
 					highlighted={highlighted === group.id}
-					fused={fusedLine(group.lines) !== null}
 					unfolded={addRowOn === group.id}
 					busy={stepping.busy}
 					ongrab={(event) => grab(event, group)}
@@ -811,7 +810,7 @@
 		kits={shownSheet.kits}
 		offered={kits}
 		lines={shownSheet.lines}
-		nameless={fusedLine(shownSheet.lines) !== null}
+		nameless={namesNobody(shownSheet.lines)}
 		absent={whoeverWithoutLine(shownSheet.id)}
 		errors={stepping.errors}
 		busy={stepping.busy}

@@ -19,7 +19,6 @@
 		grabbed = false,
 		offset = 0,
 		highlighted = false,
-		fused = false,
 		unfolded = false,
 		busy = false,
 		ongrab,
@@ -41,7 +40,6 @@
 		grabbed?: boolean;
 		offset?: number;
 		highlighted?: boolean;
-		fused?: boolean;
 		unfolded?: boolean;
 		busy?: boolean;
 		ongrab: (event: PointerEvent) => void;
@@ -50,13 +48,12 @@
 		onadd: (person: Person | null) => void;
 		onless: (line: Line) => void;
 		onmore: (line: Line) => void;
-		controls?: Snippet<[Line, boolean]>;
+		controls?: Snippet<[Line]>;
 		beside?: Snippet;
 		trailing?: Snippet;
 	} = $props();
 
 	let marked = $derived({ [`data-${testid}`]: item.id });
-	let only = $derived(fused ? lines[0] : null);
 	let opened = $derived(absent.length > 0 && unfolded);
 </script>
 
@@ -72,17 +69,17 @@
 	{/if}
 {/snippet}
 
-{#snippet stepper(line: Line, tight: boolean)}
+{#snippet stepper(line: Line)}
 	<QuantityStepper
 		quantity={line.quantity}
 		less={m.trip_quantity_less({ who: whoever(line.person) })}
 		more={m.trip_quantity_more({ who: whoever(line.person) })}
 		{busy}
-		{tight}
+		tight
 		onless={() => onless(line)}
 		onmore={() => onmore(line)}
 	/>
-	{@render controls?.(line, tight)}
+	{@render controls?.(line)}
 {/snippet}
 
 <li
@@ -122,11 +119,8 @@
 			</div>
 		{/if}
 		{@render beside?.()}
-		{#if only || absent.length > 0 || trailing}
+		{#if absent.length > 0 || trailing}
 			<span class="ml-auto flex flex-none items-center gap-2">
-				{#if only}
-					{@render stepper(only, false)}
-				{/if}
 				{#if absent.length > 0}
 					<Button
 						variant="ghost"
@@ -147,39 +141,35 @@
 		{/if}
 	</div>
 
-	{#if !only || opened}
-		<ul class="grid min-w-0">
-			{#if !only}
-				{#each lines as line (line.id)}
-					<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
-						<PersonAvatar person={line.person} small />
-						<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
-							{whoever(line.person)}
-						</span>
-						{@render stepper(line, true)}
-					</li>
-				{/each}
-			{/if}
+	<ul class="grid min-w-0">
+		{#each lines as line (line.id)}
+			<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
+				<PersonAvatar person={line.person} small />
+				<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">
+					{whoever(line.person)}
+				</span>
+				{@render stepper(line)}
+			</li>
+		{/each}
 
-			{#if opened}
-				<li
-					class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
-				>
-					<span class="text-muted-foreground flex-none pr-0.5 text-xs">{m.trip_line_add()}</span>
-					{#each absent as person (person?.id ?? 'everyone')}
-						<button
-							type="button"
-							aria-label={m.trip_line_add_for({ who: whoever(person) })}
-							disabled={busy}
-							onclick={() => onadd(person)}
-							class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
-						>
-							<PersonAvatar {person} small />
-							<span class="truncate text-xs font-medium">{whoever(person)}</span>
-						</button>
-					{/each}
-				</li>
-			{/if}
-		</ul>
-	{/if}
+		{#if opened}
+			<li
+				class="border-border/60 flex min-h-11 min-w-0 flex-wrap items-center gap-x-1.5 border-t py-1"
+			>
+				<span class="text-muted-foreground flex-none pr-0.5 text-xs">{m.trip_line_add()}</span>
+				{#each absent as person (person?.id ?? 'everyone')}
+					<button
+						type="button"
+						aria-label={m.trip_line_add_for({ who: whoever(person) })}
+						disabled={busy}
+						onclick={() => onadd(person)}
+						class="hover:bg-accent focus-visible:ring-ring/50 flex min-h-11 min-w-0 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 opacity-60 transition-opacity outline-none hover:opacity-100 focus-visible:ring-[3px] disabled:opacity-40"
+					>
+						<PersonAvatar {person} small />
+						<span class="truncate text-xs font-medium">{whoever(person)}</span>
+					</button>
+				{/each}
+			</li>
+		{/if}
+	</ul>
 </li>
