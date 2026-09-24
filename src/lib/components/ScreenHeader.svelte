@@ -1,3 +1,11 @@
+<script module lang="ts">
+	// Shared so that a control passed through `extra` sits on the same gabarit as
+	// the ones the header draws itself, instead of a copy that drifts the day
+	// this one is retouched.
+	export const headerControl =
+		"border-border bg-card text-primary hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 active:bg-primary/25 relative flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none after:absolute after:-inset-[5px] after:content-[''] focus-visible:ring-[3px]";
+</script>
+
 <script lang="ts">
 	import type { LucideIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
@@ -68,7 +76,7 @@
 						type="button"
 						aria-label={action.label}
 						onclick={action.onclick}
-						class="border-border bg-card text-primary hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 active:bg-primary/25 relative flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none after:absolute after:-inset-[5px] after:content-[''] focus-visible:ring-[3px]"
+						class={headerControl}
 					>
 						<action.icon size={16} aria-hidden="true" />
 					</button>

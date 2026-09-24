@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { openAsShared } from './account';
 import {
 	addPerson,
+	closeSheet,
 	createShared,
 	deleteShared,
 	inDays,
@@ -140,9 +141,9 @@ async function openFilters(page: Page) {
 	await expect(sheet(page)).toBeVisible();
 }
 
-async function closeFilters(page: Page) {
-	await page.getByRole('button', { name: 'Fermer' }).click();
-	await expect(sheet(page)).toHaveCount(0);
+async function openSort(page: Page) {
+	await page.getByTestId('trip-sort-open').click();
+	await expect(sheet(page)).toBeVisible();
 }
 
 // La rangée « Ajouter » de la carte ne se montre qu'appelée par le + du titre.
@@ -235,13 +236,27 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 
 	await openFilters(page);
 	await people.getByRole('button', { name: 'Léa' }).click();
-	await closeFilters(page);
+	await closeSheet(page);
 	await expect(page.getByTestId('trip-filters-open')).toHaveText('1');
 	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
 	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toHaveCount(0);
 	await expect.poll(() => objectNames(page)).toEqual(['Tente', 'Brosse à dents']);
-	await page.getByRole('button', { name: /^Trier par nom/ }).click();
+
+	// Les trois tris sont derrière un seul bouton ; le choix referme la fenêtre,
+	// et la rouvrir montre où la liste en est.
+	const byName = 'Trier par nom, de A à Z';
+	await expect(page.getByTestId('trip-sort-open')).toHaveAccessibleName('Trier la liste');
+	await openSort(page);
+	await expect(sheet(page).getByRole('button', { name: /^Trier / })).toHaveCount(3);
+	await sheet(page).getByRole('button', { name: byName }).click();
+	await expect(sheet(page)).toHaveCount(0);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await openSort(page);
+	await expect(sheet(page).getByRole('button', { name: byName })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await closeSheet(page);
 
 	// Une deuxième capsule de la même rangée s'ajoute à la première.
 	await openFilters(page);
@@ -250,7 +265,7 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		'aria-pressed',
 		'false'
 	);
-	await closeFilters(page);
+	await closeSheet(page);
 	await expect(page.getByTestId('trip-filters-open')).toHaveText('2');
 	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toBeVisible();
 	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toBeVisible();
@@ -259,11 +274,11 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 	// personne laisse passer, mais pas le statut d'abord retenu.
 	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Pas préparé' }).click();
-	await closeFilters(page);
+	await closeSheet(page);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents']);
 	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Dans les sacs' }).click();
-	await closeFilters(page);
+	await closeSheet(page);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 
 	// « Tous » est la sortie de la rangée, et il se rallume seul quand le dernier
@@ -281,7 +296,7 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		'aria-pressed',
 		'true'
 	);
-	await closeFilters(page);
+	await closeSheet(page);
 	await expect(page.getByTestId('trip-filters-open')).toHaveText('');
 
 	// Les filtres ne portent pas sur les résultats de recherche : le bouton s'en

@@ -1,10 +1,4 @@
 <script lang="ts">
-	import ArrowDown10Icon from '@lucide/svelte/icons/arrow-down-1-0';
-	import ArrowDownZAIcon from '@lucide/svelte/icons/arrow-down-z-a';
-	import ArrowUp01Icon from '@lucide/svelte/icons/arrow-up-0-1';
-	import ArrowUpAZIcon from '@lucide/svelte/icons/arrow-up-a-z';
-	import LayersArrowDownIcon from '@lucide/svelte/icons/layers-arrow-down';
-	import LayersArrowUpIcon from '@lucide/svelte/icons/layers-arrow-up';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { goto } from '$app/navigation';
@@ -13,6 +7,7 @@
 	import ScreenHeader from '$lib/components/ScreenHeader.svelte';
 	import TripLines, { type Direction, type Sorting } from '$lib/components/TripLines.svelte';
 	import TripProgress from '$lib/components/TripProgress.svelte';
+	import TripSort from '$lib/components/TripSort.svelte';
 	import { locale } from '$lib/locale.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { itemsQuery, kitsQuery, statusesQuery, tripLinesQuery, tripQuery } from '$lib/query.js';
@@ -33,40 +28,6 @@
 
 	let sorted = $state<Sorting>('order');
 	let direction = $state<Direction>('up');
-
-	// The label states where the list stands, because `aria-pressed` states the
-	// same thing: naming the next tap instead would have a reader announce “Z to
-	// A, pressed” over a list running A to Z.
-	let sortings = $derived([
-		{
-			key: 'order' as Sorting,
-			icon: direction === 'down' && sorted === 'order' ? ArrowDown10Icon : ArrowUp01Icon,
-			label:
-				sorted === 'order' && direction === 'down'
-					? m.trip_sort_order_last()
-					: m.trip_sort_order_first()
-		},
-		{
-			key: 'name' as Sorting,
-			icon: direction === 'down' && sorted === 'name' ? ArrowDownZAIcon : ArrowUpAZIcon,
-			label:
-				sorted === 'name' && direction === 'down' ? m.trip_sort_name_z_a() : m.trip_sort_name_a_z()
-		},
-		{
-			key: 'kit' as Sorting,
-			icon: direction === 'down' && sorted === 'kit' ? LayersArrowDownIcon : LayersArrowUpIcon,
-			label:
-				sorted === 'kit' && direction === 'down' ? m.trip_sort_kit_last() : m.trip_sort_kit_first()
-		}
-	]);
-
-	function sort(key: Sorting) {
-		if (sorted === key) direction = direction === 'up' ? 'down' : 'up';
-		else {
-			sorted = key;
-			direction = 'up';
-		}
-	}
 
 	let known = $derived(lines.data ?? []);
 	let filtered = $state.raw<TripItem[]>([]);
@@ -111,22 +72,7 @@
 	]}
 >
 	{#snippet extra()}
-		{#each sortings as sorting (sorting.key)}
-			<button
-				type="button"
-				aria-pressed={sorted === sorting.key}
-				aria-label={sorting.label}
-				onclick={() => sort(sorting.key)}
-				class={[
-					"focus-visible:border-ring focus-visible:ring-ring/50 relative flex size-[34px] items-center justify-center rounded-md border transition-colors outline-none after:absolute after:-inset-[5px] after:content-[''] focus-visible:ring-[3px]",
-					sorted === sorting.key
-						? 'border-primary bg-primary text-primary-foreground'
-						: 'border-border bg-card text-primary hover:bg-accent active:bg-primary/25'
-				]}
-			>
-				<sorting.icon size={16} aria-hidden="true" />
-			</button>
-		{/each}
+		<TripSort bind:sorted bind:direction />
 	{/snippet}
 </ScreenHeader>
 
