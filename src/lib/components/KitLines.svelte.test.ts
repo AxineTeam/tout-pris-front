@@ -2,17 +2,19 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import KitLines from './KitLines.svelte';
 import {
 	createItemType,
 	createKitItem,
+	deleteKitItem,
 	updateKitItem,
 	type ItemType,
 	type KitDetail,
 	type KitItem,
 	type Person
 } from '$lib/api.js';
+import { confirmations } from '$lib/confirmations.svelte.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/api.js')>()),
@@ -100,6 +102,11 @@ async function importAlongside(item: ItemType, held: ItemType) {
 	await user.click(await screen.findByTestId('item-import-start'));
 	await screen.findByTestId('item-import-created');
 }
+
+beforeEach(() => {
+	localStorage.clear();
+	confirmations.askAgain();
+});
 
 describe('KitLines', () => {
 	it('attribue à l’unique personne du foyer l’objet choisi, sans rien demander', async () => {
@@ -516,5 +523,84 @@ describe('KitLines : carte à une seule ligne', () => {
 			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
 		).toBeVisible();
 		expect(within(card('Tente')).queryByText('Tout le monde')).not.toBeInTheDocument();
+	});
+});
+
+describe('KitLines : confirmation de retrait mise en veilleuse', () => {
+	const dontAskAgain = () => screen.getByRole('checkbox', { name: 'Ne plus me le demander' });
+
+	async function takeLast(user: User) {
+		await user.click(screen.getByRole('button', { name: 'Un de moins pour Tout le monde' }));
+	}
+
+	async function silence(user: User) {
+		await takeLast(user);
+		await user.click(dontAskAgain());
+		await user.click(screen.getByRole('button', { name: 'Supprimer' }));
+		await vi.waitFor(() => {
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+			expect(document.body.style.pointerEvents).not.toBe('none');
+		});
+	}
+
+	it('offre de ne plus demander avant de retirer la dernière d’une ligne', async () => {
+		const user = userEvent.setup();
+		show([line(tent)], [alice, bob]);
+
+		await takeLast(user);
+
+		expect(dontAskAgain()).not.toBeChecked();
+	});
+
+	it('n’offre pas de taire la sortie de l’objet entier du kit', async () => {
+		const user = userEvent.setup();
+		show([line(tent)], [alice, bob]);
+
+		await user.click(screen.getByRole('button', { name: 'Modifier l’objet « Tente »' }));
+		await user.click(screen.getByRole('button', { name: 'Retirer du kit' }));
+
+		expect(
+			screen.queryByRole('checkbox', { name: 'Ne plus me le demander' })
+		).not.toBeInTheDocument();
+	});
+
+	it('retire sans plus rien demander une fois la case cochée et le retrait confirmé', async () => {
+		const user = userEvent.setup();
+		show([line(tent)], [alice, bob]);
+
+		await silence(user);
+		vi.mocked(deleteKitItem).mockClear();
+		await takeLast(user);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(deleteKitItem).toHaveBeenCalledWith(7, 3, expect.any(Number));
+	});
+
+	it('continue de demander quand la case est cochée puis la confirmation abandonnée', async () => {
+		const user = userEvent.setup();
+		show([line(tent)], [alice, bob]);
+
+		await takeLast(user);
+		await user.click(dontAskAgain());
+		await user.click(screen.getByRole('button', { name: 'Fermer' }));
+		await vi.waitFor(() => {
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+			expect(document.body.style.pointerEvents).not.toBe('none');
+		});
+		await takeLast(user);
+
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+		expect(dontAskAgain()).not.toBeChecked();
+	});
+
+	it('ne tait pas la ligne du kit quand c’est celle d’un voyage qui a été tue', async () => {
+		const user = userEvent.setup();
+		confirmations.silence('trip-line');
+		show([line(tent)], [alice, bob]);
+
+		await takeLast(user);
+
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+		expect(deleteKitItem).not.toHaveBeenCalled();
 	});
 });

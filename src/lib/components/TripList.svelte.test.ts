@@ -196,4 +196,15 @@ describe('TripList', () => {
 		expect(deleteTrip).toHaveBeenCalledWith(7, 1);
 		expect(onchanged).toHaveBeenCalled();
 	});
+
+	it('n’offre pas de taire la confirmation de suppression d’un voyage', async () => {
+		const user = userEvent.setup();
+		show();
+
+		await act(user, corse, 'Supprimer');
+
+		expect(
+			within(await sheet()).queryByRole('checkbox', { name: 'Ne plus me le demander' })
+		).not.toBeInTheDocument();
+	});
 });

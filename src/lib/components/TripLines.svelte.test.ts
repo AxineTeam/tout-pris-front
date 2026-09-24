@@ -19,6 +19,7 @@ import {
 	type ProgressCategory,
 	type TripItem
 } from '$lib/api.js';
+import { confirmations } from '$lib/confirmations.svelte.js';
 import { queryClient, tripLinesQuery } from '$lib/query.js';
 
 vi.mock('$lib/api.js', async (importOriginal) => ({
@@ -184,6 +185,8 @@ async function importAlongside(user: User, item: ItemType, held: ItemType) {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	localStorage.clear();
+	confirmations.askAgain();
 });
 
 describe('TripLines', () => {
@@ -1976,5 +1979,92 @@ describe('TripLines : carte à une seule ligne', () => {
 
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
 		expect(names()).toEqual(['Tente', 'Chaussettes']);
+	});
+});
+
+describe('TripLines : confirmation de retrait mise en veilleuse', () => {
+	const dontAskAgain = () => screen.getByRole('checkbox', { name: 'Ne plus me le demander' });
+
+	async function takeLast(user: User) {
+		await user.click(screen.getByRole('button', { name: 'Un de moins pour Alice' }));
+	}
+
+	async function settle() {
+		await vi.waitFor(() => {
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+			expect(document.body.style.pointerEvents).not.toBe('none');
+		});
+	}
+
+	async function silence(user: User) {
+		await takeLast(user);
+		await user.click(dontAskAgain());
+		await user.click(screen.getByRole('button', { name: 'Retirer la ligne' }));
+		await settle();
+	}
+
+	it('offre de ne plus demander avant de retirer la dernière d’une ligne', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await takeLast(user);
+
+		expect(dontAskAgain()).not.toBeChecked();
+	});
+
+	it('retire sans plus rien demander une fois la case cochée et le retrait confirmé', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await silence(user);
+		vi.mocked(deleteTripItem).mockClear();
+		await takeLast(user);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(deleteTripItem).toHaveBeenCalledWith(7, 3, expect.any(Number));
+	});
+
+	it('continue de demander quand la case est cochée puis la confirmation abandonnée', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice })]);
+
+		await takeLast(user);
+		await user.click(dontAskAgain());
+		await user.click(screen.getByRole('button', { name: 'Fermer' }));
+		await settle();
+		await takeLast(user);
+
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+		expect(dontAskAgain()).not.toBeChecked();
+	});
+
+	it('laisse la confirmation debout quand le retrait est refusé', async () => {
+		const user = userEvent.setup();
+		vi.mocked(deleteTripItem).mockRejectedValueOnce(new Error('refus'));
+		show([line(socks, todo, { person: alice })]);
+
+		await takeLast(user);
+		await user.click(dontAskAgain());
+		await user.click(screen.getByRole('button', { name: 'Retirer la ligne' }));
+		await screen.findAllByText('L’API est injoignable.');
+
+		await user.click(screen.getByRole('button', { name: 'Fermer' }));
+		await settle();
+		await takeLast(user);
+
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
+	});
+
+	it('garde le choix d’un écran à l’autre', async () => {
+		const user = userEvent.setup();
+		const first = show([line(socks, todo, { person: alice })]);
+
+		await silence(user);
+		first.unmount();
+		show([line(socks, todo, { person: alice })]);
+		await takeLast(user);
+
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		expect(deleteTripItem).toHaveBeenCalledTimes(2);
 	});
 });
