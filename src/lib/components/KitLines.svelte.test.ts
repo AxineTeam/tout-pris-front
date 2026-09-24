@@ -256,6 +256,30 @@ describe('KitLines', () => {
 		).not.toBeInTheDocument();
 	});
 
+	it('nomme les lignes d’une carte, la commune comme la nominative', () => {
+		show([line(tent), line(tent, { id: 11, person: alice })], [alice, bob]);
+
+		expect(within(card('Tente')).getAllByRole('listitem')).toHaveLength(2);
+		expect(within(card('Tente')).getByText('Tout le monde')).toBeVisible();
+		expect(within(card('Tente')).getByText('Alice')).toBeVisible();
+	});
+
+	it('compte une quantité de plus depuis le stepper de la ligne', async () => {
+		const user = userEvent.setup();
+		const only = line(tent, { quantity: 2 });
+		show([only]);
+
+		await user.click(screen.getByRole('button', { name: 'Un de plus pour Tout le monde' }));
+
+		expect(updateKitItem).toHaveBeenCalledWith(7, 3, only.id, { quantity: 3 });
+	});
+
+	it('ne propose d’ajouter personne dans un foyer à une personne', () => {
+		show([line(tent, { person: alice }), line(socks)]);
+
+		expect(screen.queryByRole('button', { name: /Ajouter une ligne à/ })).not.toBeInTheDocument();
+	});
+
 	it('n’ouvre l’éditeur que depuis le crayon, jamais depuis le nom de l’objet', async () => {
 		const user = userEvent.setup();
 		show([line(tent)]);
@@ -459,70 +483,6 @@ describe('KitLines : surbrillance d’un objet déjà là', () => {
 
 		expect(await lit()).toContain('border-primary');
 		vi.useRealTimers();
-	});
-});
-
-describe('KitLines : carte à une seule ligne', () => {
-	it('fond la seule ligne commune dans le titre', async () => {
-		const user = userEvent.setup();
-		const only = line(tent, { quantity: 2 });
-		show([only], [alice, bob]);
-
-		expect(within(card('Tente')).queryByRole('listitem')).not.toBeInTheDocument();
-		expect(screen.queryByText('Tout le monde')).not.toBeInTheDocument();
-		const more = screen.getByRole('button', { name: 'Un de plus pour Tout le monde' });
-		expect(more.closest('li')).toBe(card('Tente'));
-
-		await user.click(more);
-		expect(updateKitItem).toHaveBeenCalledWith(7, 3, only.id, { quantity: 3 });
-	});
-
-	it('fond la ligne de l’unique personne du foyer dans le titre', async () => {
-		const user = userEvent.setup();
-		const only = line(tent, { person: alice });
-		show([only]);
-
-		expect(within(card('Tente')).queryByRole('listitem')).not.toBeInTheDocument();
-		expect(screen.queryByText('Alice')).not.toBeInTheDocument();
-		const more = screen.getByRole('button', { name: 'Un de plus pour Alice' });
-		expect(more.closest('li')).toBe(card('Tente'));
-
-		await user.click(more);
-		expect(updateKitItem).toHaveBeenCalledWith(7, 3, only.id, { quantity: 2 });
-	});
-
-	it('garde sa ligne et son avatar à une carte nominative dans un foyer à plusieurs', () => {
-		show([line(tent, { person: alice })], [alice, bob]);
-
-		const row = within(card('Tente')).getByRole('listitem');
-		expect(within(row).getByText('Alice')).toBeVisible();
-		expect(screen.getByRole('button', { name: 'Un de plus pour Alice' }).closest('li')).toBe(row);
-	});
-
-	it('garde ses lignes à une carte qui en porte deux', () => {
-		show([line(tent), line(tent, { id: 11, person: alice })]);
-
-		expect(within(card('Tente')).getAllByRole('listitem')).toHaveLength(2);
-		expect(screen.getByText('Tout le monde')).toBeVisible();
-		expect(screen.getByText('Alice')).toBeVisible();
-	});
-
-	it('ne propose d’ajouter personne dans un foyer à une personne', () => {
-		show([line(tent, { person: alice }), line(socks)]);
-
-		expect(screen.queryByRole('button', { name: /Ajouter une ligne à/ })).not.toBeInTheDocument();
-	});
-
-	it('garde le + sur une carte fondue dans un foyer à plusieurs', async () => {
-		const user = userEvent.setup();
-		show([line(tent)], [alice, bob]);
-
-		await unfoldAdd(user, 'Tente');
-
-		expect(
-			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
-		).toBeVisible();
-		expect(within(card('Tente')).queryByText('Tout le monde')).not.toBeInTheDocument();
 	});
 });
 

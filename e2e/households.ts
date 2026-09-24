@@ -76,6 +76,13 @@ export async function deleteShared(page: Page, household: SharedHousehold) {
 	await closeMenu(page);
 }
 
+export function openKits(page: Page) {
+	return page
+		.getByRole('navigation', { name: 'Navigation principale' })
+		.getByRole('link', { name: 'Kits' })
+		.click();
+}
+
 export function openTrips(page: Page) {
 	return page
 		.getByRole('navigation', { name: 'Navigation principale' })
@@ -88,6 +95,23 @@ export function inDays(days: number): string {
 	day.setDate(day.getDate() + days);
 	const month = String(day.getMonth() + 1).padStart(2, '0');
 	return `${day.getFullYear()}-${month}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
+// Creating a trip is a screen of its own now, not a dialog: it carries the
+// participants and the kits, which no bottom sheet had room for.
+export async function newTrip(page: Page, wanted: string, date: string, going: string[] = []) {
+	await page.getByRole('button', { name: 'Nouveau voyage' }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText('Nouveau voyage');
+	await expect(page.getByLabel('Date de départ')).toHaveValue(inDays(0));
+	await page.getByLabel('Nom du voyage').fill(wanted);
+	await page.getByLabel('Date de départ').fill(date);
+	for (const who of going) {
+		await page.getByRole('button', { name: `Fait partir ${who}` }).click();
+	}
+	await page.getByRole('button', { name: 'Créer' }).click();
+	await expect(page.getByTestId('screen-title')).toHaveText(wanted);
+	await page.getByRole('link', { name: 'Retour' }).click();
+	await expect(trip(page, wanted)).toBeVisible();
 }
 
 export function trip(page: Page, holds: string) {

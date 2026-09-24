@@ -362,7 +362,7 @@ describe('TripLines', () => {
 	});
 
 	it('nomme la ligne sans personne « Tout le monde »', () => {
-		show([line(tent, todo), line(tent, todo, { person: alice })]);
+		show([line(tent, todo)]);
 
 		expect(screen.getByText('Tout le monde')).toBeInTheDocument();
 	});
@@ -1639,18 +1639,6 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
 	});
 
-	it('dessine le disque sur le titre d’une carte fondue', async () => {
-		const fusedLine = line(tent, todo);
-		const other = line(socks, todo, { person: alice });
-		const { user, advance } = keep([fusedLine, other]);
-		await filterBy(user, 'Statuts', 'À prendre');
-
-		await advance(/Tente pour Tout le monde/, [{ ...fusedLine, status: packed }, other]);
-
-		expect(leaving()).toBeInTheDocument();
-		expect(leaving()?.closest('li')).toBe(card('Tente'));
-	});
-
 	it('ne dessine aucun disque sans filtre de statut', async () => {
 		const first = line(socks, todo, { person: alice });
 		const other = line(tent, todo);
@@ -1854,70 +1842,14 @@ describe('TripLines : choix direct du statut', () => {
 	});
 });
 
-describe('TripLines : carte à une seule ligne', () => {
-	const pill = (name: RegExp) => screen.getByRole('button', { name });
-
-	it('fond la seule ligne commune dans le titre', async () => {
-		const user = userEvent.setup();
-		const only = line(tent, todo, { quantity: 2 });
-		show([only]);
-
-		expect(within(card('Tente')).queryByRole('listitem')).not.toBeInTheDocument();
-		expect(screen.queryByText('Tout le monde')).not.toBeInTheDocument();
-		expect(pill(/Tente pour Tout le monde/).closest('li')).toBe(card('Tente'));
-
-		await user.click(screen.getByRole('button', { name: 'Un de plus pour Tout le monde' }));
-		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { quantity: 3 });
-	});
-
-	it('fond la ligne de l’unique participant dans le titre', async () => {
-		const user = userEvent.setup();
-		const only = line(tent, todo, { person: alice });
-		show([only], 'order', [alice]);
-
-		expect(within(card('Tente')).queryByRole('listitem')).not.toBeInTheDocument();
-		expect(screen.queryByText('Alice')).not.toBeInTheDocument();
-		expect(pill(/Tente pour Alice/).closest('li')).toBe(card('Tente'));
-
-		await user.click(pill(/Tente pour Alice/));
-		expect(updateTripItem).toHaveBeenCalledWith(7, 3, only.id, { status: packed.id });
-	});
-
-	it('garde sa ligne et son avatar à une carte nominative dans un voyage à plusieurs', () => {
-		show([line(tent, todo, { person: alice })]);
-
-		const row = within(card('Tente')).getByRole('listitem');
-		expect(within(row).getByText('Alice')).toBeVisible();
-		expect(pill(/Tente pour Alice/).closest('li')).toBe(row);
-	});
-
-	it('garde ses lignes à une carte qui en porte deux', () => {
-		show([line(tent, todo), line(tent, todo, { person: alice })], 'order', [alice]);
-
-		expect(within(card('Tente')).getAllByRole('listitem')).toHaveLength(2);
-		expect(screen.getByText('Tout le monde')).toBeVisible();
-		expect(screen.getByText('Alice')).toBeVisible();
-	});
-
+describe('TripLines : quand il n’y a personne à distinguer', () => {
 	it('ne propose d’ajouter personne dans un voyage à un participant', () => {
 		show([line(tent, todo, { person: alice }), line(socks, todo)], 'order', [alice]);
 
 		expect(screen.queryByRole('button', { name: /Ajouter une ligne à/ })).not.toBeInTheDocument();
 	});
 
-	it('garde le + sur une carte fondue dans un voyage à plusieurs', async () => {
-		const user = userEvent.setup();
-		show([line(tent, todo)]);
-
-		await unfoldAdd(user, 'Tente');
-
-		expect(
-			within(card('Tente')).getByRole('button', { name: 'Ajouter une ligne pour Alice' })
-		).toBeVisible();
-		expect(within(card('Tente')).queryByText('Tout le monde')).not.toBeInTheDocument();
-	});
-
-	it('ne nomme personne sur la fiche d’une carte fondue', async () => {
+	it('ne nomme personne sur la fiche d’une ligne unique impersonnelle', async () => {
 		const user = userEvent.setup();
 		show([line(tent, todo, { person: alice })], 'order', [alice]);
 
@@ -1929,7 +1861,7 @@ describe('TripLines : carte à une seule ligne', () => {
 		expect(within(sheet).getByRole('button', { name: /Tente pour Alice/ })).toBeVisible();
 	});
 
-	it('propose sur la fiche d’une carte fondue les personnes d’un voyage à plusieurs', async () => {
+	it('propose sur la fiche d’une ligne commune les personnes d’un voyage à plusieurs', async () => {
 		const user = userEvent.setup();
 		show([line(tent, todo)]);
 
@@ -1942,7 +1874,7 @@ describe('TripLines : carte à une seule ligne', () => {
 		expect(within(sheet).getByTestId('sheet-add-2')).toBeVisible();
 	});
 
-	it('nomme la personne sur la fiche d’une carte nominative dans un voyage à plusieurs', async () => {
+	it('nomme la personne sur la fiche d’une ligne nominative dans un voyage à plusieurs', async () => {
 		const user = userEvent.setup();
 		show([line(tent, todo, { person: alice })]);
 
