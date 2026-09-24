@@ -420,3 +420,47 @@ test('un kit déplacé quitte son foyer, y laisse ses objets, et arrive entier',
 	await deleteShared(page, home);
 	await deleteShared(page, away);
 });
+
+test('la confirmation d’un retrait se tait à la demande, et se retrouve depuis le compte', async ({
+	page
+}) => {
+	await openAsShared(page);
+	const shared = await createShared(page, name('kits'));
+	await addPerson(page, 'Tom');
+
+	await openKits(page);
+	const kit = name('sac');
+	await newKit(page, kit, '');
+	await page.getByRole('link', { name: kit }).click();
+
+	for (const item of ['Lampe', 'Gourde', 'Boussole']) await addItem(page, item);
+
+	const emptyLine = (item: string) =>
+		group(page, item).getByRole('button', { name: 'Un de moins pour Tout le monde' }).click();
+
+	await emptyLine('Lampe');
+	await sheet(page).getByRole('checkbox', { name: 'Ne plus me le demander' }).check();
+	await sheet(page).getByRole('button', { name: 'Supprimer' }).click();
+	await expect(group(page, 'Lampe')).toHaveCount(0);
+
+	// Le choix est gardé par le navigateur, pas par la page : il tient au
+	// rechargement, et la gourde part sans qu'on redemande rien.
+	await page.reload();
+	await emptyLine('Gourde');
+	await expect(sheet(page)).toHaveCount(0);
+	await expect(group(page, 'Gourde')).toHaveCount(0);
+
+	await page.goto('/me');
+	const restore = page.getByRole('button', { name: 'Redemander confirmation' });
+	await restore.click();
+	await expect(restore).toHaveCount(0);
+
+	await openKits(page);
+	await page.getByRole('link', { name: kit }).click();
+	await emptyLine('Boussole');
+	await expect(sheet(page).getByRole('button', { name: 'Supprimer' })).toBeVisible();
+	await closeSheet(page);
+	await expect(group(page, 'Boussole')).toBeVisible();
+
+	await deleteShared(page, shared);
+});

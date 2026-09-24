@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { authErrors, changePassword } from '$lib/api.js';
 	import ActionButton from '$lib/components/ActionButton.svelte';
+	import ConfirmationsReset from '$lib/components/ConfirmationsReset.svelte';
 	import DeployedVersion from '$lib/components/DeployedVersion.svelte';
 	import EmailAddresses from '$lib/components/EmailAddresses.svelte';
 	import LanguageChoice from '$lib/components/LanguageChoice.svelte';
@@ -82,6 +83,12 @@
 	{#snippet heading()}{@render titled(m.me_appearance_title())}{/snippet}
 	<ThemeChoice />
 </Section>
+
+<ConfirmationsReset>
+	{#snippet heading()}
+		{@render titled(m.me_confirmations_title(), m.me_confirmations_intro())}
+	{/snippet}
+</ConfirmationsReset>
 
 <Section>
 	<ActionButton variant="outline" label={m.log_out()} onclick={disconnect} />
