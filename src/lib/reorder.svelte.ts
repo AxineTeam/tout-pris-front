@@ -41,6 +41,19 @@ export function orderAfterDrop<L>(
 	return [...rest.slice(0, landsAt), ...moving, ...rest.slice(landsAt)];
 }
 
+let held = false;
+
+// A drag and a pull-to-refresh start on the same finger, so the pull has to
+// know a row is held. Released from the window, which outlives the screen that
+// started the drag.
+export function holdingRow(): boolean {
+	return held;
+}
+
+function release() {
+	held = false;
+}
+
 export class Reordering<T extends { id: number }> {
 	#source: () => T[];
 	#anchor: HTMLElement | undefined;
@@ -87,6 +100,9 @@ export class Reordering<T extends { id: number }> {
 	grab(event: PointerEvent, row: T): void {
 		if (!this.#anchor || this.#source().length < 2) return;
 		this.#anchor.setPointerCapture(event.pointerId);
+		held = true;
+		window.addEventListener('pointerup', release, { once: true });
+		window.addEventListener('pointercancel', release, { once: true });
 		this.grabbed = row;
 		this.#from = this.#source();
 		this.#started = [...this.rows];
