@@ -36,7 +36,7 @@
 	let current = $derived(known.find((household) => household.id === Number(page.params.id)));
 </script>
 
-<header class="grid gap-1">
+<header class="grid grid-cols-[minmax(0,1fr)] gap-1">
 	<div class="flex items-center gap-2">
 		{#if back}
 			<a
