@@ -4,6 +4,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import BottomNav from '$lib/components/BottomNav.svelte';
+	import PullToRefresh from '$lib/components/PullToRefresh.svelte';
 	import { landing, remember } from '$lib/households.js';
 	import { householdsQuery } from '$lib/query.js';
 
@@ -21,10 +22,10 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
-	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+	<PullToRefresh>
 		<div class="mx-auto w-full max-w-3xl space-y-3.5 px-4 py-4">
 			{@render children()}
 		</div>
-	</div>
+	</PullToRefresh>
 	<BottomNav household={household?.id} />
 </div>
