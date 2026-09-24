@@ -1,5 +1,5 @@
 <script module lang="ts">
-	export type Sorting = 'order' | 'name';
+	export type Sorting = 'order' | 'name' | 'kit';
 	export type Direction = 'up' | 'down';
 </script>
 
@@ -216,13 +216,26 @@
 
 	let movable = $derived(sorted === 'order' && direction === 'up');
 
+	// An object carried by several kits answers to the one the household ranked
+	// first, and one carried by none closes the march — a rank no kit can reach,
+	// finite so that two kitless objects compare as equal rather than as `NaN`.
+	// Nothing else is compared, so the sort being stable is what keeps a kit's
+	// objects in the order the trip stores them.
+	const NO_KIT_RANK = Number.MAX_SAFE_INTEGER;
+
+	function firstKitRank(group: Grouped): number {
+		return group.kits.reduce((first, kit) => Math.min(first, kit.position), NO_KIT_RANK);
+	}
+
 	let shown = $derived.by(() => {
 		const base =
 			sorted === 'name'
 				? [...groups].sort((one, other) => one.item.name.localeCompare(other.item.name))
-				: movable
-					? dragging.rows
-					: groups;
+				: sorted === 'kit'
+					? [...groups].sort((one, other) => firstKitRank(one) - firstKitRank(other))
+					: movable
+						? dragging.rows
+						: groups;
 		return direction === 'down' ? [...base].reverse() : base;
 	});
 

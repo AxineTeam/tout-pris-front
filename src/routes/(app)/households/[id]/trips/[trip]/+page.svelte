@@ -3,6 +3,8 @@
 	import ArrowDownZAIcon from '@lucide/svelte/icons/arrow-down-z-a';
 	import ArrowUp01Icon from '@lucide/svelte/icons/arrow-up-0-1';
 	import ArrowUpAZIcon from '@lucide/svelte/icons/arrow-up-a-z';
+	import LayersArrowDownIcon from '@lucide/svelte/icons/layers-arrow-down';
+	import LayersArrowUpIcon from '@lucide/svelte/icons/layers-arrow-up';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { goto } from '$app/navigation';
@@ -49,6 +51,12 @@
 			icon: direction === 'down' && sorted === 'name' ? ArrowDownZAIcon : ArrowUpAZIcon,
 			label:
 				sorted === 'name' && direction === 'down' ? m.trip_sort_name_z_a() : m.trip_sort_name_a_z()
+		},
+		{
+			key: 'kit' as Sorting,
+			icon: direction === 'down' && sorted === 'kit' ? LayersArrowDownIcon : LayersArrowUpIcon,
+			label:
+				sorted === 'kit' && direction === 'down' ? m.trip_sort_kit_last() : m.trip_sort_kit_first()
 		}
 	]);
 

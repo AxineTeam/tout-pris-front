@@ -296,6 +296,8 @@
 	"trip_sheet_kits_explains": "Chaque kit coché reçoit les lignes de l’objet, avec les mêmes personnes et les mêmes quantités.",
 	"trip_sheet_kits_title": "Ajouter « {name} » à un kit",
 	"trip_sheet_lines": "Toutes les lignes — tape sur le statut pour l’avancer, appui long pour le choisir",
+	"trip_sort_kit_first": "Trier par kit, du premier kit au dernier",
+	"trip_sort_kit_last": "Trier par kit, du dernier kit au premier",
 	"trip_sort_name_a_z": "Trier par nom, de A à Z",
 	"trip_sort_name_z_a": "Trier par nom, de Z à A",
 	"trip_sort_order_first": "Trier dans l’ordre manuel, du premier au dernier",
