@@ -306,6 +306,7 @@
 	"trip_sort_name_z_a": "Trier par nom, de Z à A",
 	"trip_sort_order_first": "Trier dans l’ordre manuel, du premier au dernier",
 	"trip_sort_order_last": "Trier dans l’ordre manuel, du dernier au premier",
+	"trip_sort_title": "Trier la liste",
 	"trip_status_pick_title": "Statut de « {name} » pour {who}",
 	"trip_status_pill": "{name} pour {who} : {status}, avancer — appui long ou clic droit pour choisir",
 	"trip_subtitle": "{date} · {done} / {total} dans les sacs",

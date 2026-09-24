@@ -306,6 +306,7 @@
 	"trip_sort_name_z_a": "Sort by name, Z to A",
 	"trip_sort_order_first": "Sort by manual order, first to last",
 	"trip_sort_order_last": "Sort by manual order, last to first",
+	"trip_sort_title": "Sort the list",
 	"trip_status_pick_title": "Status of “{name}” for {who}",
 	"trip_status_pill": "{name} for {who}: {status}, advance — hold or right-click to choose",
 	"trip_subtitle": "{date} · {done} / {total} packed",
