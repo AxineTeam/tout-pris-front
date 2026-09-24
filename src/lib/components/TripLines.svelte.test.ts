@@ -683,6 +683,47 @@ describe('TripLines', () => {
 		expect(names()).toEqual(['Tente', 'Chaussettes', 'Carte']);
 	});
 
+	it('suit les kits et laisse les objets sans kit fermer la marche', () => {
+		const boots = itemType(4, 'Bottes');
+		show(
+			[
+				line(tent, todo, { kits: [holiday] }),
+				line(socks, todo, { kits: [camping] }),
+				line(map, todo),
+				line(boots, todo, { kits: [camping] })
+			],
+			'kit'
+		);
+
+		expect(names()).toEqual(['Chaussettes', 'Bottes', 'Tente', 'Carte']);
+	});
+
+	it('range un objet à plusieurs kits sous celui de plus petite position', () => {
+		show(
+			[line(socks, todo, { kits: [holiday] }), line(tent, todo, { kits: [seaside, camping] })],
+			'kit'
+		);
+
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+	});
+
+	it('renverse le tri par kit et fait passer les objets sans kit en tête', async () => {
+		const boots = itemType(4, 'Bottes');
+		const { rerender } = show(
+			[
+				line(map, todo),
+				line(tent, todo, { kits: [camping] }),
+				line(socks, todo, { kits: [holiday] }),
+				line(boots, todo, { kits: [camping] })
+			],
+			'kit'
+		);
+
+		expect(names()).toEqual(['Tente', 'Bottes', 'Chaussettes', 'Carte']);
+		await rerender({ direction: 'down' as Direction });
+		expect(names()).toEqual(['Carte', 'Chaussettes', 'Bottes', 'Tente']);
+	});
+
 	it('ne garde que les lignes du statut choisi', async () => {
 		const user = userEvent.setup();
 		show([line(socks, todo), line(tent, packed)]);
@@ -956,6 +997,12 @@ describe('TripLines', () => {
 
 	it('n’offre pas d’ancre sur un tri calculé', () => {
 		show([line(socks, todo), line(tent, todo)], 'name');
+
+		expect(screen.queryByTestId(`trip-item-handle-${socks.id}`)).not.toBeInTheDocument();
+	});
+
+	it('n’offre pas d’ancre sur un tri par kit', () => {
+		show([line(socks, todo, { kits: [camping] }), line(tent, todo)], 'kit');
 
 		expect(screen.queryByTestId(`trip-item-handle-${socks.id}`)).not.toBeInTheDocument();
 	});

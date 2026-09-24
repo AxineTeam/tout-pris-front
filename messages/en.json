@@ -296,6 +296,8 @@
 	"trip_sheet_kits_explains": "Each kit you tick receives the item’s lines, with the same people and the same quantities.",
 	"trip_sheet_kits_title": "Add “{name}” to a kit",
 	"trip_sheet_lines": "Every line — tap the status to advance it, hold to choose it",
+	"trip_sort_kit_first": "Sort by kit, first kit to last",
+	"trip_sort_kit_last": "Sort by kit, last kit to first",
 	"trip_sort_name_a_z": "Sort by name, A to Z",
 	"trip_sort_name_z_a": "Sort by name, Z to A",
 	"trip_sort_order_first": "Sort by manual order, first to last",
