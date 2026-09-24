@@ -19,6 +19,7 @@
 		type Person,
 		type TripItem
 	} from '$lib/api.js';
+	import DontAskAgain from '$lib/components/DontAskAgain.svelte';
 	import FiltersButton from '$lib/components/FiltersButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
@@ -30,6 +31,7 @@
 	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
 	import TripFilters, { NO_KIT } from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { confirmations } from '$lib/confirmations.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { kitsQuery, queryClient, tripLinesQuery } from '$lib/query.js';
 	import { orderAfterDrop, Reordering, rerank } from '$lib/reorder.svelte.js';
@@ -93,6 +95,7 @@
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 	let searchRow = $state.raw<HTMLElement>();
+	let stopAsking = $state(false);
 
 	// The lines come from the query cache and are replaced at every poll, so a
 	// hold lives here, by line id, rather than on the line. Each restart
@@ -456,6 +459,25 @@
 		opened = { kind: 'pick', item: line.item_type, line, back: opened };
 	}
 
+	// Silenced, the gesture writes straight away: `opened` stays whatever raised
+	// it — the sheet, or nothing at all — and `settleDialog` unwinds it as it
+	// does after a confirmed removal.
+	function removeLine(item: ItemType, line: TripItem, back: Opened | null) {
+		if (confirmations.asks('trip-line')) {
+			stopAsking = false;
+			opened = { kind: 'remove', item, line, back };
+		} else writeThenReload(() => deleteTripItem(household, trip, line.id));
+	}
+
+	// Silenced only once the line is gone: a refusal leaves the confirmation
+	// standing for the next attempt.
+	function confirmRemoval(line: TripItem) {
+		writeThenReload(async () => {
+			await deleteTripItem(household, trip, line.id);
+			if (stopAsking) confirmations.silence('trip-line');
+		});
+	}
+
 	function picked(line: TripItem, status: ItemStatus) {
 		if (opened?.kind !== 'pick') return;
 		if (status.id !== line.status.id) setStatus(line, status);
@@ -678,9 +700,7 @@
 					onunfold={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 					onadd={(person) => addFor(group, person)}
 					onless={(line) =>
-						line.quantity > 1
-							? step(line, -1)
-							: (opened = { kind: 'remove', item: group.item, line, back: null })}
+						line.quantity > 1 ? step(line, -1) : removeLine(group.item, line, null)}
 					onmore={(line) => step(line, 1)}
 					{controls}
 				>
@@ -749,11 +769,8 @@
 	>
 		<p class="text-muted-foreground text-sm">{m.trip_line_remove_explains()}</p>
 		<FormErrors errors={stepping.errors} />
-		<Button
-			variant="destructive"
-			disabled={stepping.busy}
-			onclick={() => writeThenReload(() => deleteTripItem(household, trip, line.id))}
-		>
+		<DontAskAgain bind:checked={stopAsking} />
+		<Button variant="destructive" disabled={stepping.busy} onclick={() => confirmRemoval(line)}>
 			{m.trip_line_remove()}
 		</Button>
 	</Modal>
@@ -803,7 +820,7 @@
 		onadvance={advance}
 		onpick={pickFrom}
 		onstep={step}
-		onremove={(line) => (opened = { kind: 'remove', item: shownSheet.item, line, back: opened })}
+		onremove={(line) => removeLine(shownSheet.item, line, opened)}
 		onadd={(person) => addFor(shownSheet, person)}
 		onedit={() => (opened = { kind: 'edit', item: shownSheet.item })}
 		onpicking={() => (stepping.errors = [])}

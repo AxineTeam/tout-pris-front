@@ -10,6 +10,7 @@
 		type KitItem,
 		type Person
 	} from '$lib/api.js';
+	import DontAskAgain from '$lib/components/DontAskAgain.svelte';
 	import FiltersButton from '$lib/components/FiltersButton.svelte';
 	import FormErrors from '$lib/components/FormErrors.svelte';
 	import ItemEditor from '$lib/components/ItemEditor.svelte';
@@ -18,6 +19,7 @@
 	import ObjectCard from '$lib/components/ObjectCard.svelte';
 	import TripFilters from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { confirmations } from '$lib/confirmations.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { orderAfterDrop, Reordering, rerank } from '$lib/reorder.svelte.js';
 	import { Submission } from '$lib/submission.svelte.js';
@@ -59,6 +61,7 @@
 	let fading: ReturnType<typeof setTimeout>;
 	let container = $state.raw<HTMLElement>();
 	let searchRow = $state.raw<HTMLElement>();
+	let stopAsking = $state(false);
 	let solePerson = $derived(persons.length === 1 ? persons[0].id : null);
 
 	function anchored(node: HTMLElement) {
@@ -153,6 +156,32 @@
 	function editItem(group: Grouped) {
 		submission.errors = [];
 		opened = { kind: 'edit', group };
+	}
+
+	// Silenced, the gesture writes straight away: the dialog that carried the
+	// confirmation never opens, so the write reports on the list's submission —
+	// the one the list shows the errors of and greys its steppers under — rather
+	// than on the dialog's, which nothing would be left to draw.
+	function removeLine(group: Grouped, line: KitItem) {
+		if (confirmations.asks('kit-line')) {
+			stopAsking = false;
+			opened = { kind: 'remove-line', group, line };
+			return;
+		}
+		stepping.run(async () => {
+			await deleteKitItem(household, kit.id, line.id);
+			await onchanged();
+			return [];
+		});
+	}
+
+	// Silenced only once the line is gone: a refusal leaves the confirmation
+	// standing for the next attempt.
+	function confirmLineRemoval(line: KitItem) {
+		writeThenReload(async () => {
+			await deleteKitItem(household, kit.id, line.id);
+			if (stopAsking) confirmations.silence('kit-line');
+		});
 	}
 
 	function step(line: KitItem, by: number) {
@@ -254,8 +283,7 @@
 					ongrab={(event) => dragging.grab(event, group)}
 					onunfold={() => (addRowOn = addRowOn === group.id ? null : group.id)}
 					onadd={(person) => addLine(group.item.id, person?.id ?? null)}
-					onless={(line) =>
-						line.quantity > 1 ? step(line, -1) : (opened = { kind: 'remove-line', group, line })}
+					onless={(line) => (line.quantity > 1 ? step(line, -1) : removeLine(group, line))}
 					onmore={(line) => step(line, 1)}
 				>
 					{#snippet trailing()}
@@ -303,10 +331,11 @@
 	>
 		<FormErrors errors={submission.errors} />
 		<p class="text-muted-foreground text-sm">{m.kit_line_remove_explains()}</p>
+		<DontAskAgain bind:checked={stopAsking} />
 		<Button
 			variant="destructive"
 			disabled={submission.busy}
-			onclick={() => writeThenReload(() => deleteKitItem(household, kit.id, line.id))}
+			onclick={() => confirmLineRemoval(line)}
 		>
 			{m.delete_it()}
 		</Button>
