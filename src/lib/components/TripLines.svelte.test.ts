@@ -1511,6 +1511,19 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		expect(leaving()).not.toBeInTheDocument();
 	});
 
+	it('dessine le disque avant la pastille de statut', async () => {
+		const first = line(socks, todo, { person: alice });
+		const other = line(tent, todo);
+		const { user, advance } = keep([first, other]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, other]);
+
+		expect(leaving()?.nextElementSibling).toBe(
+			screen.getByRole('button', { name: /Chaussettes pour Alice/ })
+		);
+	});
+
 	it('fait partir ensemble les lignes retenues, à l’échéance du dernier sursis', async () => {
 		const first = line(socks, todo, { person: alice });
 		const second = line(tent, todo);
