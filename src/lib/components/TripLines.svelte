@@ -609,18 +609,6 @@
 />
 
 {#snippet controls(line: TripItem)}
-	<StatusPill
-		status={line.status}
-		label={m.trip_status_pill({
-			name: line.item_type.name,
-			who: whoever(line.person),
-			status: line.status.name
-		})}
-		busy={stepping.busy}
-		tight
-		onadvance={() => advance(line)}
-		onpick={() => pickFrom(line)}
-	/>
 	{#if graced.has(line.id)}
 		{#key graceRestarts}
 			<svg
@@ -643,6 +631,18 @@
 			</svg>
 		{/key}
 	{/if}
+	<StatusPill
+		status={line.status}
+		label={m.trip_status_pill({
+			name: line.item_type.name,
+			who: whoever(line.person),
+			status: line.status.name
+		})}
+		busy={stepping.busy}
+		tight
+		onadvance={() => advance(line)}
+		onpick={() => pickFrom(line)}
+	/>
 {/snippet}
 
 <div {@attach anchored} class="grid gap-2.5">
