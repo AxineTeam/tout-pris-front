@@ -17,7 +17,7 @@
 	import ItemPicker from '$lib/components/ItemPicker.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import ObjectCard from '$lib/components/ObjectCard.svelte';
-	import TripFilters from '$lib/components/TripFilters.svelte';
+	import TripFilters, { type Chosen, matchesRow } from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { confirmations } from '$lib/confirmations.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -54,7 +54,7 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
-	let keptPeople = $state.raw<number[]>([]);
+	let keptPeople = $state.raw<Chosen[]>([]);
 	let opened = $state.raw<Opened | null>(null);
 	let highlighted = $state.raw<number | null>(null);
 	let addRowOn = $state.raw<number | null>(null);
@@ -74,15 +74,15 @@
 
 	let filterable = $derived(peopleOnLines.length > 1);
 
+	// A row nobody can reach cannot be applied either: without the second person
+	// the button and the chips are gone, and an exclusion still standing would
+	// empty the kit with nothing left to tap.
 	let chosenPeople = $derived(
-		keptPeople.filter((id) => peopleOnLines.some((one) => one.id === id))
+		filterable ? keptPeople.filter(({ id }) => peopleOnLines.some((one) => one.id === id)) : []
 	);
 
 	let filtered = $derived(
-		kit.items.filter(
-			(line) =>
-				chosenPeople.length === 0 || line.person === null || chosenPeople.includes(line.person.id)
-		)
+		kit.items.filter((line) => line.person === null || matchesRow(chosenPeople, [line.person.id]))
 	);
 
 	let groups = $derived.by(() => {
@@ -107,8 +107,7 @@
 		const taken = kit.items
 			.filter((line) => line.item_type.id === item)
 			.map((line) => line.person?.id ?? null);
-		const offered =
-			chosenPeople.length === 0 ? persons : persons.filter((one) => chosenPeople.includes(one.id));
+		const offered = persons.filter((one) => matchesRow(chosenPeople, [one.id]));
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 

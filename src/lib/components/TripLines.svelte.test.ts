@@ -159,6 +159,25 @@ async function filterBy(user: User, kind: string, name: string) {
 	await closeFilters(user);
 }
 
+// A chip cycles neutral, included, excluded, and the sign it shows belongs to
+// its name: the second tap is aimed at the name the first tap gave it.
+async function excludeBy(user: User, kind: string, name: string) {
+	await openFilters(user);
+	const row = filterRow(kind);
+	await user.click(within(row).getByRole('button', { name }));
+	await user.click(within(row).getByRole('button', { name: `+ ${name}` }));
+	await closeFilters(user);
+}
+
+// From included back to neutral, the cycle passes through the exclusion.
+async function releaseFilter(user: User, kind: string, name: string) {
+	await openFilters(user);
+	const row = filterRow(kind);
+	await user.click(within(row).getByRole('button', { name: `+ ${name}` }));
+	await user.click(within(row).getByRole('button', { name: `− ${name}` }));
+	await closeFilters(user);
+}
+
 async function unfoldAdd(user: User, name: string) {
 	await user.click(screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` }));
 }
@@ -324,8 +343,9 @@ describe('TripLines', () => {
 			screen.queryByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' })
 		).not.toBeInTheDocument();
 
-		// Le filtre relâché, elle en a de nouveau — mais la rangée reste repliée.
-		await filterBy(user, 'Personnes', 'Alice');
+		// Le filtre relâché — deux taps de plus, par l'exclusion — elle en a de
+		// nouveau, mais la rangée reste repliée.
+		await releaseFilter(user, 'Personnes', 'Alice');
 		expect(
 			screen.getByRole('button', { name: 'Ajouter une ligne à « Chaussettes »' })
 		).toHaveAttribute('aria-expanded', 'false');
@@ -583,8 +603,10 @@ describe('TripLines', () => {
 
 		await openFilters(user);
 		const again = filterRow('Personnes');
-		await user.click(within(again).getByRole('button', { name: 'Bob' }));
-		await user.click(within(again).getByRole('button', { name: 'Alice' }));
+		for (const who of ['Bob', 'Alice']) {
+			await user.click(within(again).getByRole('button', { name: `+ ${who}` }));
+			await user.click(within(again).getByRole('button', { name: `− ${who}` }));
+		}
 		expect(within(again).getByRole('button', { name: 'Tous' })).toHaveAttribute(
 			'aria-pressed',
 			'true'
@@ -1396,6 +1418,195 @@ describe('TripLines', () => {
 // Le sursis se joue entre deux versions des lignes : la tape écrit dans le
 // cache, et la page redonne les lignes au composant au tick suivant. Ici c'est
 // `rerender` qui joue la page.
+describe('TripLines : puces qui excluent', () => {
+	it('fait tourner une puce du neutre à l’inclusion, puis à l’exclusion', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await openFilters(user);
+		const row = filterRow('Kits');
+
+		await user.click(within(row).getByRole('button', { name: 'Camping' }));
+		expect(within(row).getByRole('button', { name: '+ Camping' })).toBeVisible();
+
+		await user.click(within(row).getByRole('button', { name: '+ Camping' }));
+		expect(within(row).getByRole('button', { name: '− Camping' })).toBeVisible();
+
+		await user.click(within(row).getByRole('button', { name: '− Camping' }));
+		expect(within(row).getByRole('button', { name: 'Camping' })).toBeVisible();
+		expect(within(row).getByRole('button', { name: 'Tous' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+	});
+
+	it('n’écarte que les lignes dont un kit est celui qu’on exclut', async () => {
+		const user = userEvent.setup();
+		show([
+			line(tent, todo, { kits: [camping, holiday] }),
+			line(socks, todo, { kits: [holiday] }),
+			line(map, todo)
+		]);
+
+		await excludeBy(user, 'Kits', 'Camping');
+
+		expect(names()).toEqual(['Chaussettes', 'Carte']);
+	});
+
+	it('garde les lignes communes quand on exclut une personne', async () => {
+		const user = userEvent.setup();
+		show([
+			line(socks, todo, { person: alice }),
+			line(map, todo, { person: bob }),
+			line(tent, todo)
+		]);
+
+		await excludeBy(user, 'Personnes', 'Alice');
+
+		expect(names()).toEqual(['Carte', 'Tente']);
+	});
+
+	it('montre tout sauf le statut exclu', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo), line(tent, packed)]);
+
+		await excludeBy(user, 'Statuts', 'Rangé');
+
+		expect(names()).toEqual(['Chaussettes']);
+	});
+
+	it('croise une inclusion et une exclusion de la même rangée', async () => {
+		const user = userEvent.setup();
+		show([
+			line(socks, todo, { kits: [holiday] }),
+			line(tent, todo, { kits: [holiday, camping] }),
+			line(map, todo, { kits: [camping] })
+		]);
+
+		await openFilters(user);
+		const row = filterRow('Kits');
+		await user.click(within(row).getByRole('button', { name: 'Vacances' }));
+		await user.click(within(row).getByRole('button', { name: 'Camping' }));
+		await user.click(within(row).getByRole('button', { name: '+ Camping' }));
+		await closeFilters(user);
+
+		expect(names()).toEqual(['Chaussettes']);
+	});
+
+	it('écarte les lignes sans kit quand « dans aucun kit » est exclu', async () => {
+		const user = userEvent.setup();
+		show([
+			line(tent, todo, { kits: [camping] }),
+			line(socks, todo, { kits: [holiday] }),
+			line(map, todo)
+		]);
+
+		await excludeBy(user, 'Kits', 'Dans aucun kit');
+
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+	});
+
+	it('réunit les objets sans kit, sauf ceux d’un kit exclu', async () => {
+		const user = userEvent.setup();
+		show([
+			line(tent, todo, { kits: [camping] }),
+			line(socks, todo, { kits: [holiday, camping] }),
+			line(map, todo)
+		]);
+
+		await openFilters(user);
+		const row = filterRow('Kits');
+		await user.click(within(row).getByRole('button', { name: 'Dans aucun kit' }));
+		await user.click(within(row).getByRole('button', { name: 'Vacances' }));
+		await user.click(within(row).getByRole('button', { name: 'Camping' }));
+		await user.click(within(row).getByRole('button', { name: '+ Camping' }));
+		await closeFilters(user);
+
+		expect(names()).toEqual(['Carte']);
+	});
+
+	it('laisse le statut au serveur quand la rangée ne fait qu’exclure', async () => {
+		const user = userEvent.setup();
+		show([line(socks, packed), line(map, todo)]);
+
+		await excludeBy(user, 'Statuts', 'Rangé');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: null }]);
+		expect(sent()[0].status).toBeUndefined();
+	});
+
+	it('crée la ligne commune quand la rangée des personnes ne fait qu’exclure', async () => {
+		const user = userEvent.setup();
+		show([line(socks, todo, { person: alice }), line(map, todo, { person: bob })]);
+
+		await excludeBy(user, 'Personnes', 'Alice');
+		await chooseFromSearch(user, 'Tente');
+
+		expect(sent()).toEqual([{ item_type: tent.id, person: null }]);
+	});
+
+	it('compte les exclusions comme les inclusions sur le bouton', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, packed, { person: alice })]);
+
+		await excludeBy(user, 'Kits', 'Camping');
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+
+		await filterBy(user, 'Statuts', 'Rangé');
+
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('2');
+		expect(screen.getByRole('button', { name: 'Filtres — actifs : 2' })).toBeInTheDocument();
+	});
+
+	it('« Tous » remet à neutre une rangée qui exclut', async () => {
+		const user = userEvent.setup();
+		show([line(tent, todo, { kits: [camping] }), line(socks, todo)]);
+
+		await excludeBy(user, 'Kits', 'Camping');
+		expect(names()).toEqual(['Chaussettes']);
+
+		await openFilters(user);
+		const row = filterRow('Kits');
+		expect(within(row).getByRole('button', { name: 'Tous' })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		await user.click(within(row).getByRole('button', { name: 'Tous' }));
+		await closeFilters(user);
+
+		expect(names()).toEqual(['Tente', 'Chaussettes']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+	});
+
+	it('retient sans l’appliquer une exclusion dont le kit a quitté le voyage', async () => {
+		const user = userEvent.setup();
+		const props = {
+			household: 7,
+			trip: 3,
+			lines: [line(tent, todo, { kits: [camping] }), line(socks, todo)],
+			participants: [alice],
+			items: [],
+			kits: [camping],
+			statuses: catalogue,
+			onchanged
+		};
+		const { rerender } = render(TripLines, { props });
+
+		await excludeBy(user, 'Kits', 'Camping');
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+
+		await rerender({ lines: [line(socks, todo), line(map, todo)] });
+		expect(names()).toEqual(['Chaussettes', 'Carte']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('');
+
+		await rerender({ lines: [line(tent, todo, { kits: [camping] }), line(socks, todo)] });
+		expect(names()).toEqual(['Chaussettes']);
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+	});
+});
+
 describe('TripLines : lignes filtrées remontées à la page', () => {
 	const onfiltered = vi.fn();
 
@@ -1583,10 +1794,7 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		expect(names()).toEqual(['Chaussettes']);
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
 		await openFilters(user);
-		expect(within(filterRow('Statuts')).getByRole('button', { name: 'À prendre' })).toHaveAttribute(
-			'aria-pressed',
-			'true'
-		);
+		expect(within(filterRow('Statuts')).getByRole('button', { name: '+ À prendre' })).toBeVisible();
 	});
 
 	it('remet le disque à plein quand la quantité d’une ligne retenue bouge', async () => {

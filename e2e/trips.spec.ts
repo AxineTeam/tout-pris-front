@@ -262,8 +262,8 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 	await closeSheet(page);
 	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
 
-	// « Tous » est la sortie de la rangée, et il se rallume seul quand le dernier
-	// choix de l'autre rangée est décoché.
+	// « Tous » est la sortie de la rangée. Une deuxième pression sur une puce la
+	// fait passer en exclusion, et la liste montre tout sauf ce qu'elle nomme.
 	await openFilters(page);
 	await statuses.getByRole('button', { name: 'Tous' }).click();
 	await expect(statuses.getByRole('button', { name: 'Tous' })).toHaveAttribute(
@@ -271,7 +271,21 @@ test('un voyage se remplit, ses lignes avancent au doigt, et l’ordre tient au 
 		'true'
 	);
 	for (const who of ['Léa', 'Paul']) {
-		await people.getByRole('button', { name: who }).click();
+		await people.getByRole('button', { name: `+ ${who}` }).click();
+	}
+	await closeSheet(page);
+	await expect(page.getByTestId('trip-filters-open')).toHaveText('2');
+	await expect(lineOf(page, 'Brosse à dents', 'Léa')).toHaveCount(0);
+	await expect(lineOf(page, 'Brosse à dents', 'Paul')).toHaveCount(0);
+	// Ce que la maison partage reste : les deux lignes communes tiennent.
+	await expect.poll(() => objectNames(page)).toEqual(['Brosse à dents', 'Tente']);
+	await expect(lineOf(page, 'Brosse à dents', 'Tout le monde')).toBeVisible();
+
+	// Une troisième pression rend la puce au neutre, et « Tous » se rallume seul
+	// quand le dernier choix de la rangée s'en va.
+	await openFilters(page);
+	for (const who of ['Léa', 'Paul']) {
+		await people.getByRole('button', { name: `− ${who}` }).click();
 	}
 	await expect(people.getByRole('button', { name: 'Tous' })).toHaveAttribute(
 		'aria-pressed',

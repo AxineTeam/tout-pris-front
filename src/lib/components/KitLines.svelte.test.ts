@@ -81,6 +81,16 @@ async function filterBy(user: User, name: string) {
 	await closeFilters(user);
 }
 
+// A chip cycles neutral, included, excluded, and the sign it shows belongs to
+// its name: the second tap is aimed at the name the first tap gave it.
+async function excludeBy(user: User, name: string) {
+	await openFilters(user);
+	const row = filterRow('Personnes');
+	await user.click(within(row).getByRole('button', { name }));
+	await user.click(within(row).getByRole('button', { name: `+ ${name}` }));
+	await closeFilters(user);
+}
+
 function unfoldAdd(user: ReturnType<typeof userEvent.setup>, name: string) {
 	return user.click(screen.getByRole('button', { name: `Ajouter une ligne à « ${name} »` }));
 }
@@ -373,6 +383,40 @@ describe('KitLines : filtre par personne', () => {
 		expect(within(card('Chaussettes')).queryByText('Bob')).not.toBeInTheDocument();
 		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
 		expect(screen.getByRole('button', { name: 'Filtres — actifs : 1' })).toBeInTheDocument();
+	});
+
+	it('écarte les lignes de la personne exclue et garde les communes', async () => {
+		const user = userEvent.setup();
+		show(
+			[
+				line(socks, { person: alice }),
+				line(socks, { id: 21, person: bob }),
+				line(tent),
+				line(map, { person: bob })
+			],
+			[alice, bob]
+		);
+
+		await excludeBy(user, 'Alice');
+
+		expect(names()).toEqual(['Chaussettes', 'Tente', 'Carte']);
+		expect(within(card('Chaussettes')).queryByText('Alice')).not.toBeInTheDocument();
+		expect(screen.getByTestId('trip-filters-open')).toHaveTextContent('1');
+	});
+
+	it('cesse d’appliquer une exclusion quand la rangée ne nomme plus qu’une personne', async () => {
+		const user = userEvent.setup();
+		const forAlice = line(socks, { person: alice });
+		const forBob = line(tent, { person: bob });
+		const { rerender } = show([forAlice, forBob], [alice, bob]);
+
+		await excludeBy(user, 'Alice');
+		expect(names()).toEqual(['Tente']);
+
+		await rerender({ kit: bag([forAlice, line(map)]) });
+
+		expect(screen.queryByTestId('trip-filters-open')).not.toBeInTheDocument();
+		expect(names()).toEqual(['Chaussettes', 'Carte']);
 	});
 
 	it('cesse de compter un choix dont la personne n’a plus de ligne, et le retrouve avec elle', async () => {
