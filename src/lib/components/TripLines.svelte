@@ -98,39 +98,41 @@
 	let stopAsking = $state(false);
 
 	// The lines come from the query cache and are replaced at every poll, so a
-	// hold lives here, by line id, rather than on the line. Each restart
-	// replaces the entry, which is what remounts the disc. The status the line
+	// hold lives here, by line id, rather than on the line. The status the line
 	// wore when the hold began is what the filter matched, and it keeps that
-	// status offered until the hold ends.
+	// status offered until the hold ends. One deadline covers the whole
+	// register: a hold taken on any line pushes it back, so held lines leave
+	// together instead of one at a time under a list that keeps shifting.
+	// `graceRestarts` counts those pushes, which is what remounts every disc.
 	const GRACE_MS = 4000;
-	const graced = new SvelteMap<
-		number,
-		{ wore: ItemStatus; timer: ReturnType<typeof setTimeout> }
-	>();
+	const graced = new SvelteMap<number, ItemStatus>();
+	let graceRestarts = $state.raw(0);
+	let leaving: ReturnType<typeof setTimeout> | undefined;
 
 	function release(id: number) {
-		const hold = graced.get(id);
-		if (!hold) return;
-		clearTimeout(hold.timer);
-		graced.delete(id);
+		if (!graced.delete(id)) return;
+		if (graced.size === 0) releaseAll();
 	}
 
 	function releaseAll() {
-		for (const hold of graced.values()) clearTimeout(hold.timer);
+		clearTimeout(leaving);
+		leaving = undefined;
 		graced.clear();
 	}
 
 	function grace(id: number, wore: ItemStatus) {
-		release(id);
-		graced.set(id, { wore, timer: setTimeout(() => graced.delete(id), GRACE_MS) });
+		graced.set(id, wore);
+		clearTimeout(leaving);
+		leaving = setTimeout(releaseAll, GRACE_MS);
+		graceRestarts += 1;
 	}
 
 	// Only a line the filter was showing gets a grace: one hidden by a kit and
 	// advanced from the sheet has nothing to leave.
 	function reconsider(before: TripItem, after: TripItem) {
-		const held = graced.get(after.id);
+		const wore = graced.get(after.id);
 		if (matchesFilters(after)) release(after.id);
-		else if (held) grace(after.id, held.wore);
+		else if (wore) grace(after.id, wore);
 		else if (matchesFilters(before)) grace(after.id, before.status);
 	}
 
@@ -153,7 +155,7 @@
 	let statusesOnLines = $derived.by(() => {
 		const found: ItemStatus[] = [];
 		const worn = lines.map((line) => line.status);
-		for (const hold of graced.values()) worn.push(hold.wore);
+		for (const wore of graced.values()) worn.push(wore);
 		for (const status of worn) {
 			if (!found.some((known) => known.id === status.id)) found.push(status);
 		}
@@ -620,7 +622,7 @@
 		onpick={() => pickFrom(line)}
 	/>
 	{#if graced.has(line.id)}
-		{#key graced.get(line.id)}
+		{#key graceRestarts}
 			<svg
 				role="img"
 				aria-label={m.trip_line_leaving()}
