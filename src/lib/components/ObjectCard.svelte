@@ -141,7 +141,7 @@
 		{/if}
 	</div>
 
-	<ul class="grid min-w-0">
+	<ul class="bg-background grid min-w-0">
 		{#each lines as line (line.id)}
 			<li class="border-border/60 flex min-h-9 min-w-0 items-center gap-2 border-t">
 				<PersonAvatar person={line.person} small />
