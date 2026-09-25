@@ -1456,6 +1456,8 @@ describe('TripLines : lignes filtrées remontées à la page', () => {
 
 describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 	const leaving = () => screen.queryByRole('img', { name: 'Quitte la liste dans un instant' });
+	const allLeaving = () =>
+		screen.queryAllByRole('img', { name: 'Quitte la liste dans un instant' });
 
 	const onfiltered = vi.fn();
 
@@ -1507,6 +1509,51 @@ describe('TripLines : sursis d’une ligne qui sort du filtre', () => {
 		await elapse(100);
 		expect(names()).toEqual(['Tente']);
 		expect(leaving()).not.toBeInTheDocument();
+	});
+
+	it('fait partir ensemble les lignes retenues, à l’échéance du dernier sursis', async () => {
+		const first = line(socks, todo, { person: alice });
+		const second = line(tent, todo);
+		const stays = line(map, todo);
+		const { user, advance, elapse } = keep([first, second, stays]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, second, stays]);
+		await elapse(3000);
+		await advance(/Tente pour Tout le monde/, [
+			{ ...first, status: packed },
+			{ ...second, status: packed },
+			stays
+		]);
+
+		expect(allLeaving()).toHaveLength(2);
+
+		await elapse(3900);
+		expect(names()).toEqual(['Chaussettes', 'Tente', 'Carte']);
+
+		await elapse(100);
+		expect(names()).toEqual(['Carte']);
+		expect(allLeaving()).toHaveLength(0);
+	});
+
+	it('relance le disque des lignes déjà retenues quand une autre prend un sursis', async () => {
+		const first = line(socks, todo, { person: alice });
+		const second = line(tent, todo);
+		const stays = line(map, todo);
+		const { user, advance, elapse } = keep([first, second, stays]);
+		await filterBy(user, 'Statuts', 'À prendre');
+
+		await advance(/Chaussettes pour Alice/, [{ ...first, status: packed }, second, stays]);
+		await elapse(3000);
+		const drained = leaving();
+
+		await advance(/Tente pour Tout le monde/, [
+			{ ...first, status: packed },
+			{ ...second, status: packed },
+			stays
+		]);
+
+		expect(drained).not.toBeInTheDocument();
 	});
 
 	it('compte la ligne retenue dans les lignes remontées jusqu’à l’échéance', async () => {
