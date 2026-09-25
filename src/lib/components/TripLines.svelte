@@ -29,7 +29,12 @@
 	import RowCard from '$lib/components/RowCard.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import TripItemSheet from '$lib/components/TripItemSheet.svelte';
-	import TripFilters, { NO_KIT } from '$lib/components/TripFilters.svelte';
+	import TripFilters, {
+		type Chosen,
+		included,
+		matchesRow,
+		NO_KIT
+	} from '$lib/components/TripFilters.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { confirmations } from '$lib/confirmations.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -83,9 +88,9 @@
 	const stepping = new Submission();
 	const dragging = new Reordering(() => groups);
 	let typed = $state('');
-	let keptKits = $state.raw<number[]>([]);
-	let keptPeople = $state.raw<number[]>([]);
-	let keptStatuses = $state.raw<number[]>([]);
+	let keptKits = $state.raw<Chosen[]>([]);
+	let keptPeople = $state.raw<Chosen[]>([]);
+	let keptStatuses = $state.raw<Chosen[]>([]);
 	// One dialog at a time, held as one state: three flags side by side let two
 	// of them be true at once, which is how a confirmation ends up stacked on the
 	// sheet that raised it.
@@ -176,30 +181,34 @@
 	// not the kept. It is remembered rather than applied: the kit coming back
 	// brings the choice back with it.
 	let chosenKits = $derived(
-		keptKits.filter((id) =>
+		keptKits.filter(({ id }) =>
 			id === NO_KIT ? noKitOffered : kitsOnLines.some((kit) => kit.id === id)
 		)
 	);
 	let chosenPeople = $derived(
 		participants.length > 1
-			? keptPeople.filter((id) => participants.some((one) => one.id === id))
+			? keptPeople.filter(({ id }) => participants.some((one) => one.id === id))
 			: []
 	);
 	let soleParticipant = $derived(participants.length === 1 ? participants[0].id : null);
 	let chosenStatuses = $derived(
-		keptStatuses.filter((id) => statusesOnLines.some((one) => one.id === id))
+		keptStatuses.filter(({ id }) => statusesOnLines.some((one) => one.id === id))
 	);
 
+	// Carrying no kit is one more thing to carry, so the row reads the same way
+	// whether it keeps a kit, drops one, or answers about the kitless lines.
+	function kitsCarried(line: TripItem): number[] {
+		return line.kits.length === 0 ? [NO_KIT] : line.kits.map((kit) => kit.id);
+	}
+
+	// The common line is everyone's: no choice made on one person, kept or
+	// dropped, takes away what the household shares.
 	function matchesFilters(line: TripItem): boolean {
-		const inChosenKitOrWithoutKit =
-			chosenKits.length === 0 ||
-			line.kits.some((kit) => chosenKits.includes(kit.id)) ||
-			(chosenKits.includes(NO_KIT) && line.kits.length === 0);
-		const commonOrForChosenPerson =
-			chosenPeople.length === 0 || line.person === null || chosenPeople.includes(line.person.id);
-		const wearsChosenStatus =
-			chosenStatuses.length === 0 || chosenStatuses.includes(line.status.id);
-		return inChosenKitOrWithoutKit && commonOrForChosenPerson && wearsChosenStatus;
+		return (
+			matchesRow(chosenKits, kitsCarried(line)) &&
+			(line.person === null || matchesRow(chosenPeople, [line.person.id])) &&
+			matchesRow(chosenStatuses, [line.status.id])
+		);
 	}
 
 	let filtered = $derived(lines.filter((line) => matchesFilters(line) || graced.has(line.id)));
@@ -270,10 +279,7 @@
 	function whoeverWithoutLine(item: number): (Person | null)[] {
 		if (participants.length <= 1) return [];
 		const taken = takenFor(item);
-		const offered =
-			chosenPeople.length === 0
-				? participants
-				: participants.filter((one) => chosenPeople.includes(one.id));
+		const offered = participants.filter((one) => matchesRow(chosenPeople, [one.id]));
 		return [null, ...offered].filter((person) => !taken.includes(person?.id ?? null));
 	}
 
@@ -375,7 +381,7 @@
 
 	// Changing the status filter is a deliberate rereading of the list: nothing
 	// the previous filter was holding survives it.
-	function keepStatuses(chosen: number[]) {
+	function keepStatuses(chosen: Chosen[]) {
 		keptStatuses = chosen;
 		releaseAll();
 	}
@@ -391,12 +397,14 @@
 	// The kit row is left out on purpose: adding to a kit rewrites the
 	// household's kit for every trip to come, not this trip's list.
 	function linesToCreate(item: number): NewLine[] {
-		const status = chosenStatuses.length === 1 ? chosenStatuses[0] : undefined;
+		const wantedStatuses = included(chosenStatuses);
+		const status = wantedStatuses.length === 1 ? wantedStatuses[0] : undefined;
+		const wantedPeople = included(chosenPeople);
 		const taken = takenFor(item);
-		if (chosenPeople.length === 0) {
+		if (wantedPeople.length === 0) {
 			return taken.length === 0 ? [{ person: soleParticipant, status }] : [];
 		}
-		return chosenPeople
+		return wantedPeople
 			.filter((person) => !taken.includes(person))
 			.map((person) => ({ person, status }));
 	}

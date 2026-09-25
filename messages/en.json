@@ -267,6 +267,8 @@
 	"trip_embark": "Take {name}",
 	"trip_empty": "Nothing in this trip yet.",
 	"trip_filter_all": "All",
+	"trip_filter_excluded": "− {name}",
+	"trip_filter_included": "+ {name}",
 	"trip_filter_kits": "Kits",
 	"trip_filter_no_kit": "In no kit",
 	"trip_filter_people": "People",
