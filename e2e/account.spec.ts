@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectRefusalShown } from './account';
+import { expectRefusalShown, openAsShared } from './account';
 
 test('une route protégée renvoie vers la connexion', async ({ page }) => {
 	await page.goto('/');
@@ -54,4 +54,28 @@ test('le pied de page nomme la version du front à un visiteur anonyme', async (
 	await page.goto('/account/login');
 
 	await expect(page.getByTestId('deployed-version')).toContainText('front dev');
+});
+
+test('une session ouverte ne revoit pas l’écran de connexion', async ({ page }) => {
+	await openAsShared(page);
+
+	await page.goto('/account/login');
+
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
+});
+
+test('une session ouverte retrouve la page qu’elle demandait', async ({ page }) => {
+	await openAsShared(page);
+
+	await page.goto('/account/login?next=%2Fme');
+
+	await expect(page).toHaveURL('/me');
+});
+
+test('une session ouverte ne revoit pas l’écran d’inscription', async ({ page }) => {
+	await openAsShared(page);
+
+	await page.goto('/account/signup');
+
+	await expect(page).toHaveURL(/\/households\/\d+\/trips$/);
 });

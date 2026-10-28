@@ -52,7 +52,7 @@ test('le dernier foyer visité est celui où l’on revient', async ({ page }) =
 	expect(new URL(page.url()).pathname).not.toBe(home);
 	const visited = new URL(page.url()).pathname;
 
-	await page.goto('/account/login');
+	await page.goto('/account/password/reset');
 	await page.goto('/');
 
 	await expect(page).toHaveURL(`${visited}/trips`);

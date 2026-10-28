@@ -1,5 +1,7 @@
+import { redirect } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
+import { session } from '$lib/session.svelte.js';
 
 function localPath(candidate: string | null): string | null {
 	if (!candidate) return null;
@@ -18,4 +20,9 @@ export function loginPath(next: string): string {
 
 export function goToLogin(next: string): Promise<void> {
 	return goto(loginPath(next));
+}
+
+export async function redirectWhenAuthenticated({ url }: { url: URL }): Promise<void> {
+	await session.ensureLoaded();
+	if (session.authenticated) redirect(307, localPath(url.searchParams.get('next')) ?? resolve('/'));
 }
