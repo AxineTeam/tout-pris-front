@@ -23,10 +23,17 @@ services:
     environment:
       EMAIL_HOST: mailpit
       EMAIL_PORT: 1025
+      MEMCACHED_LOCATION: memcached:11211
+      WEB_CONCURRENCY: '2'
     ports:
       - '8000:8000'
     depends_on:
       - mailpit
+      - memcached
+
+  memcached:
+    image: memcached:alpine
+    command: ['-m', '64']
 
   mailpit:
     image: axllent/mailpit:latest
