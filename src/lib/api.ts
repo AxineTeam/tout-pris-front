@@ -26,10 +26,12 @@ function methodOf(init: RequestInit): string {
 }
 
 function send(url: string, init: RequestInit): Promise<Response> {
-	const token = SAFE_METHODS.has(methodOf(init)) ? null : csrfToken();
+	const writing = !SAFE_METHODS.has(methodOf(init));
+	const token = writing ? csrfToken() : null;
 	return fetch(url, {
 		...init,
 		credentials: 'same-origin',
+		keepalive: writing,
 		headers: {
 			'Content-Type': 'application/json',
 			...(token ? { 'X-CSRFToken': token } : {}),
